@@ -46,16 +46,16 @@ Por el contrario, un **agente con herramientas (Tool Calling Agent)** es un sist
 ```mermaid
 flowchart LR
     subgraph Chatbot["Chatbot Convencional (Caja Negra)"]
-        U1[Usuario] --> M1[LLM / Pesos Estáticos] --> R1[Respuesta Texto (Riesgo Alucinación)]
+        U1["Usuario"] --> M1["LLM / Pesos Estáticos"] --> R1["Respuesta Texto (Riesgo Alucinación)"]
     end
 
     subgraph Agente["Agente de Ingeniería (Sistema Distribuido)"]
-        U2[Usuario] --> M2[LLM: Inferencia & Propuesta]
-        M2 -->|Tool Proposal JSON| RT[Runtime CPU: Validación & Ejecución]
-        RT -->|Operación Transaccional| DB[(MySQL)]
+        U2["Usuario"] --> M2["LLM: Inferencia & Propuesta"]
+        M2 -->|Tool Proposal JSON| RT["Runtime CPU: Validación & Ejecución"]
+        RT -->|Operación Transaccional| DB[("MySQL")]
         DB -->|Datos Reales| RT
         RT -->|Observación Role 'tool'| M2
-        M2 -->|Síntesis Grounded| R2[Respuesta Factualmente Verificable]
+        M2 -->|Síntesis Grounded| R2["Respuesta Factualmente Verificable"]
     end
 ```
 
