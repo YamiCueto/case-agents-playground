@@ -95,18 +95,18 @@ Configurar las variables de entorno:
 ```bash
 cp .env.example .env
 ```
-Editar `.env` según la configuración local de MySQL y llama.cpp:
+Editar `.env` según la configuración local de MySQL y llama.cpp (utilizar credenciales propias):
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_NAME=cfa_tickets
-DB_ADMIN_USER=root
-DB_ADMIN_PASSWORD=
+DB_ADMIN_USER=YOUR_DB_ADMIN_USER
+DB_ADMIN_PASSWORD=YOUR_DB_ADMIN_PASSWORD
 DB_APP_USER=cfa_app_user
-DB_APP_PASSWORD=cfa_secure_pass_2026
+DB_APP_PASSWORD=YOUR_DB_APP_PASSWORD
 
 LLM_BASE_URL=http://127.0.0.1:8080/v1
-LLM_API_KEY=local-llama-cpp
+LLM_API_KEY=YOUR_LLM_API_KEY
 ```
 
 Inicializar base de datos y migraciones:
@@ -155,12 +155,13 @@ Ejecuta la suite visual y funcional en 5 resoluciones:
 
 ---
 
-## 🔒 Seguridad y Privacidad
+## 🛡️ Naturaleza de los Datos, Independencia y Seguridad
 
-* Las credenciales locales y archivos `.env` se encuentran estrictamente excluidos del control de versiones mediante `.gitignore`.
-* La interfaz utiliza un modo de simulación de personas para pruebas locales (`usr_carlos`, `usr_laura`).
-* El backend sanitiza los payloads de eventos para prevenir exposición de datos sensibles.
-* El modo Replay es puramente de lectura en frontend y no desencadena llamadas al LLM ni mutaciones de datos.
+* **Proyecto Independiente:** El **Agent Engineering Playground** es un proyecto técnico y experimental enteramente independiente.
+* **Datos 100% Sintéticos y Emulados:** El sistema de tickets, sus códigos, categorías, usuarios simulados (`usr_carlos`, `usr_laura`, `supervisor_juan`) y registros históricos fueron generados de manera sintética para fines pedagógicos de evaluación y observabilidad de sistemas agénticos. No pertenecen a ninguna institución financiera, cooperativa, empresa ni entidad real.
+* **Identificadores Técnicos Transitorios:** Los nombres técnicos `cfa_tickets` (base de datos MySQL) y `cfa_app_user` (cuenta de base de datos) se conservan temporalmente de forma exclusiva para mantener la compatibilidad operativa del entorno local. No constituyen asociación, marca ni propiedad institucional.
+* **Gestión de Secretos:** Los archivos de documentación y plantillas emplean únicamente marcadores de posición genéricos (`YOUR_DB_PASSWORD`). El archivo de configuración real `.env` está estrictamente excluido del repositorio mediante `.gitignore`.
+* **Modo Replay Seguro:** La reproducción del flujo opera en memoria sobre el `EventStore` del frontend; no realiza mutaciones en base de datos ni invoca al modelo de lenguaje.
 
 ---
 
