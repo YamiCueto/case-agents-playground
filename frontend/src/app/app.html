@@ -1,0 +1,61 @@
+<div class="playground-layout">
+  <app-header
+    [agents]="agents()"
+    [personas]="personas()"
+    [selectedAgentId]="selectedAgentId()"
+    [selectedPersona]="selectedPersona()"
+    [isDbDrawerOpen]="isDbDrawerOpen()"
+    (selectAgent)="onSelectAgent($event)"
+    (selectPersona)="onSelectPersona($event)"
+    (toggleDbDrawer)="toggleDbDrawer()"
+  ></app-header>
+
+  <div class="mobile-tabs-toggle">
+    <button 
+      class="mobile-tab-btn" 
+      [class.active]="activeMobileTab() === 'chat'"
+      (click)="activeMobileTab.set('chat')"
+    >
+      💬 Conversación
+    </button>
+    <button 
+      class="mobile-tab-btn" 
+      [class.active]="activeMobileTab() === 'inspector'"
+      (click)="activeMobileTab.set('inspector')"
+    >
+      🔍 Inspector de Runtime ({{ currentRunEvents().length }})
+    </button>
+  </div>
+
+  <main class="playground-main">
+    <section 
+      class="main-pane chat-pane"
+      [class.mobile-hidden]="activeMobileTab() !== 'chat'"
+    >
+      <app-chat-panel
+        [messages]="messages()"
+        [isStreaming]="isStreaming()"
+        (sendMessage)="onSendMessage($event)"
+        (stopStream)="onStopStream()"
+      ></app-chat-panel>
+    </section>
+
+    <section 
+      class="main-pane inspector-pane"
+      [class.mobile-hidden]="activeMobileTab() !== 'inspector'"
+    >
+      <app-runtime-inspector
+        [events]="currentRunEvents()"
+        [activeAgentId]="selectedAgentId()"
+      ></app-runtime-inspector>
+    </section>
+  </main>
+
+  @if (isDbDrawerOpen()) {
+    <app-tickets-drawer
+      [tickets]="tickets()"
+      (close)="toggleDbDrawer()"
+      (refresh)="refreshTickets()"
+    ></app-tickets-drawer>
+  }
+</div>
