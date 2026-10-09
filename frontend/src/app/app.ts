@@ -8,7 +8,7 @@ import { AgentStreamService } from './services/agent-stream.service';
 import { TicketsService } from './services/tickets.service';
 import { EventStoreService } from './services/event-store.service';
 import { PresentationControllerService } from './services/presentation-controller.service';
-import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary } from './models/agent.models';
+import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary, HealthStatus } from './models/agent.models';
 
 @Component({
   selector: 'app-root',
@@ -27,7 +27,7 @@ export class App implements OnInit {
   private readonly streamService = inject(AgentStreamService);
   private readonly ticketsService = inject(TicketsService);
   private readonly eventStore = inject(EventStoreService);
-  private readonly controller = inject(PresentationControllerService);
+  readonly controller = inject(PresentationControllerService);
 
   readonly agents = signal<AgentMeta[]>([]);
   readonly personas = signal<PersonaInfo[]>([]);
@@ -35,6 +35,10 @@ export class App implements OnInit {
   readonly selectedPersona = signal<string>('usr_carlos');
   readonly isDbDrawerOpen = signal<boolean>(false);
   readonly activeMobileTab = signal<'chat' | 'inspector'>('chat');
+  readonly health = signal<HealthStatus | null>(null);
+
+  readonly chatRatio = signal<number>(50);
+  private isDragging = false;
 
   readonly messages = signal<ChatMessage[]>([]);
   readonly currentRunEvents = this.eventStore.events;
@@ -43,18 +47,34 @@ export class App implements OnInit {
   readonly isStreaming = this.streamService.isStreaming;
 
   ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      const savedRatio = sessionStorage.getItem('aep_split_ratio');
+      if (savedRatio) {
+        const parsed = parseInt(savedRatio, 10);
+        if (!isNaN(parsed) && parsed >= 30 && parsed <= 70) {
+          this.chatRatio.set(parsed);
+        }
+      }
+    }
     this.loadInitialData();
   }
 
   loadInitialData(): void {
     this.ticketsService.getAgents().subscribe({
-      next: (data) => this.agents.set(data),
+      next: (data) => {
+        this.agents.set(data);
+        this.selectedAgentId.set('v1');
+      },
       error: (err) => console.error('Error cargando agentes:', err)
     });
 
     this.ticketsService.getPersonas().subscribe({
       next: (data) => this.personas.set(data),
       error: (err) => console.error('Error cargando personas:', err)
+    });
+
+    this.streamService.checkHealth().then((h) => {
+      if (h) this.health.set(h as HealthStatus);
     });
 
     this.refreshTickets();
@@ -80,6 +100,66 @@ export class App implements OnInit {
     this.isDbDrawerOpen.update((open) => !open);
     if (this.isDbDrawerOpen()) {
       this.refreshTickets();
+    }
+  }
+
+  onSplitterMouseDown(e: MouseEvent): void {
+    e.preventDefault();
+    this.isDragging = true;
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!this.isDragging) return;
+      const totalWidth = window.innerWidth;
+      const newRatio = (moveEvent.clientX / totalWidth) * 100;
+      const clamped = Math.max(30, Math.min(70, Math.round(newRatio)));
+      this.chatRatio.set(clamped);
+      sessionStorage.setItem('aep_split_ratio', String(clamped));
+    };
+    const onMouseUp = () => {
+      this.isDragging = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  onSplitterTouchStart(e: TouchEvent): void {
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      const touch = moveEvent.touches[0];
+      if (!touch) return;
+      const totalWidth = window.innerWidth;
+      const newRatio = (touch.clientX / totalWidth) * 100;
+      const clamped = Math.max(30, Math.min(70, Math.round(newRatio)));
+      this.chatRatio.set(clamped);
+      sessionStorage.setItem('aep_split_ratio', String(clamped));
+    };
+    const onTouchEnd = () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+    document.addEventListener('touchmove', onTouchMove);
+    document.addEventListener('touchend', onTouchEnd);
+  }
+
+  resetSplitter(): void {
+    this.chatRatio.set(50);
+    sessionStorage.setItem('aep_split_ratio', '50');
+  }
+
+  onSplitterKeyDown(e: KeyboardEvent): void {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const next = Math.max(30, this.chatRatio() - 2);
+      this.chatRatio.set(next);
+      sessionStorage.setItem('aep_split_ratio', String(next));
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = Math.min(70, this.chatRatio() + 2);
+      this.chatRatio.set(next);
+      sessionStorage.setItem('aep_split_ratio', String(next));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      this.resetSplitter();
     }
   }
 

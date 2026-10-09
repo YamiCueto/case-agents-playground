@@ -5,44 +5,74 @@
     [selectedAgentId]="selectedAgentId()"
     [selectedPersona]="selectedPersona()"
     [isDbDrawerOpen]="isDbDrawerOpen()"
+    [health]="health()"
     (selectAgent)="onSelectAgent($event)"
     (selectPersona)="onSelectPersona($event)"
     (toggleDbDrawer)="toggleDbDrawer()"
   ></app-header>
 
-  <div class="mobile-tabs-toggle">
+  <nav class="mobile-tabs-toggle" aria-label="Navegación de paneles para dispositivos móviles">
     <button 
+      type="button"
       class="mobile-tab-btn" 
       [class.active]="activeMobileTab() === 'chat'"
       (click)="activeMobileTab.set('chat')"
+      aria-label="Ver panel de conversación"
     >
-      💬 Conversación
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span>Conversación</span>
     </button>
     <button 
+      type="button"
       class="mobile-tab-btn" 
       [class.active]="activeMobileTab() === 'inspector'"
       (click)="activeMobileTab.set('inspector')"
+      aria-label="Ver panel de inspector de runtime"
     >
-      🔍 Inspector de Runtime ({{ currentRunEvents().length }})
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span>Inspector de Runtime ({{ currentRunEvents().length }})</span>
     </button>
-  </div>
+  </nav>
 
   <main class="playground-main">
     <section 
       class="main-pane chat-pane"
       [class.mobile-hidden]="activeMobileTab() !== 'chat'"
+      [style.flex-basis.%]="chatRatio()"
     >
       <app-chat-panel
         [messages]="messages()"
         [isStreaming]="isStreaming()"
+        [activeStep]="controller.activeStep()"
         (sendMessage)="onSendMessage($event)"
         (stopStream)="onStopStream()"
       ></app-chat-panel>
     </section>
 
+    <div
+      class="layout-splitter"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Ajustar proporción entre Chat e Inspector"
+      tabindex="0"
+      (mousedown)="onSplitterMouseDown($event)"
+      (touchstart)="onSplitterTouchStart($event)"
+      (dblclick)="resetSplitter()"
+      (keydown)="onSplitterKeyDown($event)"
+      title="Arrastra para ajustar tamaño. Doble clic para 50/50. Flechas del teclado para ajustar."
+    >
+      <div class="splitter-handle"></div>
+    </div>
+
     <section 
       class="main-pane inspector-pane"
       [class.mobile-hidden]="activeMobileTab() !== 'inspector'"
+      [style.flex-basis.%]="100 - chatRatio()"
     >
       <app-runtime-inspector
         [events]="currentRunEvents()"

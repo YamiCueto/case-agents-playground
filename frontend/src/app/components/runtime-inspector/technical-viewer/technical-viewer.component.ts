@@ -1,4 +1,4 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, input, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,7 +9,11 @@ import { CommonModule } from '@angular/common';
     <div class="technical-viewer-card">
       <div class="viewer-header">
         <div class="header-left">
-          <span class="tech-tag">&#x1F9E9; Payload Técnico</span>
+          <svg class="header-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span class="tech-tag">Payload Técnico</span>
           <span class="mode-indicator">{{ formatMode() | uppercase }}</span>
         </div>
 
@@ -42,9 +46,20 @@ import { CommonModule } from '@angular/common';
             [attr.aria-label]="isCopied() ? 'Copiado al portapapeles' : 'Copiar JSON'"
           >
             @if (isCopied()) {
-              <span class="copied-badge">&#x2713; Copiado!</span>
+              <span class="copied-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Copiado!</span>
+              </span>
             } @else {
-              <span>&#x1F4CB; Copiar</span>
+              <span class="copy-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Copiar</span>
+              </span>
             }
           </button>
         </div>
@@ -63,9 +78,9 @@ import { CommonModule } from '@angular/common';
       max-width: 100%;
     }
     .technical-viewer-card {
-      background: #090d16;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
+      background: #070b14;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       overflow: hidden;
       width: 100%;
       min-width: 0;
@@ -77,28 +92,32 @@ import { CommonModule } from '@angular/common';
       justify-content: space-between;
       align-items: center;
       padding: 0.5rem 0.75rem;
-      background: #0f172a;
-      border-bottom: 1px solid #1e293b;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
       gap: 0.5rem;
       flex-wrap: wrap;
     }
     .header-left {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
+    }
+    .header-icon {
+      color: var(--accent-cyan);
     }
     .tech-tag {
       font-size: 0.72rem;
       font-weight: 700;
-      color: #94a3b8;
+      color: var(--text-secondary);
     }
     .mode-indicator {
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       font-weight: 700;
-      background: rgba(56, 189, 248, 0.12);
+      font-family: var(--font-mono);
+      background: var(--accent-cyan-bg);
       border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #38bdf8;
-      padding: 0.1rem 0.4rem;
+      color: var(--accent-cyan);
+      padding: 0.1rem 0.35rem;
       border-radius: 4px;
     }
     .header-actions {
@@ -108,86 +127,80 @@ import { CommonModule } from '@angular/common';
     }
     .format-toggle {
       display: flex;
-      background: #1e293b;
-      border-radius: 4px;
-      padding: 2px;
-      border: 1px solid #334155;
+      background: var(--bg-canvas);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      overflow: hidden;
     }
     .toggle-btn {
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: var(--text-secondary);
       font-size: 0.68rem;
-      font-weight: 600;
-      padding: 0.2rem 0.55rem;
-      border-radius: 3px;
+      font-family: var(--font-mono);
+      padding: 0.2rem 0.5rem;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: var(--transition-fast);
+    }
+    .toggle-btn:hover {
+      color: var(--text-primary);
     }
     .toggle-btn.active {
-      background: #0284c7;
-      color: #ffffff;
+      background: var(--border-default);
+      color: var(--accent-cyan);
       font-weight: 700;
     }
     .btn-copy {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
-      font-size: 0.7rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 4px;
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      font-size: 0.68rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.35rem;
+      transition: var(--transition-fast);
     }
     .btn-copy:hover {
-      background: #334155;
-      border-color: #38bdf8;
-      color: #38bdf8;
+      background: var(--border-default);
+      color: var(--text-primary);
+      border-color: var(--accent-cyan);
+    }
+    .copied-badge, .copy-label {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
     }
     .copied-badge {
-      color: #34d399;
+      color: var(--accent-emerald);
       font-weight: 700;
     }
     .code-viewport {
       padding: 0.75rem;
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-      max-height: 220px;
+      max-height: 240px;
       overflow-y: auto;
-      box-sizing: border-box;
-    }
-    .code-viewport.raw {
-      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      line-height: 1.45;
+      color: #93c5fd;
     }
     .code-viewport.wrapped {
       overflow-x: hidden;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .code-viewport.raw {
+      overflow-x: auto;
+      white-space: pre;
     }
     .json-pre {
       margin: 0;
-      padding: 0;
-      font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
-      font-size: 0.74rem;
-      line-height: 1.5;
-      color: #38bdf8;
-      min-width: 0;
-      max-width: 100%;
-    }
-    .code-viewport.wrapped .json-pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    .code-viewport.raw .json-pre {
-      white-space: pre;
+      font-family: inherit;
     }
     .json-code {
-      display: block;
-      min-width: 0;
-      max-width: 100%;
+      font-family: inherit;
     }
   `]
 })
@@ -196,15 +209,15 @@ export class TechnicalViewerComponent {
   readonly formatMode = signal<'wrapped' | 'raw'>('wrapped');
   readonly isCopied = signal<boolean>(false);
 
-  formattedJson(): string {
-    const val = this.payload();
-    if (val === null || val === undefined) return '// Sin payload en este paso';
+  readonly formattedJson = computed<string>(() => {
+    const data = this.payload();
+    if (data === null || data === undefined) return '{}';
     try {
-      return JSON.stringify(val, null, 2);
+      return JSON.stringify(data, null, 2);
     } catch {
-      return String(val);
+      return String(data);
     }
-  }
+  });
 
   copyPayload(): void {
     const text = this.formattedJson();

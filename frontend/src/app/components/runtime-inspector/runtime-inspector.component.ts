@@ -21,7 +21,11 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       <header class="inspector-header">
         <div class="title-row">
           <div class="title-meta">
-            <h2>&#x1F50E; Runtime Inspector</h2>
+            <svg class="title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <h2>Runtime Inspector</h2>
             <span class="version-tag">{{ activeAgentId().toUpperCase() }}</span>
           </div>
 
@@ -36,7 +40,8 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                 class="btn-pause-visual"
                 [class.is-paused]="controller.isVisualPaused()"
                 (click)="controller.toggleVisualPause()"
-                title="Pausar o reanudar el seguimiento visual en pantalla sin afectar la ejecución en backend"
+                title="Pausar o reanudar el seguimiento visual en pantalla sin detener la ejecución en backend"
+                aria-label="Alternar pausa visual"
               >
                 {{ controller.isVisualPaused() ? 'Reanudar ▶' : 'Pausar ⏸' }}
               </button>
@@ -45,14 +50,18 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                   type="button"
                   class="btn-switch-replay"
                   (click)="controller.startReplayMode()"
-                  title="Activar modo de reproducción interactiva"
+                  title="Activar modo de reproducción interactiva paso a paso"
                 >
-                  &#x1F3AC; Replay
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Replay</span>
                 </button>
               }
             } @else {
               <div class="replay-pill">
-                <span>&#x1F3AC; MODO REPLAY</span>
+                <span class="pulse-dot-purple"></span>
+                <span>MODO REPLAY</span>
               </div>
               <button
                 type="button"
@@ -60,23 +69,30 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                 (click)="controller.setMode('live')"
                 title="Regresar al modo de seguimiento en vivo"
               >
-                Volver a Live &#x21B5;
+                <span>Volver a Live</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 14 4 9 9 4"></polyline>
+                  <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                </svg>
               </button>
             }
           </div>
         </div>
 
         @if (controller.mode() === 'replay') {
-          <div class="replay-toolbar" role="toolbar" aria-label="Controles de reproducción">
+          <div class="replay-toolbar" role="toolbar" aria-label="Controles de reproducción histórica">
             <div class="transport-controls">
               <button
                 type="button"
                 class="btn-tool"
                 (click)="controller.resetReplay()"
-                title="Reiniciar reproducción"
+                title="Reiniciar reproducción desde el primer paso"
                 aria-label="Reiniciar"
               >
-                &#x21BA;
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
               </button>
               <button
                 type="button"
@@ -85,16 +101,28 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                 title="Paso anterior"
                 aria-label="Paso anterior"
               >
-                &#x23EE;
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                  <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
               </button>
               <button
                 type="button"
                 class="btn-tool btn-play-pause"
                 (click)="controller.togglePlayPauseReplay()"
-                [title]="controller.isPlayingReplay() ? 'Pausar reproducción' : 'Reproducir'"
+                [title]="controller.isPlayingReplay() ? 'Pausar reproducción' : 'Reproducir automáticamente'"
                 [attr.aria-label]="controller.isPlayingReplay() ? 'Pausar' : 'Reproducir'"
               >
-                {{ controller.isPlayingReplay() ? '⏸' : '▶' }}
+                @if (controller.isPlayingReplay()) {
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                  </svg>
+                } @else {
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                }
               </button>
               <button
                 type="button"
@@ -103,7 +131,10 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                 title="Paso siguiente"
                 aria-label="Paso siguiente"
               >
-                &#x23ED;
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                  <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
               </button>
             </div>
 
@@ -147,7 +178,10 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             [class.active]="activeTab() === 'journey'" 
             (click)="activeTab.set('journey')"
           >
-            &#x1F680; Execution Journey
+            <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>Execution Journey</span>
           </button>
           <button 
             class="tab-btn" 
@@ -155,7 +189,15 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             [class.active]="activeTab() === 'events'" 
             (click)="activeTab.set('events')"
           >
-            Eventos Raw ({{ events().length }})
+            <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            <span>Eventos Raw ({{ events().length }})</span>
           </button>
           <button 
             class="tab-btn future-tab" 
@@ -163,7 +205,11 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             [class.active]="activeTab() === 'future'" 
             (click)="activeTab.set('future')"
           >
-            Talleres v2..v6
+            <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="12 6 12 12 16 14"></polygon>
+            </svg>
+            <span>Hoja de Ruta v2..v6</span>
           </button>
         </nav>
       </header>
@@ -171,6 +217,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       <div class="inspector-content">
         @if (activeTab() === 'journey') {
           <div class="journey-dashboard">
+            <!-- Nivel 1: Estado global, Núcleo Three.js y Pipeline de 7 Hops -->
             <section class="avatar-hero-card">
               <div class="avatar-container">
                 <app-agent-avatar-3d
@@ -188,6 +235,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
               </div>
             </section>
 
+            <!-- Nivel 2: Explicación Pedagógica Contextual y Actor Soberano -->
             @if (controller.activeStep(); as step) {
               <article class="step-detail-card" [ngClass]="step.status">
                 <div class="card-headline">
@@ -199,19 +247,48 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                 </div>
 
                 <div class="actor-bar">
-                  <span class="actor-icon">&#x1F527;</span>
+                  <svg class="actor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                  </svg>
                   <span class="actor-label">Componente Soberano:</span>
                   <span class="actor-value">{{ step.actor }}</span>
                 </div>
 
-                <div class="explanation-box">
-                  <h4 class="section-title">&#x1F4D6; Qué está ocurriendo</h4>
-                  <p class="explanation-text">{{ step.description }}</p>
+                <div class="pedagogical-grid">
+                  <div class="pedagogical-item">
+                    <div class="item-header">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                      </svg>
+                      <span class="item-title">Qué está ocurriendo</span>
+                    </div>
+                    <p class="item-body">{{ step.description }}</p>
+                  </div>
 
-                  <h4 class="section-title insight-title">&#x1F4A1; Por qué importa (Pedagogía Agéntica)</h4>
-                  <p class="insight-text">{{ step.pedagogicalInsight }}</p>
+                  <div class="pedagogical-item insight-item">
+                    <div class="item-header insight-header">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                      </svg>
+                      <span class="item-title">Por qué importa (Arquitectura Agéntica)</span>
+                    </div>
+                    <p class="item-body">{{ step.pedagogicalInsight }}</p>
+                  </div>
                 </div>
 
+                <!-- Nivel 3: Evidencia Técnica (Visor JSON Colapsable) -->
                 <div class="tech-disclosure">
                   <button
                     type="button"
@@ -219,7 +296,12 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                     (click)="isTechOpen.set(!isTechOpen())"
                     [attr.aria-expanded]="isTechOpen()"
                   >
-                    <span>{{ isTechOpen() ? '&#x25BC; Ocultar Detalles Técnicos' : '&#x25B6; Inspeccionar Payload JSON' }}</span>
+                    <div class="disclosure-left">
+                      <svg class="chevron-icon" [class.rotated]="isTechOpen()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                      <span>{{ isTechOpen() ? 'Ocultar Evidencia Técnica' : 'Inspeccionar Evidencia Técnica (JSON)' }}</span>
+                    </div>
                     <span class="disclosure-badge">{{ step.eventType }}</span>
                   </button>
 
@@ -232,16 +314,19 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
               </article>
             } @else {
               <div class="journey-empty-state">
-                <span class="empty-icon">&#x23F3;</span>
+                <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
                 <h3>Esperando Ejecución Agéntica</h3>
-                <p>Escribe una consulta en el chat. Observarás cómo cada hop del Agent Engineering Playground se activa en tiempo real con su componente responsable.</p>
+                <p>Escribe una consulta en el chat para observar el encadenamiento de hops en tiempo real con su componente responsable.</p>
               </div>
             }
           </div>
         } @else if (activeTab() === 'events') {
           <div class="raw-events-list">
             @if (events().length === 0) {
-              <p class="no-events">No se han registrado eventos en este turno.</p>
+              <p class="no-events">No se han registrado eventos SSE en este turno.</p>
             } @else {
               @for (evt of events(); track evt.event_id) {
                 <div class="raw-event-card">
@@ -266,7 +351,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             <div class="future-card">
               <h4>Agent v2 &bull; Agent Loop</h4>
               <p>Visualizador de bucle iterativo, contador de iteraciones y circuit breaker de <code>max_iterations</code>.</p>
-              <span class="locked-badge">Pendiente Taller 03</span>
+              <span class="locked-badge">Preparado arquitectónicamente</span>
             </div>
             <div class="future-card">
               <h4>Agent v3 &bull; State & Memory</h4>
@@ -280,7 +365,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             </div>
             <div class="future-card">
               <h4>Agent v5 &bull; Guardrails & HITL</h4>
-              <p>Compuerta humana, decisión de política y validación criptográfica SHA-256 de <code>ActionProposal</code>.</p>
+              <p>Compuerta humana, decisión de política y validación criptográfica de <code>ActionProposal</code>.</p>
               <span class="locked-badge">Pendiente Taller 06</span>
             </div>
             <div class="future-card">
@@ -307,16 +392,16 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       height: 100%;
       width: 100%;
       min-width: 0;
-      background: #0b1329;
-      border-left: 1px solid #1e293b;
-      color: #f8fafc;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      color: var(--text-primary);
       overflow: hidden;
       box-sizing: border-box;
     }
     .inspector-header {
-      padding: 0.85rem 1rem 0.4rem 1rem;
-      border-bottom: 1px solid #1e293b;
-      background: #0f172a;
+      padding: 0.75rem 1rem 0.35rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
       flex-shrink: 0;
       min-width: 0;
     }
@@ -326,26 +411,30 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       align-items: center;
       gap: 0.5rem;
       flex-wrap: wrap;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.45rem;
     }
     .title-meta {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
+    }
+    .title-icon {
+      color: var(--accent-cyan);
     }
     .title-meta h2 {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 700;
-      color: #f1f5f9;
+      color: var(--text-primary);
       margin: 0;
     }
     .version-tag {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid #10b981;
-      color: #34d399;
-      font-size: 0.68rem;
+      background: var(--accent-emerald-bg);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--accent-emerald);
+      font-size: 0.65rem;
       font-weight: 700;
-      padding: 0.15rem 0.4rem;
+      font-family: var(--font-mono);
+      padding: 0.1rem 0.35rem;
       border-radius: 4px;
     }
     .mode-actions {
@@ -357,21 +446,22 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       display: flex;
       align-items: center;
       gap: 5px;
-      font-size: 0.65rem;
+      font-size: 0.64rem;
       font-weight: 700;
+      font-family: var(--font-mono);
       padding: 0.2rem 0.5rem;
       border-radius: 12px;
       letter-spacing: 0.04em;
     }
     .live-pill {
-      background: rgba(16, 185, 129, 0.12);
+      background: var(--accent-emerald-bg);
       border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34d399;
+      color: var(--accent-emerald);
     }
     .live-pill.paused {
-      background: rgba(245, 158, 11, 0.12);
+      background: var(--accent-amber-bg);
       border-color: rgba(245, 158, 11, 0.4);
-      color: #fbbf24;
+      color: var(--accent-amber);
     }
     .replay-pill {
       background: rgba(168, 85, 247, 0.15);
@@ -382,39 +472,49 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 6px #10b981;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 6px var(--accent-emerald);
       animation: pulseLive 1.2s infinite alternate;
     }
     .live-pill.paused .pulse-dot {
-      background: #fbbf24;
-      box-shadow: 0 0 6px #fbbf24;
+      background: var(--accent-amber);
+      box-shadow: 0 0 6px var(--accent-amber);
       animation: none;
+    }
+    .pulse-dot-purple {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #c084fc;
+      box-shadow: 0 0 6px #c084fc;
     }
     @keyframes pulseLive {
       from { transform: scale(0.8); opacity: 0.6; }
       to { transform: scale(1.3); opacity: 1; }
     }
     .btn-pause-visual, .btn-switch-replay, .btn-switch-live {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
-      font-size: 0.7rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-size: 0.68rem;
       font-weight: 600;
-      padding: 0.25rem 0.6rem;
-      border-radius: 5px;
+      padding: 0.25rem 0.55rem;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: var(--transition-fast);
     }
     .btn-pause-visual:hover, .btn-switch-replay:hover, .btn-switch-live:hover {
-      background: #334155;
-      border-color: #38bdf8;
-      color: #38bdf8;
+      background: var(--bg-card-hover);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
     }
     .btn-pause-visual.is-paused {
-      background: rgba(245, 158, 11, 0.2);
-      border-color: #f59e0b;
-      color: #fbbf24;
+      background: var(--accent-amber-bg);
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
     }
 
     .replay-toolbar {
@@ -423,9 +523,9 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       justify-content: space-between;
       background: #090d16;
       border: 1px solid rgba(168, 85, 247, 0.25);
-      border-radius: 6px;
-      padding: 0.35rem 0.65rem;
-      margin-bottom: 0.5rem;
+      border-radius: var(--radius-sm);
+      padding: 0.3rem 0.6rem;
+      margin-bottom: 0.45rem;
       gap: 0.5rem;
       flex-wrap: wrap;
     }
@@ -435,9 +535,9 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       gap: 0.25rem;
     }
     .btn-tool {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
       width: 26px;
       height: 26px;
       border-radius: 4px;
@@ -445,11 +545,10 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 0.75rem;
-      transition: all 0.15s ease;
+      transition: var(--transition-fast);
     }
     .btn-tool:hover {
-      background: #334155;
+      background: var(--bg-card-hover);
       border-color: #a78bfa;
       color: #a78bfa;
     }
@@ -457,20 +556,19 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       background: #7c3aed;
       border-color: #a78bfa;
       color: #ffffff;
-      font-weight: 700;
     }
     .speed-selector {
       display: flex;
-      background: #1e293b;
+      background: var(--bg-card);
       border-radius: 4px;
       padding: 2px;
-      border: 1px solid #334155;
+      border: 1px solid var(--border-default);
     }
     .btn-speed {
       background: transparent;
       border: none;
-      color: #94a3b8;
-      font-size: 0.65rem;
+      color: var(--text-secondary);
+      font-size: 0.64rem;
       font-weight: 600;
       padding: 0.15rem 0.4rem;
       border-radius: 3px;
@@ -482,14 +580,15 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       font-weight: 700;
     }
     .step-indicator {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 700;
+      font-family: var(--font-mono);
       color: #c084fc;
     }
 
     .tabs-bar {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
       overflow-x: auto;
       min-width: 0;
     }
@@ -497,20 +596,23 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       background: transparent;
       border: none;
       border-bottom: 2px solid transparent;
-      color: #94a3b8;
-      font-size: 0.76rem;
+      color: var(--text-secondary);
+      font-size: 0.74rem;
       font-weight: 600;
-      padding: 0.4rem 0.6rem;
+      padding: 0.35rem 0.55rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: var(--transition-fast);
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
     }
     .tab-btn:hover {
-      color: #f1f5f9;
+      color: var(--text-primary);
     }
     .tab-btn.active {
-      color: #38bdf8;
-      border-bottom-color: #38bdf8;
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
     }
     .future-tab {
       color: #a78bfa;
@@ -520,12 +622,11 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 1rem;
+      padding: 0.85rem;
       box-sizing: border-box;
       min-width: 0;
       width: 100%;
     }
-
     .journey-dashboard {
       display: flex;
       flex-direction: column;
@@ -534,51 +635,50 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       width: 100%;
     }
     .avatar-hero-card {
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      border-radius: 10px;
-      padding: 0.75rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.65rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.65rem;
       min-width: 0;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     }
     .avatar-container {
       width: 100%;
-      height: 140px;
+      height: 160px;
       min-width: 0;
     }
     .journey-flow-wrapper {
       width: 100%;
       min-width: 0;
-      border-top: 1px solid #1e293b;
-      padding-top: 0.4rem;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 0.35rem;
     }
 
     .step-detail-card {
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      border-radius: 10px;
-      padding: 1rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem;
       min-width: 0;
       width: 100%;
       box-sizing: border-box;
-      transition: border-color 0.25s ease;
+      transition: border-color 0.2s ease;
     }
     .step-detail-card.active {
-      border-color: #38bdf8;
-      box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.15);
     }
     .step-detail-card.completed {
-      border-color: rgba(16, 185, 129, 0.5);
+      border-color: rgba(16, 185, 129, 0.4);
     }
     .step-detail-card.skipped {
-      border-color: #475569;
+      border-color: var(--border-default);
       opacity: 0.85;
     }
     .step-detail-card.failed {
-      border-color: #ef4444;
+      border-color: var(--accent-crimson);
     }
 
     .card-headline {
@@ -586,34 +686,36 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       justify-content: space-between;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.65rem;
+      margin-bottom: 0.55rem;
       flex-wrap: wrap;
       min-width: 0;
     }
     .headline-left {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
       min-width: 0;
     }
     .hop-chip {
       background: #0284c7;
       color: #ffffff;
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       font-weight: 800;
-      padding: 0.15rem 0.45rem;
+      font-family: var(--font-mono);
+      padding: 0.15rem 0.4rem;
       border-radius: 4px;
     }
     .step-title {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 700;
-      color: #f1f5f9;
+      color: var(--text-primary);
       margin: 0;
       word-break: break-word;
     }
     .status-pill {
-      font-size: 0.64rem;
+      font-size: 0.62rem;
       font-weight: 800;
+      font-family: var(--font-mono);
       padding: 0.15rem 0.45rem;
       border-radius: 4px;
       text-transform: uppercase;
@@ -628,57 +730,80 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       display: flex;
       align-items: center;
       gap: 0.4rem;
-      background: #1e293b;
-      padding: 0.4rem 0.65rem;
-      border-radius: 6px;
-      margin-bottom: 0.85rem;
-      border: 1px solid #334155;
-      font-size: 0.75rem;
+      background: var(--bg-card);
+      padding: 0.35rem 0.6rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.75rem;
+      border: 1px solid var(--border-subtle);
+      font-size: 0.74rem;
       min-width: 0;
       flex-wrap: wrap;
     }
+    .actor-icon {
+      color: var(--accent-cyan);
+    }
     .actor-label {
-      color: #94a3b8;
+      color: var(--text-secondary);
       font-weight: 500;
     }
     .actor-value {
-      color: #38bdf8;
+      color: var(--accent-cyan);
       font-weight: 700;
       word-break: break-word;
     }
 
-    .explanation-box {
+    .pedagogical-grid {
       display: flex;
       flex-direction: column;
-      gap: 0.4rem;
+      gap: 0.75rem;
       margin-bottom: 0.85rem;
     }
-    .section-title {
-      font-size: 0.74rem;
+    .pedagogical-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .pedagogical-item.insight-item {
+      border-left-color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.04);
+    }
+    .item-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--accent-cyan);
+    }
+    .insight-header {
+      color: var(--accent-emerald);
+    }
+    .item-title {
+      font-size: 0.72rem;
       font-weight: 700;
-      color: #94a3b8;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
-      margin: 0.4rem 0 0.15rem 0;
+      letter-spacing: 0.04em;
+      font-family: var(--font-mono);
     }
-    .insight-title {
-      color: #34d399;
-    }
-    .explanation-text, .insight-text {
+    .item-body {
       margin: 0;
-      font-size: 0.82rem;
-      line-height: 1.45;
-      color: #e2e8f0;
+      font-size: 0.84rem;
+      line-height: 1.55;
+      color: var(--text-primary);
       word-break: break-word;
     }
-    .insight-text {
-      color: #bae6fd;
+    .insight-item .item-body {
+      color: #e2e8f0;
     }
 
     .tech-disclosure {
-      margin-top: 0.5rem;
-      border-top: 1px dashed #334155;
-      padding-top: 0.5rem;
+      margin-top: 0.45rem;
+      border-top: 1px dashed var(--border-default);
+      padding-top: 0.45rem;
       min-width: 0;
     }
     .disclosure-toggle {
@@ -688,62 +813,77 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #38bdf8;
-      font-size: 0.76rem;
+      color: var(--accent-cyan);
+      font-size: 0.74rem;
       font-weight: 600;
-      padding: 0.35rem 0;
+      padding: 0.3rem 0;
       cursor: pointer;
-      transition: color 0.2s ease;
+      transition: color 0.15s ease;
     }
     .disclosure-toggle:hover {
-      color: #7dd3fc;
+      color: var(--accent-cyan-hover);
+    }
+    .disclosure-left {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .chevron-icon {
+      transition: transform 0.2s ease;
+    }
+    .chevron-icon.rotated {
+      transform: rotate(90deg);
     }
     .disclosure-badge {
-      font-size: 0.65rem;
-      color: #64748b;
-      font-family: monospace;
+      font-size: 0.64rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
     }
     .technical-viewer-wrapper {
-      margin-top: 0.5rem;
+      margin-top: 0.45rem;
       min-width: 0;
       max-width: 100%;
     }
 
     .journey-empty-state {
       text-align: center;
-      padding: 2.5rem 1rem;
+      padding: 2.25rem 1rem;
       background: rgba(15, 23, 42, 0.6);
-      border: 1px dashed #334155;
-      border-radius: 10px;
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
     }
     .journey-empty-state .empty-icon {
-      font-size: 2rem;
-      display: block;
-      margin-bottom: 0.5rem;
+      color: var(--accent-cyan);
+      margin-bottom: 0.25rem;
     }
     .journey-empty-state h3 {
-      font-size: 0.95rem;
-      color: #38bdf8;
-      margin: 0 0 0.4rem 0;
+      font-size: 0.92rem;
+      color: var(--accent-cyan);
+      margin: 0;
     }
     .journey-empty-state p {
       font-size: 0.78rem;
-      color: #94a3b8;
+      color: var(--text-secondary);
       line-height: 1.4;
       margin: 0;
+      max-width: 380px;
     }
 
     .raw-events-list {
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.75rem;
       min-width: 0;
     }
     .raw-event-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 0.75rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem;
       min-width: 0;
     }
     .event-meta {
@@ -755,28 +895,29 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     .event-type-badge {
       background: #0284c7;
       color: #ffffff;
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       font-weight: 700;
-      padding: 0.15rem 0.5rem;
+      font-family: var(--font-mono);
+      padding: 0.15rem 0.45rem;
       border-radius: 4px;
     }
     .event-time {
-      font-size: 0.68rem;
-      color: #94a3b8;
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
     }
     .event-hop-badge {
-      font-size: 0.74rem;
-      color: #34d399;
+      font-size: 0.72rem;
+      color: var(--accent-emerald);
       font-weight: 600;
       margin-bottom: 0.35rem;
     }
     .json-wrapper {
       min-width: 0;
     }
-
     .no-events {
       font-size: 0.8rem;
-      color: #64748b;
+      color: var(--text-muted);
       text-align: center;
       padding: 2rem 0;
     }
@@ -784,28 +925,28 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     .future-workshops-grid {
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.75rem;
     }
     .future-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 0.9rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem;
     }
     .future-card h4 {
-      font-size: 0.86rem;
+      font-size: 0.84rem;
       color: #c084fc;
-      margin: 0 0 0.35rem 0;
+      margin: 0 0 0.3rem 0;
     }
     .future-card p {
       font-size: 0.76rem;
-      color: #94a3b8;
-      margin: 0 0 0.5rem 0;
+      color: var(--text-secondary);
+      margin: 0 0 0.45rem 0;
       line-height: 1.4;
     }
     .locked-badge {
       display: inline-block;
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       color: #a78bfa;
       background: rgba(167, 139, 250, 0.12);
       padding: 0.15rem 0.45rem;

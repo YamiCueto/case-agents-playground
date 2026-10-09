@@ -19,17 +19,15 @@ import { AvatarMood } from '../../../models/journey.models';
     <div class="avatar-canvas-wrapper" #containerRef>
       @if (hasWebGLError()) {
         <div class="avatar-2d-fallback" [ngClass]="mood()">
-          <div class="hologram-orb">
-            <div class="orb-ring ring-outer"></div>
-            <div class="orb-ring ring-inner"></div>
-            <div class="orb-core">
-              <span class="orb-eyes">&#x2022;&#x2022;</span>
-            </div>
+          <div class="orbital-reactor-2d">
+            <div class="ring-2d ring-outer"></div>
+            <div class="ring-2d ring-middle"></div>
+            <div class="core-2d"></div>
           </div>
-          <span class="fallback-caption">AEP Guide (2D)</span>
+          <span class="fallback-caption">Núcleo AEP &bull; Fallback 2D</span>
         </div>
       } @else {
-        <canvas #canvasRef class="three-canvas" aria-label="Avatar Guía 3D del Agent Playground"></canvas>
+        <canvas #canvasRef class="three-canvas" aria-label="Núcleo Orbital Cinético del Runtime Agéntico"></canvas>
       }
       <div class="mood-pill" [ngClass]="mood()">
         <span class="mood-indicator"></span>
@@ -41,16 +39,16 @@ import { AvatarMood } from '../../../models/journey.models';
     :host {
       display: block;
       width: 100%;
-      height: 140px;
+      height: 160px;
       position: relative;
     }
     .avatar-canvas-wrapper {
       width: 100%;
       height: 100%;
       position: relative;
-      background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.95) 100%);
-      border-radius: 10px;
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      background: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.75) 45%, rgba(2, 6, 23, 0.98) 100%);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(56, 189, 248, 0.22);
       overflow: hidden;
       display: flex;
       align-items: center;
@@ -63,52 +61,53 @@ import { AvatarMood } from '../../../models/journey.models';
     }
     .mood-pill {
       position: absolute;
-      bottom: 6px;
-      right: 8px;
+      bottom: 8px;
+      right: 10px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(4px);
-      border: 1px solid #334155;
-      padding: 2px 8px;
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border-default);
+      padding: 3px 9px;
       border-radius: 12px;
       font-size: 0.65rem;
       font-weight: 700;
-      letter-spacing: 0.03em;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
       pointer-events: none;
-      transition: all 0.2s ease;
+      transition: var(--transition-fast);
     }
     .mood-indicator {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #38bdf8;
-      box-shadow: 0 0 6px #38bdf8;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
     }
     .mood-pill.running .mood-indicator {
-      background: #38bdf8;
-      box-shadow: 0 0 8px #38bdf8;
-      animation: pulseMood 1s infinite alternate;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulseMood 0.9s infinite alternate;
     }
     .mood-pill.completed .mood-indicator {
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
     }
     .mood-pill.failed .mood-indicator {
-      background: #ef4444;
-      box-shadow: 0 0 8px #ef4444;
+      background: var(--accent-crimson);
+      box-shadow: 0 0 8px var(--accent-crimson);
     }
     .mood-pill.pointing .mood-indicator {
-      background: #f59e0b;
-      box-shadow: 0 0 8px #f59e0b;
+      background: var(--accent-amber);
+      box-shadow: 0 0 8px var(--accent-amber);
     }
     .mood-pill.skipped .mood-indicator {
-      background: #94a3b8;
-      box-shadow: 0 0 4px #94a3b8;
+      background: var(--text-muted);
+      box-shadow: 0 0 4px var(--text-muted);
     }
     .mood-label {
-      color: #e2e8f0;
+      color: var(--text-primary);
       text-transform: uppercase;
     }
 
@@ -121,52 +120,43 @@ import { AvatarMood } from '../../../models/journey.models';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
-    .hologram-orb {
-      width: 60px;
-      height: 60px;
+    .orbital-reactor-2d {
+      width: 54px;
+      height: 54px;
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .orb-ring {
+    .ring-2d {
       position: absolute;
       border-radius: 50%;
-      border: 2px dashed #38bdf8;
+      border: 1.5px dashed var(--accent-cyan);
     }
     .ring-outer {
       width: 100%;
       height: 100%;
-      animation: spin2d 8s linear infinite;
+      animation: spin2d 10s linear infinite;
     }
-    .ring-inner {
-      width: 75%;
-      height: 75%;
-      border-color: #22c55e;
-      animation: spin2dReverse 6s linear infinite;
+    .ring-middle {
+      width: 74%;
+      height: 74%;
+      border-color: var(--accent-emerald);
+      animation: spin2dReverse 7s linear infinite;
     }
-    .orb-core {
-      width: 38px;
-      height: 38px;
-      background: radial-gradient(circle, #0284c7 0%, #0f172a 100%);
+    .core-2d {
+      width: 24px;
+      height: 24px;
+      background: radial-gradient(circle, var(--accent-cyan) 0%, #0f172a 100%);
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
-    }
-    .orb-eyes {
-      color: #38bdf8;
-      font-size: 1rem;
-      letter-spacing: 2px;
-      font-weight: 900;
+      box-shadow: 0 0 12px var(--accent-cyan);
     }
     .fallback-caption {
-      font-size: 0.7rem;
-      color: #94a3b8;
-      font-weight: 600;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
     }
     @keyframes spin2d {
       from { transform: rotate(0deg); }
@@ -181,11 +171,10 @@ import { AvatarMood } from '../../../models/journey.models';
 export class AgentAvatar3DComponent implements OnInit, OnDestroy {
   readonly mood = input<AvatarMood>('idle');
   readonly targetHop = input<number>(1);
+  readonly hasWebGLError = input<boolean>(false);
 
   @ViewChild('containerRef') private containerRef?: ElementRef<HTMLDivElement>;
   @ViewChild('canvasRef') private canvasRef?: ElementRef<HTMLCanvasElement>;
-
-  readonly hasWebGLError = input<boolean>(false);
 
   private renderer?: THREE.WebGLRenderer;
   private scene?: THREE.Scene;
@@ -193,23 +182,22 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
   private animFrameId?: number;
   private resizeObserver?: ResizeObserver;
 
-  private avatarGroup?: THREE.Group;
-  private headMesh?: THREE.Mesh;
-  private eyeMesh?: THREE.Mesh;
+  private reactorGroup?: THREE.Group;
+  private coreMesh?: THREE.Mesh;
+  private wireframeMesh?: THREE.Mesh;
   private ringOuter?: THREE.Mesh;
   private ringInner?: THREE.Mesh;
-  private pointerArm?: THREE.Mesh;
-  private particles?: THREE.Points;
+  private particleCloud?: THREE.Points;
   private pointLight?: THREE.PointLight;
 
-  private clock = new THREE.Clock();
+  private lastTime = 0;
   private isReducedMotion = false;
 
   constructor() {
     effect(() => {
       const currentMood = this.mood();
       const currentHop = this.targetHop();
-      this.updateAvatarColorsAndPose(currentMood, currentHop);
+      this.updateReactorColors(currentMood, currentHop);
     });
   }
 
@@ -229,12 +217,12 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
 
   getMoodText(mood: AvatarMood): string {
     switch (mood) {
-      case 'running': return 'Observando Runtime';
-      case 'pointing': return 'Señalando Hop Activo';
-      case 'completed': return 'Ejecución Exitosa';
-      case 'failed': return 'Alerta en Ejecución';
+      case 'running': return 'Inferencia Activa';
+      case 'pointing': return 'Hop Seleccionado';
+      case 'completed': return 'Ejecución Grounded';
+      case 'failed': return 'Error en Runtime';
       case 'skipped': return 'Hop Omitido';
-      default: return 'En Espera';
+      default: return 'Runtime en Espera';
     }
   }
 
@@ -242,12 +230,12 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
     if (!this.canvasRef?.nativeElement || !this.containerRef?.nativeElement) return;
 
     const width = this.containerRef.nativeElement.clientWidth || 300;
-    const height = this.containerRef.nativeElement.clientHeight || 140;
+    const height = this.containerRef.nativeElement.clientHeight || 136;
 
     try {
       this.scene = new THREE.Scene();
-      this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-      this.camera.position.set(0, 0, 4.2);
+      this.camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+      this.camera.position.set(0, 0, 4.4);
 
       this.renderer = new THREE.WebGLRenderer({
         canvas: this.canvasRef.nativeElement,
@@ -258,187 +246,183 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
       this.renderer.setSize(width, height);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
       this.scene.add(ambientLight);
 
-      this.pointLight = new THREE.PointLight(0x38bdf8, 2.5, 10);
-      this.pointLight.position.set(0, 1, 2);
+      this.pointLight = new THREE.PointLight(0x38bdf8, 3, 12);
+      this.pointLight.position.set(0, 0.8, 2);
       this.scene.add(this.pointLight);
 
-      this.buildAvatar();
-      this.buildParticles();
+      this.buildReactor();
+      this.buildParticleCloud();
 
       this.resizeObserver = new ResizeObserver(() => this.onResize());
       this.resizeObserver.observe(this.containerRef.nativeElement);
 
       this.animate();
     } catch (err) {
-      console.warn('WebGL no disponible, utilizando fallback 2D:', err);
+      console.warn('WebGL initialization failed, falling back to 2D vector core:', err);
     }
   }
 
-  private buildAvatar(): void {
-    this.avatarGroup = new THREE.Group();
+  private buildReactor(): void {
+    this.reactorGroup = new THREE.Group();
 
-    const headGeo = new THREE.IcosahedronGeometry(0.72, 2);
-    const headMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      metalness: 0.8,
-      roughness: 0.2,
-      wireframe: false
-    });
-    this.headMesh = new THREE.Mesh(headGeo, headMat);
-    this.avatarGroup.add(this.headMesh);
-
-    const eyeGeo = new THREE.BoxGeometry(0.55, 0.16, 0.45);
-    const eyeMat = new THREE.MeshStandardMaterial({
+    const sphereGeo = new THREE.SphereGeometry(0.48, 32, 32);
+    const sphereMat = new THREE.MeshStandardMaterial({
       color: 0x0284c7,
-      emissive: 0x38bdf8,
-      emissiveIntensity: 1.2,
-      roughness: 0.1
+      emissive: 0x0ea5e9,
+      emissiveIntensity: 1.5,
+      roughness: 0.12,
+      metalness: 0.85
     });
-    this.eyeMesh = new THREE.Mesh(eyeGeo, eyeMat);
-    this.eyeMesh.position.set(0, 0.1, 0.52);
-    this.avatarGroup.add(this.eyeMesh);
+    this.coreMesh = new THREE.Mesh(sphereGeo, sphereMat);
+    this.reactorGroup.add(this.coreMesh);
 
-    const ringOuterGeo = new THREE.TorusGeometry(1.05, 0.025, 12, 48);
+    const wireGeo = new THREE.IcosahedronGeometry(0.78, 1);
+    const wireMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.7,
+      wireframe: true
+    });
+    this.wireframeMesh = new THREE.Mesh(wireGeo, wireMat);
+    this.reactorGroup.add(this.wireframeMesh);
+
+    const ringOuterGeo = new THREE.TorusGeometry(1.22, 0.024, 16, 64);
     const ringOuterMat = new THREE.MeshStandardMaterial({
       color: 0x38bdf8,
       emissive: 0x38bdf8,
-      emissiveIntensity: 0.8
+      emissiveIntensity: 0.95,
+      metalness: 0.9
     });
     this.ringOuter = new THREE.Mesh(ringOuterGeo, ringOuterMat);
     this.ringOuter.rotation.x = Math.PI / 3;
-    this.avatarGroup.add(this.ringOuter);
+    this.ringOuter.rotation.y = Math.PI / 8;
+    this.reactorGroup.add(this.ringOuter);
 
-    const ringInnerGeo = new THREE.TorusGeometry(0.88, 0.02, 12, 48);
+    const ringInnerGeo = new THREE.TorusGeometry(0.98, 0.020, 16, 64);
     const ringInnerMat = new THREE.MeshStandardMaterial({
-      color: 0x22c55e,
-      emissive: 0x22c55e,
-      emissiveIntensity: 0.8
+      color: 0x10b981,
+      emissive: 0x10b981,
+      emissiveIntensity: 0.85,
+      metalness: 0.9
     });
     this.ringInner = new THREE.Mesh(ringInnerGeo, ringInnerMat);
-    this.ringInner.rotation.x = -Math.PI / 4;
-    this.avatarGroup.add(this.ringInner);
+    this.ringInner.rotation.x = -Math.PI / 3.5;
+    this.ringInner.rotation.z = Math.PI / 6;
+    this.reactorGroup.add(this.ringInner);
 
-    const armGeo = new THREE.ConeGeometry(0.08, 0.45, 12);
-    const armMat = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8,
-      emissive: 0x38bdf8,
-      emissiveIntensity: 1
-    });
-    this.pointerArm = new THREE.Mesh(armGeo, armMat);
-    this.pointerArm.rotation.z = -Math.PI / 2.2;
-    this.pointerArm.position.set(0.9, -0.15, 0);
-    this.avatarGroup.add(this.pointerArm);
-
-    this.scene?.add(this.avatarGroup);
+    this.scene?.add(this.reactorGroup);
   }
 
-  private buildParticles(): void {
-    const particleCount = 40;
+  private buildParticleCloud(): void {
+    const particleCount = 64;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 5;
-      positions[i + 1] = (Math.random() - 0.5) * 3;
-      positions[i + 2] = (Math.random() - 0.5) * 3;
+      const radius = 1.4 + Math.random() * 1.1;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = (Math.random() - 0.5) * Math.PI;
+
+      positions[i] = radius * Math.cos(phi) * Math.sin(theta);
+      positions[i + 1] = radius * Math.sin(phi);
+      positions[i + 2] = radius * Math.cos(phi) * Math.cos(theta);
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const material = new THREE.PointsMaterial({
       color: 0x38bdf8,
-      size: 0.04,
+      size: 0.038,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.75
     });
 
-    this.particles = new THREE.Points(geometry, material);
-    this.scene?.add(this.particles);
+    this.particleCloud = new THREE.Points(geometry, material);
+    this.scene?.add(this.particleCloud);
   }
 
-  private updateAvatarColorsAndPose(mood: AvatarMood, targetHop: number): void {
-    if (!this.eyeMesh || !this.pointLight || !this.pointerArm) return;
+  private updateReactorColors(mood: AvatarMood, targetHop: number): void {
+    if (!this.coreMesh || !this.wireframeMesh || !this.pointLight) return;
 
-    const eyeMat = this.eyeMesh.material as THREE.MeshStandardMaterial;
-    const armMat = this.pointerArm.material as THREE.MeshStandardMaterial;
+    const coreMat = this.coreMesh.material as THREE.MeshStandardMaterial;
+    const wireMat = this.wireframeMesh.material as THREE.MeshStandardMaterial;
 
     switch (mood) {
       case 'running':
-        eyeMat.emissive.setHex(0x38bdf8);
+        coreMat.emissive.setHex(0x38bdf8);
+        coreMat.emissiveIntensity = 2.0;
+        wireMat.emissive.setHex(0x0ea5e9);
         this.pointLight.color.setHex(0x38bdf8);
-        this.pointerArm.rotation.z = -Math.PI / 3;
+        this.pointLight.intensity = 4.0;
         break;
       case 'pointing':
-        eyeMat.emissive.setHex(0x38bdf8);
+        coreMat.emissive.setHex(0x38bdf8);
+        coreMat.emissiveIntensity = 1.4;
+        wireMat.emissive.setHex(0x38bdf8);
         this.pointLight.color.setHex(0x38bdf8);
-        this.pointerArm.rotation.z = -Math.PI / 2.5 + (targetHop * 0.08);
+        this.pointLight.intensity = 3.0;
         break;
       case 'completed':
-        eyeMat.emissive.setHex(0x22c55e);
-        this.pointLight.color.setHex(0x22c55e);
-        armMat.emissive.setHex(0x22c55e);
-        this.pointerArm.rotation.z = -Math.PI / 1.5;
+        coreMat.emissive.setHex(0x10b981);
+        coreMat.emissiveIntensity = 1.8;
+        wireMat.emissive.setHex(0x34d399);
+        this.pointLight.color.setHex(0x10b981);
+        this.pointLight.intensity = 3.5;
         break;
       case 'failed':
-        eyeMat.emissive.setHex(0xef4444);
+        coreMat.emissive.setHex(0xef4444);
+        coreMat.emissiveIntensity = 2.0;
+        wireMat.emissive.setHex(0xef4444);
         this.pointLight.color.setHex(0xef4444);
-        armMat.emissive.setHex(0xef4444);
-        this.pointerArm.rotation.z = -Math.PI / 4;
+        this.pointLight.intensity = 4.0;
         break;
       case 'skipped':
-        eyeMat.emissive.setHex(0x94a3b8);
-        this.pointLight.color.setHex(0x94a3b8);
-        armMat.emissive.setHex(0x94a3b8);
+        coreMat.emissive.setHex(0x64748b);
+        coreMat.emissiveIntensity = 0.5;
+        wireMat.emissive.setHex(0x475569);
+        this.pointLight.color.setHex(0x64748b);
+        this.pointLight.intensity = 1.2;
         break;
       default:
-        eyeMat.emissive.setHex(0x0284c7);
+        coreMat.emissive.setHex(0x0284c7);
+        coreMat.emissiveIntensity = 1.0;
+        wireMat.emissive.setHex(0x38bdf8);
         this.pointLight.color.setHex(0x38bdf8);
-        armMat.emissive.setHex(0x0284c7);
-        this.pointerArm.rotation.z = -Math.PI / 2.2;
+        this.pointLight.intensity = 2.5;
         break;
     }
   }
 
-  private animate(): void {
-    this.animFrameId = requestAnimationFrame(() => this.animate());
+  private animate = (): void => {
+    this.animFrameId = requestAnimationFrame(this.animate);
 
-    if (!this.avatarGroup || !this.renderer || !this.scene || !this.camera) return;
+    if (!this.isReducedMotion && this.reactorGroup) {
+      const now = performance.now();
+      const delta = this.lastTime ? Math.min((now - this.lastTime) / 1000, 0.1) : 0.016;
+      this.lastTime = now;
+      const speedMultiplier = this.mood() === 'running' ? 2.4 : 1.0;
 
-    const delta = this.clock.getDelta();
-    const elapsed = this.clock.getElapsedTime();
-    const speed = this.isReducedMotion ? 0.3 : 1.0;
+      this.reactorGroup.rotation.y += delta * 0.4 * speedMultiplier;
+      this.wireframeMesh!.rotation.x += delta * 0.25 * speedMultiplier;
+      this.wireframeMesh!.rotation.z += delta * 0.2 * speedMultiplier;
 
-    const currentMood = this.mood();
-
-    if (currentMood === 'completed') {
-      this.avatarGroup.position.y = Math.sin(elapsed * 4 * speed) * 0.12;
-      this.avatarGroup.rotation.y += 0.03 * speed;
-    } else if (currentMood === 'failed') {
-      this.avatarGroup.position.x = Math.sin(elapsed * 25) * 0.03;
-      this.avatarGroup.position.y = 0;
-    } else {
-      this.avatarGroup.position.y = Math.sin(elapsed * 1.8 * speed) * 0.06;
-      this.avatarGroup.rotation.y = Math.sin(elapsed * 0.8 * speed) * 0.15;
+      if (this.ringOuter) {
+        this.ringOuter.rotation.z += delta * 0.6 * speedMultiplier;
+      }
+      if (this.ringInner) {
+        this.ringInner.rotation.y -= delta * 0.5 * speedMultiplier;
+      }
+      if (this.particleCloud) {
+        this.particleCloud.rotation.y += delta * 0.15 * speedMultiplier;
+      }
     }
 
-    if (this.ringOuter) {
-      this.ringOuter.rotation.z += 0.015 * speed;
-      this.ringOuter.rotation.y += 0.01 * speed;
+    if (this.renderer && this.scene && this.camera) {
+      this.renderer.render(this.scene, this.camera);
     }
-
-    if (this.ringInner) {
-      this.ringInner.rotation.z -= 0.02 * speed;
-      this.ringInner.rotation.x += 0.012 * speed;
-    }
-
-    if (this.particles) {
-      this.particles.rotation.y += 0.003 * speed;
-    }
-
-    this.renderer.render(this.scene, this.camera);
-  }
+  };
 
   private onResize(): void {
     if (!this.containerRef?.nativeElement || !this.renderer || !this.camera) return;
@@ -458,30 +442,20 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
-    if (this.headMesh) {
-      this.headMesh.geometry.dispose();
-      (this.headMesh.material as THREE.Material).dispose();
+
+    if (this.scene) {
+      this.scene.traverse((obj) => {
+        if (obj instanceof THREE.Mesh || obj instanceof THREE.Points) {
+          obj.geometry.dispose();
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => m.dispose());
+          } else {
+            obj.material.dispose();
+          }
+        }
+      });
     }
-    if (this.eyeMesh) {
-      this.eyeMesh.geometry.dispose();
-      (this.eyeMesh.material as THREE.Material).dispose();
-    }
-    if (this.ringOuter) {
-      this.ringOuter.geometry.dispose();
-      (this.ringOuter.material as THREE.Material).dispose();
-    }
-    if (this.ringInner) {
-      this.ringInner.geometry.dispose();
-      (this.ringInner.material as THREE.Material).dispose();
-    }
-    if (this.pointerArm) {
-      this.pointerArm.geometry.dispose();
-      (this.pointerArm.material as THREE.Material).dispose();
-    }
-    if (this.particles) {
-      this.particles.geometry.dispose();
-      (this.particles.material as THREE.Material).dispose();
-    }
+
     if (this.renderer) {
       this.renderer.dispose();
     }

@@ -111,4 +111,16 @@ export class AgentStreamService {
       this.isStreaming.set(false);
     }
   }
+
+  async checkHealth(apiBaseUrl: string = 'http://localhost:8000'): Promise<{ status: string; database: string; llm_server: string } | null> {
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/health`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
 }
