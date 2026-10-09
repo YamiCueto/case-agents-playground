@@ -74,20 +74,20 @@ La siguiente tabla resume el estado real de cada capacidad presente en la base d
 
 | Capacidad | Descripción Técnica | Componente Responsable | Estado Real |
 | :--- | :--- | :--- | :--- |
-| **Orquestación Agent v1** | Pipeline determinista de 7 fases lineales con bifurcación para respuestas conceptuales directas. | [`src/agents/v1_tool_calling/agent.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/v1_tool_calling/agent.py) | **Operativo** |
-| **Contrato de Herramientas Tipadas** | 4 esquemas declarativos JSON con validación en CPU mediante Pydantic v2. | [`src/agents/tools/ticket_tools.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/tools/ticket_tools.py) | **Operativo** |
-| **Cliente LLM Local** | Integración HTTP OpenAI-compatible contra servidor local `llama.cpp` (Qwen 3.5 4B). | [`src/agents/common/providers.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/common/providers.py) | **Operativo** |
-| **Persistencia Relacional** | Esquema de 5 tablas con SQLAlchemy 2.0 y soporte transaccional en MySQL. | [`src/infrastructure/database/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/infrastructure/database/) | **Operativo** |
-| **Migraciones de Base de Datos** | Gestión de versiones de esquema con Alembic y control de revisiones. | [`alembic/versions/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/alembic/versions/) | **Operativo** |
-| **Streaming SSE Desacoplado** | Emisión asíncrona de eventos tipados `StreamEvent` vía `POST /api/chat/stream`. | [`src/api/routes/chat.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/api/routes/chat.py) | **Operativo** |
-| **Sanitización de Payloads** | Filtro recursivo que redacta contraseñas, llaves y campos confidenciales en trazas. | [`src/api/security.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/api/security.py) | **Operativo** |
-| **Simulación de Personas** | Selector de contexto de identidad operativa (`usr_carlos`, `usr_laura`, etc.). | [`src/api/routes/agents.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/api/routes/agents.py) | **Operativo (Modo Lab)** |
-| **Despachador Diagnóstico SSE** | Emisor controlado (`test_sse`) con pausas de 400ms para pruebas de cancelación. | [`src/api/routes/chat.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/api/routes/chat.py) | **Diagnóstico** |
-| **Runtime Inspector 3D** | Avatar orbital procedural Three.js con reacciones animadas por estado (`idle`, `pointing`, etc.). | [`frontend/src/app/components/runtime-inspector/avatar-3d/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/frontend/src/app/components/runtime-inspector/avatar-3d/) | **Operativo** |
-| **Grafo de Flujo Interactivo** | Visualizador de nodos con pulsos luminosos y marcado dinámico de fases omitidas. | [`frontend/src/app/components/runtime-inspector/journey-flow/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/frontend/src/app/components/runtime-inspector/journey-flow/) | **Operativo** |
-| **Live Mode con Pausa Visual** | Congelación de vista sin bloqueo del backend, acumulando eventos en cola reactiva. | [`frontend/src/app/services/presentation-controller.service.ts`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/frontend/src/app/services/presentation-controller.service.ts) | **Operativo** |
-| **Replay Mode Interactivo** | Reproducción paso a paso (0.5x, 1x, 2x) y salto directo a nodos sin invocar LLM ni SQL. | [`frontend/src/app/services/presentation-controller.service.ts`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/frontend/src/app/services/presentation-controller.service.ts) | **Operativo** |
-| **Visor Técnico Anti-Overflow** | Alternancia Wrapped vs. Raw sin desbordamiento horizontal en viewports de 360 a 1920px. | [`frontend/src/app/components/runtime-inspector/technical-viewer/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/frontend/src/app/components/runtime-inspector/technical-viewer/) | **Operativo** |
+| **Orquestación Agent v1** | Pipeline determinista de 7 fases lineales con bifurcación para respuestas conceptuales directas. | [`src/agents/v1_tool_calling/agent.py`](src/agents/v1_tool_calling/agent.py) | **Operativo** |
+| **Contrato de Herramientas Tipadas** | 4 esquemas declarativos JSON con validación en CPU mediante Pydantic v2. | [`src/agents/tools/ticket_tools.py`](src/agents/tools/ticket_tools.py) | **Operativo** |
+| **Cliente LLM Local** | Integración HTTP OpenAI-compatible contra servidor local `llama.cpp` (Qwen 3.5 4B). | [`src/agents/common/providers.py`](src/agents/common/providers.py) | **Operativo** |
+| **Persistencia Relacional** | Esquema de 5 tablas con SQLAlchemy 2.0 y soporte transaccional en MySQL. | [`src/infrastructure/database/`](src/infrastructure/database/) | **Operativo** |
+| **Migraciones de Base de Datos** | Gestión de versiones de esquema con Alembic y control de revisiones. | [`alembic/versions/`](alembic/versions/) | **Operativo** |
+| **Streaming SSE Desacoplado** | Emisión asíncrona de eventos tipados `StreamEvent` vía `POST /api/chat/stream`. | [`src/api/routes/chat.py`](src/api/routes/chat.py) | **Operativo** |
+| **Sanitización de Payloads** | Filtro recursivo que redacta contraseñas, llaves y campos confidenciales en trazas. | [`src/api/security.py`](src/api/security.py) | **Operativo** |
+| **Simulación de Personas** | Selector de contexto de identidad operativa (`usr_carlos`, `usr_laura`, etc.). | [`src/api/routes/agents.py`](src/api/routes/agents.py) | **Operativo (Modo Lab)** |
+| **Despachador Diagnóstico SSE** | Emisor controlado (`test_sse`) con pausas de 400ms para pruebas de cancelación. | [`src/api/routes/chat.py`](src/api/routes/chat.py) | **Diagnóstico** |
+| **Runtime Inspector 3D** | Avatar orbital procedural Three.js con reacciones animadas por estado (`idle`, `pointing`, etc.). | [`frontend/src/app/components/runtime-inspector/avatar-3d/`](frontend/src/app/components/runtime-inspector/avatar-3d/) | **Operativo** |
+| **Grafo de Flujo Interactivo** | Visualizador de nodos con pulsos luminosos y marcado dinámico de fases omitidas. | [`frontend/src/app/components/runtime-inspector/journey-flow/`](frontend/src/app/components/runtime-inspector/journey-flow/) | **Operativo** |
+| **Live Mode con Pausa Visual** | Congelación de vista sin bloqueo del backend, acumulando eventos en cola reactiva. | [`frontend/src/app/services/presentation-controller.service.ts`](frontend/src/app/services/presentation-controller.service.ts) | **Operativo** |
+| **Replay Mode Interactivo** | Reproducción paso a paso (0.5x, 1x, 2x) y salto directo a nodos sin invocar LLM ni SQL. | [`frontend/src/app/services/presentation-controller.service.ts`](frontend/src/app/services/presentation-controller.service.ts) | **Operativo** |
+| **Visor Técnico Anti-Overflow** | Alternancia Wrapped vs. Raw sin desbordamiento horizontal en viewports de 360 a 1920px. | [`frontend/src/app/components/runtime-inspector/technical-viewer/`](frontend/src/app/components/runtime-inspector/technical-viewer/) | **Operativo** |
 | **Agent v2 a Agent v6** | Bucle iterativo, memoria contextual, grafos de planeación DAG, guardrails y observabilidad. | Catálogo de agentes / Talleres v2..v6 | **Hoja de Ruta (Futuro)** |
 
 ---
@@ -180,16 +180,16 @@ flowchart TD
 
 | Capa Hexagonal | Directorio en Repositorio | Componentes Concretos | Responsabilidad Central |
 | :--- | :--- | :--- | :--- |
-| **Domain** | [`src/domain/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/domain/) | `entities.py`, `rules.py`, `enums.py`, `exceptions.py` | Definición de entidades puras, cálculo de fechas de SLA y validación de transiciones de estado (`validate_status_transition`). Sin dependencias de base de datos ni HTTP. |
-| **Application** | [`src/application/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/application/) | `ticket_service.py`, `dtos.py` | Casos de uso de gestión de tickets (`create_ticket`, `list_tickets`, `get_ticket`, `identify_overdue_tickets`) y DTOs fuertemente tipados. |
-| **Infrastructure** | [`src/infrastructure/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/infrastructure/) | `database/models.py`, `connection.py`, `repositories/`, `config.py` | Adaptadores de persistencia relacional con SQLAlchemy 2.0, mapeo objeto-relacional y pooling de conexiones. |
-| **Agents / Core** | [`src/agents/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/) | `v1_tool_calling/agent.py`, `tools/ticket_tools.py`, `common/` | Orquestación agéntica de inferencia, validación de argumentos Pydantic y ejecución soberana de herramientas. |
-| **API / Presentation** | [`src/api/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/api/) | `app.py`, `routes/`, `schemas.py`, `security.py` | Controladores FastAPI, enrutamiento SSE, esquemas de entrada y sanitización de seguridad. |
+| **Domain** | [`src/domain/`](src/domain/) | `entities.py`, `rules.py`, `enums.py`, `exceptions.py` | Definición de entidades puras, cálculo de fechas de SLA y validación de transiciones de estado (`validate_status_transition`). Sin dependencias de base de datos ni HTTP. |
+| **Application** | [`src/application/`](src/application/) | `ticket_service.py`, `dtos.py` | Casos de uso de gestión de tickets (`create_ticket`, `list_tickets`, `get_ticket`, `identify_overdue_tickets`) y DTOs fuertemente tipados. |
+| **Infrastructure** | [`src/infrastructure/`](src/infrastructure/) | `database/models.py`, `connection.py`, `repositories/`, `config.py` | Adaptadores de persistencia relacional con SQLAlchemy 2.0, mapeo objeto-relacional y pooling de conexiones. |
+| **Agents / Core** | [`src/agents/`](src/agents/) | `v1_tool_calling/agent.py`, `tools/ticket_tools.py`, `common/` | Orquestación agéntica de inferencia, validación de argumentos Pydantic y ejecución soberana de herramientas. |
+| **API / Presentation** | [`src/api/`](src/api/) | `app.py`, `routes/`, `schemas.py`, `security.py` | Controladores FastAPI, enrutamiento SSE, esquemas de entrada y sanitización de seguridad. |
 
 ### 🔍 Auditoría de Desviaciones Hexagonales
 Para mantener transparencia arquitectónica, se documenta que la implementación actual presenta dos acoplamientos técnicos prácticos:
-1. **Instanciación Directa de Repositorios:** En [`src/application/ticket_service.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/application/ticket_service.py#L27-L32), `TicketService` recibe una sesión de SQLAlchemy e instancia directamente `TicketRepository(session)` y `UserRepository(session)`, en lugar de recibir interfaces abstractas inyectadas mediante un contenedor de inversión de dependencias.
-2. **Entidades con Configuración Pydantic:** Las entidades de dominio en [`src/domain/entities.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/domain/entities.py) utilizan `BaseModel` de Pydantic con `from_attributes = True` para agilizar la serialización desde modelos ORM, lo que introduce una dependencia ligera de framework en el dominio puro.
+1. **Instanciación Directa de Repositorios:** En [`src/application/ticket_service.py`](src/application/ticket_service.py#L27-L32), `TicketService` recibe una sesión de SQLAlchemy e instancia directamente `TicketRepository(session)` y `UserRepository(session)`, en lugar de recibir interfaces abstractas inyectadas mediante un contenedor de inversión de dependencias.
+2. **Entidades con Configuración Pydantic:** Las entidades de dominio en [`src/domain/entities.py`](src/domain/entities.py) utilizan `BaseModel` de Pydantic con `from_attributes = True` para agilizar la serialización desde modelos ORM, lo que introduce una dependencia ligera de framework en el dominio puro.
 
 ---
 
@@ -220,7 +220,7 @@ flowchart TD
 
 #### HOP 1: USER_REQUEST
 * **Propósito:** Registrar formalmente la solicitud y fijar el contexto de autorización.
-* **Componente Responsable:** Capa API / Runtime ([`run_agent_v1_stream`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/v1_tool_calling/agent.py#L97-L117)).
+* **Componente Responsable:** Capa API / Runtime ([`run_agent_v1_stream`](src/agents/v1_tool_calling/agent.py#L97-L117)).
 * **Entrada:** `ChatRequest` (consulta textual en lenguaje natural y `user_persona`).
 * **Operación:** Genera un identificador único de evento, fija la identidad simulada (ej. `usr_carlos`) y prepara el canal SSE.
 * **Salida:** Evento SSE de tipo `USER_REQUEST`.
@@ -236,7 +236,7 @@ flowchart TD
 
 #### HOP 3: TOOL_PROPOSAL (o DIRECT_ANSWER)
 * **Propósito:** Publicar la propuesta formal de la acción requerida.
-* **Componente Responsable:** Runtime interceptor ([`agent.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/v1_tool_calling/agent.py#L184-L200)).
+* **Componente Responsable:** Runtime interceptor ([`agent.py`](src/agents/v1_tool_calling/agent.py#L184-L200)).
 * **Entrada:** Objeto `ToolCall` del modelo conteniendo `id`, `name` y `arguments` serializados en JSON.
 * **Operación:** Si el modelo no solicitó herramientas, emite `DIRECT_ANSWER` y salta hacia la síntesis final. Si solicitó una herramienta, emite `TOOL_PROPOSAL`.
 * **Salida:** Evento SSE `TOOL_PROPOSAL` con el payload exacto de la propuesta.
@@ -244,7 +244,7 @@ flowchart TD
 
 #### HOP 4: ARGUMENT_VALIDATION
 * **Propósito:** Validar tipos de datos, rangos y restricciones de negocio en CPU antes de tocar la base de datos.
-* **Componente Responsable:** Modelos de Validación Pydantic v2 ([`ARGUMENT_MODELS`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/tools/ticket_tools.py#L33-L38)).
+* **Componente Responsable:** Modelos de Validación Pydantic v2 ([`ARGUMENT_MODELS`](src/agents/tools/ticket_tools.py#L33-L38)).
 * **Entrada:** Diccionario de argumentos extraídos de la propuesta del modelo.
 * **Operación:** `validate_tool_arguments()` ejecuta validación estricta contra `GetTicketArgs`, `ListTicketsArgs`, `CreateTicketArgs` o `IdentifyOverdueArgs`.
 * **Salida:** Evento SSE `ARGUMENT_VALIDATION` con `is_valid: true` y argumentos normalizados, o `is_valid: false` con el mensaje de error.
@@ -253,7 +253,7 @@ flowchart TD
 
 #### HOP 5: CPU_TOOL_EXECUTION
 * **Propósito:** Ejecutar la operación de negocio solicitada sobre la base de datos MySQL.
-* **Componente Responsable:** [`execute_tool_call()`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/tools/ticket_tools.py#L130-L243) + [`TicketService`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/application/ticket_service.py).
+* **Componente Responsable:** [`execute_tool_call()`](src/agents/tools/ticket_tools.py#L130-L243) + [`TicketService`](src/application/ticket_service.py).
 * **Entrada:** Argumentos validados, sesión de SQLAlchemy y nombre de usuario del operador.
 * **Operación:** Despacho de la función correspondiente en Python, ejecución de transacciones SQL en MySQL y captura de resultados estructurados.
 * **Salida:** Diccionario con `status: success` y la entidad resultante, o `status: error` si la entidad no existe o la acción no está autorizada.
@@ -262,7 +262,7 @@ flowchart TD
 
 #### HOP 6: TOOL_RESULT_INJECTION
 * **Propósito:** Inyectar la observación empírica en el contexto conversacional del LLM.
-* **Componente Responsable:** Runtime de orquestación ([`agent.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/v1_tool_calling/agent.py#L250-L284)).
+* **Componente Responsable:** Runtime de orquestación ([`agent.py`](src/agents/v1_tool_calling/agent.py#L250-L284)).
 * **Entrada:** `execution_result` estructurado devuelto por Python en el Hop 5.
 * **Operación:** Se añaden dos mensajes al historial conversacional:
   1. Un mensaje con rol `assistant` que documenta la propuesta del tool call emitida en Hop 3.
@@ -320,7 +320,7 @@ sequenceDiagram
     
     Agent->>Service: execute_tool_call(get_ticket_by_id)
     Service->>MySQL: SELECT * FROM tickets WHERE code = 'TICK-1001'
-    MySQL-->>Service: Registro del Ticket (status: 'OPEN', priority: 'CRITICAL', ...)
+    MySQL-->>Service: Registro del Ticket (code: 'TICK-1001', status: 'OPEN', priority: 'HIGH', category: 'DATABASE')
     Service-->>Agent: Resultado Estructurado {status: "success", data: {...}}
     Agent-->>FastAPI: yield StreamEvent [HOP 5: CPU_TOOL_EXECUTION]
     FastAPI-->>Angular: SSE: data: {"type": "CPU_TOOL_EXECUTION", ...}
@@ -332,7 +332,7 @@ sequenceDiagram
     Agent->>Qwen: POST /v1/chat/completions (Historial enriquecido con datos reales)
     Qwen-->>Agent: Retorna respuesta final sintetizada
     Agent-->>FastAPI: yield StreamEvent [HOP 7: FINAL_SYNTHESIS]
-    FastAPI-->>Angular: SSE: data: {"type": "FINAL_SYNTHESIS", "answer": "El ticket TICK-1001 se encuentra OPEN (Abierto)..."}
+    FastAPI-->>Angular: SSE: data: {"type": "FINAL_SYNTHESIS", "answer": "El ticket TICK-1001 se encuentra OPEN (Abierto) con prioridad HIGH..."}
     
     Agent-->>FastAPI: yield StreamEvent [RUN_COMPLETED]
     FastAPI-->>Angular: SSE: data: {"type": "RUN_COMPLETED", ...}
@@ -343,7 +343,7 @@ sequenceDiagram
 
 ## 7. Contrato de Herramientas
 
-Agent v1 cuenta con cuatro herramientas declaradas formalmente en [`src/agents/tools/ticket_tools.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/agents/tools/ticket_tools.py). Cada herramienta define su esquema JSON y su modelo de validación Pydantic:
+Agent v1 cuenta con cuatro herramientas declaradas formalmente en [`src/agents/tools/ticket_tools.py`](src/agents/tools/ticket_tools.py). Cada herramienta define su esquema JSON y su modelo de validación Pydantic:
 
 ### 7.1 Catálogo de Herramientas
 
@@ -370,7 +370,7 @@ class CreateTicketArgs(BaseModel):
     title: str = Field(description="Título breve del incidente")
     description: str = Field(description="Descripción técnica detallada")
     priority: str = Field(default="MEDIUM", description="LOW, MEDIUM, HIGH, CRITICAL")
-    category_code: str = Field(description="HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL")
+    category_code: str = Field(description="DATABASE, NETWORK, SOFTWARE, HARDWARE, ACCESS")
 
 class IdentifyOverdueArgs(BaseModel):
     pass
@@ -402,7 +402,7 @@ flowchart LR
 ```
 
 ### 8.2 Contrato de Eventos (`StreamEvent`)
-Cada evento transmitido cumple con la estructura serializable definida en [`src/api/schemas.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/src/api/schemas.py):
+Cada evento transmitido cumple con la estructura serializable definida en [`src/api/schemas.py`](src/api/schemas.py):
 
 ```json
 {
@@ -474,7 +474,7 @@ stateDiagram-v2
 ```
 
 ### 9.2 Avatar Guía 3D Procedural (Three.js)
-El avatar guía ([`AgentAvatar3DComponent`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/frontend/src/app/components/runtime-inspector/avatar-3d/agent-avatar-3d.component.ts)) es un **núcleo orbital tecnológico procedural** diseñado sin dependencias de modelos externos (`.gltf` ni texturas pesadas):
+El avatar guía ([`AgentAvatar3DComponent`](frontend/src/app/components/runtime-inspector/avatar-3d/agent-avatar-3d.component.ts)) es un **núcleo orbital tecnológico procedural** diseñado sin dependencias de modelos externos (`.gltf` ni texturas pesadas):
 * **Composición Geométrica:** Cabeza en icosaedro semitransparente con visor holográfico, doble anillo orbital en torsión continua y brazo indicador dinámico.
 * **Sistema de Partículas:** Polvo estelar que responde dinámicamente al estado de ejecución.
 * **Estados y Reacciones Visuales:**
@@ -518,7 +518,7 @@ erDiagram
 
     TICKET_CATEGORIES {
         int id PK
-        string code UK "HARDWARE | SOFTWARE | NETWORK | ACCESS | GENERAL"
+        string code UK "DATABASE | NETWORK | SOFTWARE | HARDWARE | ACCESS"
         string name
         string description
         boolean is_active
@@ -580,22 +580,29 @@ cd case-agents-playground
 ```
 
 ### Fase 3: Preparación del Entorno Python
-```bash
-# Crear entorno virtual
+**En Windows (PowerShell):**
+```powershell
 python -m venv .venv
-
-# Activar en Windows (PowerShell):
 .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-# Activar en Linux / macOS:
+**En Linux / macOS:**
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
-
-# Instalar dependencias del proyecto
 pip install -r requirements.txt
 ```
 
 ### Fase 4: Configuración de Variables de Entorno
 Copia la plantilla de configuración neutra:
+
+**En Windows (PowerShell):**
+```powershell
+Copy-Item .env.example .env
+```
+
+**En Linux / macOS:**
 ```bash
 cp .env.example .env
 ```
@@ -622,10 +629,17 @@ alembic upgrade head
 python scripts/seed_data.py
 ```
 
-### Fase 6: Arranque del Servidor LLM Local
-En una consola dedicada, inicia `llama.cpp` exponiendo la API compatible con OpenAI:
+### Fase 6: Arranque del Servidor LLM Local (Qwen 3.5 4B)
+En una consola dedicada, inicia `llama.cpp` con el modelo local Qwen 3.5 4B exponiendo la API compatible con OpenAI en el puerto `8080`:
+
+**En Windows (PowerShell):**
+```powershell
+.\llama-server.exe -m "path\to\qwen3.5-4b.gguf" --port 8080 --host 127.0.0.1 -c 4096
+```
+
+**En Linux / macOS:**
 ```bash
-llama-server -m models/qwen2.5-coder-7b-instruct-q4_k_m.gguf --port 8080 --host 127.0.0.1 -c 4096
+llama-server -m "path/to/qwen3.5-4b.gguf" --port 8080 --host 127.0.0.1 -c 4096
 ```
 
 ### Fase 7: Arranque del Backend FastAPI
@@ -662,10 +676,10 @@ Ejecuta la suite integral de pruebas con:
 pytest
 ```
 La suite ejecuta **49 pruebas automatizadas** que cubren:
-* **Pruebas Unitarias de Dominio:** Cálculo de SLAs, detección de tickets vencidos y autorización por roles en [`tests/unit/test_domain_rules.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/tests/unit/test_domain_rules.py).
-* **Pruebas de Servicios de Aplicación:** Flujos de creación, transición de estados y comentarios en [`tests/unit/test_ticket_service.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/tests/unit/test_ticket_service.py).
-* **Pruebas de Integración con MySQL:** Verificación transaccional sobre esquemas de prueba en [`tests/integration/`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/tests/integration/).
-* **Pruebas de Fidelidad Factual (Evals):** Evaluación de respuestas contra alucinaciones semánticas en [`tests/e2e/test_factuality_eval.py`](file:///c:/Users/YAMI/Documents/clase%20cfa%20lab03/tests/e2e/test_factuality_eval.py).
+* **Pruebas Unitarias de Dominio:** Cálculo de SLAs, detección de tickets vencidos y autorización por roles en [`tests/unit/test_domain_rules.py`](tests/unit/test_domain_rules.py).
+* **Pruebas de Servicios de Aplicación:** Flujos de creación, transición de estados y comentarios en [`tests/unit/test_ticket_service.py`](tests/unit/test_ticket_service.py).
+* **Pruebas de Integración con MySQL:** Verificación transaccional sobre esquemas de prueba en [`tests/integration/`](tests/integration/).
+* **Pruebas de Fidelidad Factual (Evals):** Evaluación de respuestas contra alucinaciones semánticas en [`tests/e2e/test_factuality_eval.py`](tests/e2e/test_factuality_eval.py).
 
 ### 12.2 Auditoría UX Multi-Viewport (Playwright)
 Para validar la adaptabilidad responsive y comprobar la ausencia de desbordamiento horizontal en el Runtime Inspector:
