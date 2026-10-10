@@ -202,7 +202,7 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       this.isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
   }

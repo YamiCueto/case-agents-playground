@@ -40,9 +40,11 @@ async def default_controlled_test_dispatcher(req: ChatRequest) -> AsyncGenerator
 
 
 from src.agents.v1_tool_calling.agent import run_agent_v1_stream
+from src.agents.v2_agent_loop.agent import run_agent_v2_stream
 
 register_agent_stream_dispatcher("test_sse", default_controlled_test_dispatcher)
 register_agent_stream_dispatcher("v1", run_agent_v1_stream)
+register_agent_stream_dispatcher("v2", run_agent_v2_stream)
 
 
 async def format_and_log_event(event: StreamEvent) -> str:
@@ -54,7 +56,13 @@ async def format_and_log_event(event: StreamEvent) -> str:
         log_line += f" (HOP {event.hop_number}: {event.hop_title})"
     log_line += f" -> {json.dumps(sanitized_payload, ensure_ascii=False)}"
 
-    print(log_line, file=sys.stdout, flush=True)
+    try:
+        print(log_line, file=sys.stdout, flush=True)
+    except Exception:
+        try:
+            print(log_line.encode("ascii", "backslashreplace").decode("ascii"), file=sys.stdout, flush=True)
+        except Exception:
+            pass
 
     event_json = event.model_dump_json()
     return f"data: {event_json}\n\n"

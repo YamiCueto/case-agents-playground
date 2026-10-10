@@ -16,5 +16,10 @@ class ModelResponse:
 
 
 class ModelProvider:
-    def generate(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> ModelResponse:
+    def generate(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        timeout: Optional[float] = None,
+    ) -> ModelResponse:
         raise NotImplementedError

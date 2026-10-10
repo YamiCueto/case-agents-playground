@@ -5,6 +5,7 @@ import { EventStoreService } from '../../services/event-store.service';
 import { PresentationControllerService, PlaybackSpeed } from '../../services/presentation-controller.service';
 import { AgentAvatar3DComponent } from './avatar-3d/agent-avatar-3d.component';
 import { JourneyFlowComponent } from './journey-flow/journey-flow.component';
+import { V2LoopFlowComponent } from './v2-loop-flow/v2-loop-flow.component';
 import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.component';
 
 @Component({
@@ -14,6 +15,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     CommonModule,
     AgentAvatar3DComponent,
     JourneyFlowComponent,
+    V2LoopFlowComponent,
     TechnicalViewerComponent
   ],
   template: `
@@ -45,7 +47,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
               >
                 {{ controller.isVisualPaused() ? 'Reanudar ▶' : 'Pausar ⏸' }}
               </button>
-              @if (journey().status === 'completed' || journey().events.length > 0) {
+              @if (journey().status === 'completed' || v2Execution().status === 'completed' || events().length > 0) {
                 <button
                   type="button"
                   class="btn-switch-replay"
@@ -103,7 +105,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="19 20 9 12 19 4 19 20"></polygon>
-                  <line x1="5" y1="19" x2="5" y2="5"></line>
+                  <line x1="5" y1="12" x2="5" y2="5"></line>
                 </svg>
               </button>
               <button
@@ -166,7 +168,11 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             </div>
 
             <span class="step-indicator">
-              Hop {{ (controller.activeStep()?.hopNumber || 1) }} / 7
+              @if (activeAgentId() === 'v2') {
+                Iteración {{ controller.selectedIterationIndex() }} &bull; Fase {{ controller.selectedPhaseIndex() + 1 }}
+              } @else {
+                Hop {{ (controller.activeStep()?.hopNumber || 1) }} / 7
+              }
             </span>
           </div>
         }
@@ -181,7 +187,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
             <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
-            <span>Execution Journey</span>
+            <span>{{ activeAgentId() === 'v2' ? 'Agent Loop Journey' : 'Execution Journey' }}</span>
           </button>
           <button 
             class="tab-btn" 
@@ -209,7 +215,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
               <circle cx="12" cy="12" r="10"></circle>
               <polygon points="12 6 12 12 16 14"></polygon>
             </svg>
-            <span>Hoja de Ruta v2..v6</span>
+            <span>Hoja de Ruta v3..v6</span>
           </button>
         </nav>
       </header>
@@ -217,110 +223,258 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       <div class="inspector-content">
         @if (activeTab() === 'journey') {
           <div class="journey-dashboard">
-            <!-- Nivel 1: Estado global, Núcleo Three.js y Pipeline de 7 Hops -->
             <section class="avatar-hero-card">
               <div class="avatar-container">
                 <app-agent-avatar-3d
                   [mood]="controller.avatarMood()"
-                  [targetHop]="controller.activeStep()?.hopNumber || 1"
+                  [targetHop]="activeAgentId() === 'v2' ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
                 ></app-agent-avatar-3d>
               </div>
 
-              <div class="journey-flow-wrapper">
-                <app-journey-flow
-                  [steps]="journey().steps"
-                  [selectedHopNumber]="controller.activeStep()?.hopNumber || 1"
-                  (stepClick)="controller.selectStep($event)"
-                ></app-journey-flow>
-              </div>
+              @if (activeAgentId() === 'v2') {
+                <div class="loop-flow-wrapper">
+                  <app-v2-loop-flow
+                    [iterations]="v2Execution().iterations"
+                    [selectedIterationIndex]="controller.selectedIterationIndex()"
+                    [selectedPhaseIndex]="controller.selectedPhaseIndex()"
+                    (iterationClick)="controller.selectV2Iteration($event)"
+                    (phaseClick)="controller.selectV2Phase($event)"
+                  ></app-v2-loop-flow>
+                </div>
+              } @else {
+                <div class="journey-flow-wrapper">
+                  <app-journey-flow
+                    [steps]="journey().steps"
+                    [selectedHopNumber]="controller.activeStep()?.hopNumber || 1"
+                    (stepClick)="controller.selectStep($event)"
+                  ></app-journey-flow>
+                </div>
+              }
             </section>
 
-            <!-- Nivel 2: Explicación Pedagógica Contextual y Actor Soberano -->
-            @if (controller.activeStep(); as step) {
-              <article class="step-detail-card" [ngClass]="step.status">
-                <div class="card-headline">
-                  <div class="headline-left">
-                    <span class="hop-chip">HOP {{ step.hopNumber }}</span>
-                    <h3 class="step-title">{{ step.title }}</h3>
-                  </div>
-                  <span class="status-pill {{ step.status }}">{{ step.status | uppercase }}</span>
-                </div>
-
-                <div class="actor-bar">
-                  <svg class="actor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                    <rect x="9" y="9" width="6" height="6"></rect>
-                    <line x1="9" y1="1" x2="9" y2="4"></line>
-                    <line x1="15" y1="1" x2="15" y2="4"></line>
-                    <line x1="9" y1="20" x2="9" y2="23"></line>
-                    <line x1="15" y1="20" x2="15" y2="23"></line>
-                    <line x1="20" y1="9" x2="23" y2="9"></line>
-                    <line x1="20" y1="14" x2="23" y2="14"></line>
-                    <line x1="1" y1="9" x2="4" y2="9"></line>
-                    <line x1="1" y1="14" x2="4" y2="14"></line>
-                  </svg>
-                  <span class="actor-label">Componente Soberano:</span>
-                  <span class="actor-value">{{ step.actor }}</span>
-                </div>
-
-                <div class="pedagogical-grid">
-                  <div class="pedagogical-item">
-                    <div class="item-header">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                      </svg>
-                      <span class="item-title">Qué está ocurriendo</span>
+            @if (activeAgentId() === 'v2') {
+              @if (controller.activeV2Phase(); as phase) {
+                <article class="step-detail-card" [ngClass]="phase.status">
+                  <div class="card-headline">
+                    <div class="headline-left">
+                      <span class="hop-chip">FASE {{ controller.selectedPhaseIndex() + 1 }}</span>
+                      <h3 class="step-title">{{ phase.title }}</h3>
                     </div>
-                    <p class="item-body">{{ step.description }}</p>
+                    <span class="status-pill {{ phase.status }}">{{ phase.status | uppercase }}</span>
                   </div>
 
-                  <div class="pedagogical-item insight-item">
-                    <div class="item-header insight-header">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                      </svg>
-                      <span class="item-title">Por qué importa (Arquitectura Agéntica)</span>
-                    </div>
-                    <p class="item-body">{{ step.pedagogicalInsight }}</p>
+                  <div class="actor-bar">
+                    <svg class="actor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                      <rect x="9" y="9" width="6" height="6"></rect>
+                      <line x1="9" y1="1" x2="9" y2="4"></line>
+                      <line x1="15" y1="1" x2="15" y2="4"></line>
+                      <line x1="9" y1="20" x2="9" y2="23"></line>
+                      <line x1="15" y1="20" x2="15" y2="23"></line>
+                      <line x1="20" y1="9" x2="23" y2="9"></line>
+                      <line x1="20" y1="14" x2="23" y2="14"></line>
+                      <line x1="1" y1="9" x2="4" y2="9"></line>
+                      <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                    <span class="actor-label">Componente Soberano:</span>
+                    <span class="actor-value">{{ phase.actor }}</span>
                   </div>
-                </div>
 
-                <!-- Nivel 3: Evidencia Técnica (Visor JSON Colapsable) -->
-                <div class="tech-disclosure">
-                  <button
-                    type="button"
-                    class="disclosure-toggle"
-                    (click)="isTechOpen.set(!isTechOpen())"
-                    [attr.aria-expanded]="isTechOpen()"
-                  >
-                    <div class="disclosure-left">
-                      <svg class="chevron-icon" [class.rotated]="isTechOpen()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                      <span>{{ isTechOpen() ? 'Ocultar Evidencia Técnica' : 'Inspeccionar Evidencia Técnica (JSON)' }}</span>
+                  <div class="pedagogical-grid">
+                    <div class="pedagogical-item">
+                      <div class="item-header">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <span class="item-title">Qué está ocurriendo</span>
+                      </div>
+                      <p class="item-body">{{ phase.description }}</p>
                     </div>
-                    <span class="disclosure-badge">{{ step.eventType }}</span>
-                  </button>
 
-                  @if (isTechOpen()) {
-                    <div class="technical-viewer-wrapper">
-                      <app-technical-viewer [payload]="step.payload"></app-technical-viewer>
+                    <div class="pedagogical-item insight-item">
+                      <div class="item-header insight-header">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span class="item-title">Por qué importa (Arquitectura Agéntica Loop)</span>
+                      </div>
+                      <p class="item-body">{{ phase.pedagogicalInsight }}</p>
+                    </div>
+                  </div>
+
+                  @if (phase.tools && phase.tools.length > 0) {
+                    <div class="v2-tools-section">
+                      <div class="tools-section-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                          <polyline points="2 17 12 22 22 17"></polyline>
+                          <polyline points="2 12 12 17 22 12"></polyline>
+                        </svg>
+                        <span>Herramientas Involucradas ({{ phase.tools.length }})</span>
+                      </div>
+
+                      @for (tool of phase.tools; track tool.toolCallId) {
+                        <div class="tool-item-card">
+                          <div class="tool-item-header">
+                            <span class="tool-item-name">{{ tool.toolName }}</span>
+                            <span class="tool-item-id">{{ tool.toolCallId }}</span>
+                          </div>
+
+                          <div class="tool-meta-row">
+                            @if (tool.executionStatus) {
+                              <span class="tool-status-badge {{ tool.executionStatus }}">
+                                Estado: {{ tool.executionStatus | uppercase }}
+                              </span>
+                            }
+                            @if (tool.durationMs) {
+                              <span>Duración: {{ tool.durationMs }}ms</span>
+                            }
+                            @if (tool.isMutative) {
+                              <span class="mutative-tag">MUTATIVA</span>
+                            }
+                            @if (tool.idempotencyHit) {
+                              <span class="idempotent-tag">IDEMPOTENCIA HIT</span>
+                            }
+                          </div>
+
+                          <div class="tool-detail-group">
+                            <span class="detail-group-label">Argumentos Validados:</span>
+                            <pre class="json-inline-viewer">{{ tool.arguments | json }}</pre>
+                          </div>
+
+                          @if (tool.observation) {
+                            <div class="tool-detail-group">
+                              <span class="detail-group-label">Observación Obtenida (MySQL):</span>
+                              <pre class="json-inline-viewer">{{ tool.observation | json }}</pre>
+                            </div>
+                          }
+                        </div>
+                      }
                     </div>
                   }
+
+                  <div class="tech-disclosure">
+                    <button
+                      type="button"
+                      class="disclosure-toggle"
+                      (click)="isTechOpen.set(!isTechOpen())"
+                      [attr.aria-expanded]="isTechOpen()"
+                    >
+                      <div class="disclosure-left">
+                        <svg class="chevron-icon" [class.rotated]="isTechOpen()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                        <span>{{ isTechOpen() ? 'Ocultar Evidencia Técnica' : 'Inspeccionar Evidencia Técnica (JSON)' }}</span>
+                      </div>
+                      <span class="disclosure-badge">{{ phase.phaseType | uppercase }}</span>
+                    </button>
+
+                    @if (isTechOpen()) {
+                      <div class="technical-viewer-wrapper">
+                        <app-technical-viewer [payload]="phase.payload || phase"></app-technical-viewer>
+                      </div>
+                    }
+                  </div>
+                </article>
+              } @else {
+                <div class="journey-empty-state">
+                  <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <h3>Esperando Ejecución del Agent Loop</h3>
+                  <p>Inicia una consulta en el chat para observar las dimensiones macro y micro de Agent v2 en tiempo real.</p>
                 </div>
-              </article>
+              }
             } @else {
-              <div class="journey-empty-state">
-                <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <h3>Esperando Ejecución Agéntica</h3>
-                <p>Escribe una consulta en el chat para observar el encadenamiento de hops en tiempo real con su componente responsable.</p>
-              </div>
+              @if (controller.activeStep(); as step) {
+                <article class="step-detail-card" [ngClass]="step.status">
+                  <div class="card-headline">
+                    <div class="headline-left">
+                      <span class="hop-chip">HOP {{ step.hopNumber }}</span>
+                      <h3 class="step-title">{{ step.title }}</h3>
+                    </div>
+                    <span class="status-pill {{ step.status }}">{{ step.status | uppercase }}</span>
+                  </div>
+
+                  <div class="actor-bar">
+                    <svg class="actor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                      <rect x="9" y="9" width="6" height="6"></rect>
+                      <line x1="9" y1="1" x2="9" y2="4"></line>
+                      <line x1="15" y1="1" x2="15" y2="4"></line>
+                      <line x1="9" y1="20" x2="9" y2="23"></line>
+                      <line x1="15" y1="20" x2="15" y2="23"></line>
+                      <line x1="20" y1="9" x2="23" y2="9"></line>
+                      <line x1="20" y1="14" x2="23" y2="14"></line>
+                      <line x1="1" y1="9" x2="4" y2="9"></line>
+                      <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                    <span class="actor-label">Componente Soberano:</span>
+                    <span class="actor-value">{{ step.actor }}</span>
+                  </div>
+
+                  <div class="pedagogical-grid">
+                    <div class="pedagogical-item">
+                      <div class="item-header">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <span class="item-title">Qué está ocurriendo</span>
+                      </div>
+                      <p class="item-body">{{ step.description }}</p>
+                    </div>
+
+                    <div class="pedagogical-item insight-item">
+                      <div class="item-header insight-header">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span class="item-title">Por qué importa (Arquitectura Agéntica)</span>
+                      </div>
+                      <p class="item-body">{{ step.pedagogicalInsight }}</p>
+                    </div>
+                  </div>
+
+                  <div class="tech-disclosure">
+                    <button
+                      type="button"
+                      class="disclosure-toggle"
+                      (click)="isTechOpen.set(!isTechOpen())"
+                      [attr.aria-expanded]="isTechOpen()"
+                    >
+                      <div class="disclosure-left">
+                        <svg class="chevron-icon" [class.rotated]="isTechOpen()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                        <span>{{ isTechOpen() ? 'Ocultar Evidencia Técnica' : 'Inspeccionar Evidencia Técnica (JSON)' }}</span>
+                      </div>
+                      <span class="disclosure-badge">{{ step.eventType }}</span>
+                    </button>
+
+                    @if (isTechOpen()) {
+                      <div class="technical-viewer-wrapper">
+                        <app-technical-viewer [payload]="step.payload"></app-technical-viewer>
+                      </div>
+                    }
+                  </div>
+                </article>
+              } @else {
+                <div class="journey-empty-state">
+                  <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <h3>Esperando Ejecución Agéntica</h3>
+                  <p>Escribe una consulta en el chat para observar el encadenamiento de hops en tiempo real con su componente responsable.</p>
+                </div>
+              }
             }
           </div>
         } @else if (activeTab() === 'events') {
@@ -339,6 +493,11 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                       Hop {{ evt.hop_number }}: {{ evt.hop_title }}
                     </div>
                   }
+                  @if (evt.iteration_index) {
+                    <div class="event-hop-badge">
+                      Iteración {{ evt.iteration_index }} &bull; Fase: {{ evt.phase }}
+                    </div>
+                  }
                   <div class="json-wrapper">
                     <app-technical-viewer [payload]="evt.payload"></app-technical-viewer>
                   </div>
@@ -348,10 +507,12 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
           </div>
         } @else if (activeTab() === 'future') {
           <div class="future-workshops-grid">
-            <div class="future-card">
-              <h4>Agent v2 &bull; Agent Loop</h4>
-              <p>Visualizador de bucle iterativo, contador de iteraciones y circuit breaker de <code>max_iterations</code>.</p>
-              <span class="locked-badge">Preparado arquitectónicamente</span>
+            <div class="future-card active-card">
+              <div class="future-card-header">
+                <h4>Agent v2 &bull; Agent Loop</h4>
+                <span class="active-badge">Operativo (Taller 03)</span>
+              </div>
+              <p>Bucle iterativo con control de max_iterations, circuit breaker y decisiones dependientes multi-step.</p>
             </div>
             <div class="future-card">
               <h4>Agent v3 &bull; State & Memory</h4>
@@ -649,7 +810,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       height: 160px;
       min-width: 0;
     }
-    .journey-flow-wrapper {
+    .journey-flow-wrapper, .loop-flow-wrapper {
       width: 100%;
       min-width: 0;
       border-top: 1px solid var(--border-subtle);
@@ -666,7 +827,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       box-sizing: border-box;
       transition: border-color 0.2s ease;
     }
-    .step-detail-card.active {
+    .step-detail-card.active, .step-detail-card.running {
       border-color: var(--accent-cyan);
       box-shadow: 0 0 14px rgba(56, 189, 248, 0.15);
     }
@@ -679,6 +840,9 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     }
     .step-detail-card.failed {
       border-color: var(--accent-crimson);
+    }
+    .step-detail-card.timeout {
+      border-color: var(--accent-amber);
     }
 
     .card-headline {
@@ -721,9 +885,10 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       text-transform: uppercase;
     }
     .status-pill.completed { background: #064e3b; color: #34d399; }
-    .status-pill.active { background: #0369a1; color: #bae6fd; }
+    .status-pill.active, .status-pill.running { background: #0369a1; color: #bae6fd; }
     .status-pill.skipped { background: #334155; color: #cbd5e1; }
     .status-pill.failed { background: #7f1d1d; color: #fca5a5; }
+    .status-pill.timeout { background: #78350f; color: #fde68a; }
     .status-pill.idle { background: #1e293b; color: #64748b; }
 
     .actor-bar {
@@ -798,6 +963,107 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     }
     .insight-item .item-body {
       color: #e2e8f0;
+    }
+
+    .v2-tools-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
+    }
+    .tools-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .tool-item-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .tool-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .tool-item-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-emerald);
+    }
+    .tool-item-id {
+      font-size: 0.64rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .tool-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+    }
+    .tool-status-badge {
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+    .tool-status-badge.success { background: #064e3b; color: #34d399; }
+    .tool-status-badge.error, .tool-status-badge.failed { background: #7f1d1d; color: #fca5a5; }
+    .mutative-tag {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+    .idempotent-tag {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+    .tool-detail-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .detail-group-label {
+      font-size: 0.64rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+    .json-inline-viewer {
+      background: #020617;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      max-height: 180px;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .tech-disclosure {
@@ -933,16 +1199,39 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
       border-radius: var(--radius-md);
       padding: 0.85rem;
     }
+    .future-card.active-card {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .future-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+    }
     .future-card h4 {
       font-size: 0.84rem;
       color: #c084fc;
-      margin: 0 0 0.3rem 0;
+      margin: 0;
+    }
+    .active-card h4 {
+      color: var(--accent-emerald);
     }
     .future-card p {
       font-size: 0.76rem;
       color: var(--text-secondary);
       margin: 0 0 0.45rem 0;
       line-height: 1.4;
+    }
+    .active-badge {
+      font-size: 0.66rem;
+      color: var(--accent-emerald);
+      background: var(--accent-emerald-bg);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-weight: 700;
     }
     .locked-badge {
       display: inline-block;
@@ -966,4 +1255,5 @@ export class RuntimeInspectorComponent {
   readonly isTechOpen = signal<boolean>(false);
 
   readonly journey = this.eventStore.journey;
+  readonly v2Execution = this.eventStore.v2Execution;
 }

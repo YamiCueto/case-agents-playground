@@ -59,6 +59,7 @@ htmlcov/
 *.pth
 *.onnx
 models/
+!frontend/src/app/models/
 llm_models/
 
 # Logs & Temporary Files
@@ -91,3 +92,4 @@ dist/
 .DS_Store
 Thumbs.db
 desktop.ini
+.hintrc

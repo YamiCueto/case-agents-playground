@@ -36,8 +36,12 @@ def test_list_agents_endpoint(client: TestClient) -> None:
     assert v1_agent["status"] == "ready"
 
     v2_agent = next(a for a in agents if a["id"] == "v2")
-    assert v2_agent["enabled"] is False
-    assert v2_agent["status"] == "future"
+    assert v2_agent["enabled"] is True
+    assert v2_agent["status"] == "ready"
+
+    v3_agent = next(a for a in agents if a["id"] == "v3")
+    assert v3_agent["enabled"] is False
+    assert v3_agent["status"] == "future"
 
 
 def test_list_personas_endpoint(client: TestClient) -> None:
@@ -71,7 +75,7 @@ def test_get_ticket_detail_api(client: TestClient) -> None:
 
 def test_chat_stream_pending_agent(client: TestClient) -> None:
     payload = {
-        "agent_version": "v2",
+        "agent_version": "v3",
         "query": "Consulta el ticket TICK-1001",
         "user_persona": "usr_carlos",
     }

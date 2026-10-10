@@ -7,7 +7,12 @@ class MockModelProvider(ModelProvider):
     def __init__(self, simulation_rules: Optional[Dict[str, Any]] = None) -> None:
         self.rules: Dict[str, Any] = simulation_rules or {}
 
-    def generate(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> ModelResponse:
+    def generate(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        timeout: Optional[float] = None,
+    ) -> ModelResponse:
         last_message = messages[-1]
 
         if last_message.get("role") == "tool":
@@ -61,7 +66,12 @@ class OpenAICompatibleProvider(ModelProvider):
             pass
         return "Qwen3.5-4B-UD-Q5_K_XL"
 
-    def generate(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> ModelResponse:
+    def generate(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        timeout: Optional[float] = None,
+    ) -> ModelResponse:
         formatted_tools = (
             [{"type": "function", "function": tool} for tool in tools] if tools else None
         )
@@ -71,6 +81,7 @@ class OpenAICompatibleProvider(ModelProvider):
             messages=messages,
             tools=formatted_tools,
             temperature=self.temperature,
+            timeout=timeout,
         )
 
         choice = response.choices[0]

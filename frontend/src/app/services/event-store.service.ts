@@ -1,6 +1,12 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { StreamEvent } from '../models/agent.models';
-import { AgentExecutionJourney, AgentJourneyStep, JourneyHopStatus } from '../models/journey.models';
+import { AgentExecutionJourney, AgentJourneyStep } from '../models/journey.models';
+import {
+  AgentV2Execution,
+  AgentV2Iteration,
+  AgentV2Phase,
+  AgentV2ToolExecution
+} from '../models/v2-loop.models';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +15,7 @@ export class EventStoreService {
   readonly events = signal<StreamEvent[]>([]);
   readonly currentRunId = signal<string>('');
   readonly activeAgentId = signal<string>('v1');
-  readonly runStatus = signal<'idle' | 'running' | 'completed' | 'failed' | 'cancelled'>('idle');
+  readonly runStatus = signal<'idle' | 'running' | 'completed' | 'failed' | 'timeout' | 'cancelled'>('idle');
 
   private createInitialSteps(): AgentJourneyStep[] {
     return [
@@ -100,6 +106,77 @@ export class EventStoreService {
     ];
   }
 
+  private createInitialV2Phases(iterationIndex: number): AgentV2Phase[] {
+    return [
+      {
+        id: `iter-${iterationIndex}-phase-inference`,
+        phaseType: 'inference',
+        title: 'Inferencia del Modelo',
+        shortName: 'Inferencia',
+        actor: 'Qwen 3.5 4B (llama.cpp)',
+        description: 'Envío del historial conversacional y esquemas de herramientas al modelo local.',
+        pedagogicalInsight: 'El LLM analiza el contexto acumulado para decidir si invoca herramientas o responde directamente.',
+        status: 'idle',
+        tools: []
+      },
+      {
+        id: `iter-${iterationIndex}-phase-proposal`,
+        phaseType: 'proposal',
+        title: 'Propuesta de Herramienta',
+        shortName: 'Propuesta',
+        actor: 'Decisión del LLM (Tool Call)',
+        description: 'El modelo emite una o varias propuestas estructuradas de tool calls.',
+        pedagogicalInsight: 'Paso causal: el modelo declara formalmente qué función ejecutar y con qué argumentos antes de cualquier efecto.',
+        status: 'idle',
+        tools: []
+      },
+      {
+        id: `iter-${iterationIndex}-phase-validation`,
+        phaseType: 'validation',
+        title: 'Validación Pydantic',
+        shortName: 'Validación',
+        actor: 'Python Pydantic Validator',
+        description: 'Validación estricta de tipos y contratos de argumentos antes de ejecución.',
+        pedagogicalInsight: 'Barrera de contención: garantiza que argumentos alucinados o malformados se intercepten antes de llegar a la base de datos.',
+        status: 'idle',
+        tools: []
+      },
+      {
+        id: `iter-${iterationIndex}-phase-execution`,
+        phaseType: 'execution',
+        title: 'Ejecución Soberana en CPU/DB',
+        shortName: 'Ejecución',
+        actor: 'TicketService (Python CPU + MySQL)',
+        description: 'Ejecución controlada de la herramienta sobre MySQL con sesiones aisladas y timeouts.',
+        pedagogicalInsight: 'Ejecución determinista: la base de datos es accedida únicamente por servicios soberanos en CPU con políticas de autorización.',
+        status: 'idle',
+        tools: []
+      },
+      {
+        id: `iter-${iterationIndex}-phase-observation`,
+        phaseType: 'observation',
+        title: 'Inyección de Observación',
+        shortName: 'Observación',
+        actor: 'Runtime Context Injection',
+        description: 'Inyección de la observación con role: tool en el historial de mensajes.',
+        pedagogicalInsight: 'Fundamentación fáctica: la evidencia verificada de MySQL se incorpora al contexto para que la siguiente iteración razone sobre hechos reales.',
+        status: 'idle',
+        tools: []
+      },
+      {
+        id: `iter-${iterationIndex}-phase-decision`,
+        phaseType: 'decision',
+        title: 'Decisión del Ciclo',
+        shortName: 'Decisión',
+        actor: 'Runtime Loop Controller',
+        description: 'Evaluación de condiciones de parada, límites de iteración y detección de estancamiento.',
+        pedagogicalInsight: 'Control del bucle: el motor evalúa si continuar con la siguiente iteración o emitir la síntesis final.',
+        status: 'idle',
+        tools: []
+      }
+    ];
+  }
+
   readonly journey = computed<AgentExecutionJourney>(() => {
     const rawEvents = this.events();
     const steps = this.createInitialSteps();
@@ -183,10 +260,258 @@ export class EventStoreService {
       persona,
       startedAt: startedAt || new Date().toISOString(),
       finishedAt,
-      status: currentStatus === 'idle' ? 'idle' : currentStatus,
+      status: currentStatus === 'idle' ? 'idle' : currentStatus === 'timeout' ? 'failed' : currentStatus,
       steps,
       events: rawEvents,
       hasDirectAnswer
+    };
+  });
+
+  readonly v2Execution = computed<AgentV2Execution>(() => {
+    const rawEvents = this.events();
+    let executionId = this.currentRunId();
+    let query = '';
+    let operator = '';
+    let maxIterations = 5;
+    let stopReason: string | undefined = undefined;
+    let totalIterations = 0;
+    let totalToolsExecuted = 0;
+    let totalDurationMs: number | undefined = undefined;
+    let finalAnswer: string | undefined = undefined;
+    let errorMessage: string | undefined = undefined;
+    let startedAt = '';
+    let finishedAt: string | undefined = undefined;
+
+    const iterationsMap = new Map<number, AgentV2Iteration>();
+
+    for (let i = 0; i < rawEvents.length; i++) {
+      const evt = rawEvents[i];
+      if (i === 0) startedAt = evt.timestamp;
+
+      if (evt.execution_id && !executionId) {
+        executionId = evt.execution_id;
+      }
+
+      if (evt.type === 'RUN_STARTED') {
+        query = evt.payload['query'] || '';
+        operator = evt.payload['operator'] || '';
+        maxIterations = evt.payload['max_iterations'] || 5;
+      } else if (evt.type === 'ITERATION_STARTED') {
+        const iterIdx = evt.iteration_index || evt.payload['iteration_index'] || 1;
+        totalIterations = Math.max(totalIterations, iterIdx);
+        if (!iterationsMap.has(iterIdx)) {
+          const phases = this.createInitialV2Phases(iterIdx);
+          phases[0].status = 'running';
+          iterationsMap.set(iterIdx, {
+            iterationIndex: iterIdx,
+            status: 'running',
+            phases,
+            toolsCount: 0,
+            toolsInvoked: [],
+            elapsedSeconds: evt.payload['elapsed_seconds'],
+            summary: `Iteración ${iterIdx} en progreso`
+          });
+        }
+      } else if (evt.type === 'MODEL_INFERENCE_STARTED') {
+        const iterIdx = evt.iteration_index || 1;
+        let iter = iterationsMap.get(iterIdx);
+        if (!iter) {
+          iter = {
+            iterationIndex: iterIdx,
+            status: 'running',
+            phases: this.createInitialV2Phases(iterIdx),
+            toolsCount: 0,
+            toolsInvoked: [],
+            summary: `Iteración ${iterIdx} en progreso`
+          };
+          iterationsMap.set(iterIdx, iter);
+        }
+        iter.phases[0].status = 'running';
+        iter.phases[0].payload = evt.payload;
+        iter.phases[0].timestamp = evt.timestamp;
+      } else if (evt.type === 'MODEL_INFERENCE_COMPLETED') {
+        const iterIdx = evt.iteration_index || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          iter.phases[0].status = 'completed';
+          iter.phases[0].durationMs = evt.payload['duration_ms'];
+          iter.phases[0].payload = { ...iter.phases[0].payload, ...evt.payload };
+          const hasToolCalls = evt.payload['has_tool_calls'] === true;
+          if (hasToolCalls) {
+            iter.phases[1].status = 'running';
+          } else {
+            iter.phases[1].status = 'skipped';
+            iter.phases[2].status = 'skipped';
+            iter.phases[3].status = 'skipped';
+            iter.phases[4].status = 'skipped';
+            iter.phases[5].status = 'running';
+          }
+        }
+      } else if (evt.type === 'TOOL_CALL_PROPOSED') {
+        const iterIdx = evt.iteration_index || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          iter.phases[1].status = 'completed';
+          iter.phases[1].payload = evt.payload;
+          iter.phases[2].status = 'running';
+          const toolExec: AgentV2ToolExecution = {
+            toolCallId: evt.payload['tool_call_id'] || `call-${Date.now()}`,
+            toolName: evt.payload['tool_name'] || '',
+            arguments: evt.payload['arguments'] || {},
+            isMutative: evt.payload['is_mutative'] === true
+          };
+          iter.phases[1].tools = [...(iter.phases[1].tools || []), toolExec];
+          if (!iter.toolsInvoked.includes(toolExec.toolName)) {
+            iter.toolsInvoked.push(toolExec.toolName);
+          }
+          iter.toolsCount = iter.phases[1].tools.length;
+        }
+      } else if (evt.type === 'ARGUMENTS_VALIDATED') {
+        const iterIdx = evt.iteration_index || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          const isValid = evt.payload['is_valid'] !== false;
+          iter.phases[2].status = isValid ? 'completed' : 'failed';
+          iter.phases[2].payload = evt.payload;
+          iter.phases[3].status = 'running';
+          const toolCallId = evt.payload['tool_call_id'];
+          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          if (targetTool) {
+            targetTool.isValid = isValid;
+            targetTool.validationError = evt.payload['validation_error'];
+          }
+        }
+      } else if (evt.type === 'TOOL_EXECUTION_STARTED') {
+        const iterIdx = evt.iteration_index || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          iter.phases[3].status = 'running';
+          iter.phases[3].payload = evt.payload;
+          const toolCallId = evt.payload['tool_call_id'];
+          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          if (targetTool) {
+            targetTool.policy = evt.payload['policy'];
+          }
+        }
+      } else if (evt.type === 'TOOL_EXECUTION_COMPLETED') {
+        const iterIdx = evt.iteration_index || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          const isSuccess = evt.payload['execution_status'] === 'success';
+          iter.phases[3].status = isSuccess ? 'completed' : 'failed';
+          iter.phases[3].durationMs = evt.payload['duration_ms'];
+          iter.phases[3].payload = evt.payload;
+          iter.phases[4].status = 'running';
+          const toolCallId = evt.payload['tool_call_id'];
+          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          if (targetTool) {
+            targetTool.executionStatus = evt.payload['execution_status'];
+            targetTool.durationMs = evt.payload['duration_ms'];
+            targetTool.idempotencyHit = evt.payload['idempotency_hit'];
+            targetTool.observation = evt.payload['result'];
+          }
+          totalToolsExecuted++;
+        }
+      } else if (evt.type === 'OBSERVATION_APPENDED') {
+        const iterIdx = evt.iteration_index || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          iter.phases[4].status = 'completed';
+          iter.phases[4].payload = evt.payload;
+          iter.phases[5].status = 'running';
+          const toolCallId = evt.payload['tool_call_id'];
+          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          if (targetTool && !targetTool.observation) {
+            targetTool.observation = evt.payload['observation'];
+          }
+        }
+      } else if (evt.type === 'ITERATION_COMPLETED') {
+        const iterIdx = evt.iteration_index || evt.payload['iteration_index'] || 1;
+        const iter = iterationsMap.get(iterIdx);
+        if (iter) {
+          iter.status = 'completed';
+          iter.durationMs = evt.payload['duration_ms'];
+          iter.decision = evt.payload['decision'];
+          iter.toolsCount = evt.payload['tool_calls_count'] || iter.toolsCount;
+          iter.toolsInvoked = evt.payload['tools_invoked'] || iter.toolsInvoked;
+          iter.phases[5].status = 'completed';
+          iter.phases[5].durationMs = evt.payload['duration_ms'];
+          iter.phases[5].payload = evt.payload;
+          const decisionText = iter.decision === 'continue' ? 'Continuar ciclo agéntico' : 'Emitir respuesta final';
+          iter.summary = `Iteración ${iterIdx}: ${iter.toolsCount} herramientas ejecutadas. Decisión: ${decisionText}`;
+        }
+      } else if (evt.type === 'FINAL_SYNTHESIS') {
+        finalAnswer = evt.payload['answer'] || evt.payload['content'] || evt.payload['message'] || '';
+        const lastIterIdx = totalIterations || 1;
+        const lastIter = iterationsMap.get(lastIterIdx);
+        if (lastIter) {
+          const synthesisPhase: AgentV2Phase = {
+            id: `iter-${lastIterIdx}-phase-synthesis`,
+            phaseType: 'synthesis',
+            title: 'Síntesis Final Grounded',
+            shortName: 'Síntesis',
+            actor: 'Qwen 3.5 4B (Síntesis)',
+            description: 'Generación de respuesta final en lenguaje natural fundamentada en las observaciones.',
+            pedagogicalInsight: 'Cierre del bucle: la respuesta final sintetiza toda la evidencia recopilada en las iteraciones previas.',
+            status: 'completed',
+            payload: evt.payload,
+            timestamp: evt.timestamp
+          };
+          const existingSynthIdx = lastIter.phases.findIndex((p) => p.phaseType === 'synthesis');
+          if (existingSynthIdx >= 0) {
+            lastIter.phases[existingSynthIdx] = synthesisPhase;
+          } else {
+            lastIter.phases.push(synthesisPhase);
+          }
+        }
+      } else if (evt.type === 'LOOP_LIMIT_EXCEEDED' || evt.type === 'LOOP_REPETITION_DETECTED' || evt.type === 'LOOP_TIMEOUT_EXCEEDED') {
+        stopReason = evt.type.toLowerCase();
+        errorMessage = evt.payload['message'];
+        const lastIterIdx = totalIterations || 1;
+        const lastIter = iterationsMap.get(lastIterIdx);
+        if (lastIter) {
+          lastIter.status = evt.type === 'LOOP_TIMEOUT_EXCEEDED' ? 'timeout' : 'failed';
+          lastIter.decision = evt.type;
+          lastIter.phases[5].status = evt.type === 'LOOP_TIMEOUT_EXCEEDED' ? 'timeout' : 'failed';
+          lastIter.phases[5].payload = evt.payload;
+        }
+      } else if (evt.type === 'RUN_COMPLETED') {
+        finishedAt = evt.timestamp;
+        stopReason = evt.payload['stop_reason'] || 'final_answer';
+        totalDurationMs = evt.payload['total_duration_ms'];
+      } else if (evt.type === 'RUN_FAILED') {
+        finishedAt = evt.timestamp;
+        stopReason = evt.payload['stop_reason'] || 'error';
+        errorMessage = evt.payload['error_message'];
+      } else if (evt.type === 'RUN_CANCELLED') {
+        finishedAt = evt.timestamp;
+        stopReason = 'client_cancelled';
+      }
+    }
+
+    const iterationsList = Array.from(iterationsMap.values()).sort(
+      (a, b) => a.iterationIndex - b.iterationIndex
+    );
+
+    const currentStatus = this.runStatus();
+
+    return {
+      executionId: executionId || `run-${Date.now()}`,
+      agentVersion: 'v2',
+      query,
+      operator,
+      maxIterations,
+      status: currentStatus,
+      stopReason,
+      totalIterations: iterationsList.length,
+      totalToolsExecuted,
+      totalDurationMs,
+      iterations: iterationsList,
+      events: rawEvents,
+      finalAnswer,
+      errorMessage,
+      startedAt: startedAt || new Date().toISOString(),
+      finishedAt
     };
   });
 
@@ -201,8 +526,12 @@ export class EventStoreService {
     this.events.update((prev) => [...prev, event]);
     if (event.type === 'RUN_COMPLETED') {
       this.runStatus.set('completed');
-    } else if (event.type === 'ERROR') {
+    } else if (event.type === 'RUN_FAILED' || event.type === 'ERROR') {
       this.runStatus.set('failed');
+    } else if (event.type === 'RUN_CANCELLED') {
+      this.runStatus.set('cancelled');
+    } else if (event.type === 'LOOP_TIMEOUT_EXCEEDED') {
+      this.runStatus.set('timeout');
     }
   }
 

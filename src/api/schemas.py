@@ -33,6 +33,10 @@ class StreamEvent(BaseModel):
     agent_version: str
     hop_number: Optional[int] = None
     hop_title: Optional[str] = None
+    execution_id: Optional[str] = None
+    iteration_index: Optional[int] = None
+    phase: Optional[str] = None
+    correlation_id: Optional[str] = None
     type: str
     payload: Dict[str, Any] = Field(default_factory=dict)
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

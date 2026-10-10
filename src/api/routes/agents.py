@@ -29,10 +29,10 @@ AGENTS_CATALOG: List[AgentMeta] = [
         id="v2",
         name="Agent v2 — Agent Loop",
         workshop="Taller 03",
-        enabled=False,
-        status="future",
+        enabled=True,
+        status="ready",
         description="Bucle iterativo con control de max_iterations y decisiones dependientes multi-step.",
-        badge="Próximamente",
+        badge="Operativo (L03)",
     ),
     AgentMeta(
         id="v3",

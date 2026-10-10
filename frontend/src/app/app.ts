@@ -89,6 +89,7 @@ export class App implements OnInit {
 
   onSelectAgent(agentId: string): void {
     this.selectedAgentId.set(agentId);
+    this.eventStore.activeAgentId.set(agentId);
   }
 
   onSelectPersona(personaUsername: string): void {
@@ -200,10 +201,13 @@ export class App implements OnInit {
         if (event.type === 'AGENT_NOT_READY' || event.type === 'FINAL_SYNTHESIS' || event.type === 'DIRECT_ANSWER') {
           const content = event.payload['answer'] || event.payload['content'] || event.payload['message'] || event.payload['synthesis'] || event.payload['response_preview'] || '';
           this.updateAgentMessageText(agentMsgId, content);
-        } else if (event.type === 'ERROR') {
-          const errDetail = event.payload['message'] || 'Ocurrió un error en la ejecución.';
+        } else if (event.type === 'ERROR' || event.type === 'RUN_FAILED') {
+          const errDetail = event.payload['message'] || event.payload['error_message'] || 'Ocurrió un error en la ejecución.';
           this.updateAgentMessageText(agentMsgId, `[Error]: ${errDetail}`);
           this.setAgentMessageLoading(agentMsgId, false);
+        } else if (event.type === 'LOOP_LIMIT_EXCEEDED' || event.type === 'LOOP_REPETITION_DETECTED' || event.type === 'LOOP_TIMEOUT_EXCEEDED') {
+          const msg = event.payload['message'] || 'Condición de parada alcanzada.';
+          this.updateAgentMessageText(agentMsgId, `[Límite del Agent Loop]: ${msg}`);
         } else if (event.type === 'RUN_COMPLETED') {
           this.setAgentMessageLoading(agentMsgId, false);
         }
