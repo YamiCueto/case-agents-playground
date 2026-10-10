@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AgentV2Iteration, AgentV2Phase } from '../../../models/v2-loop.models';
+import { describeDecision } from '../../../models/v2-decision';
 
 @Component({
   selector: 'app-v2-loop-flow',
@@ -56,8 +57,8 @@ import { AgentV2Iteration, AgentV2Phase } from '../../../models/v2-loop.models';
 
                 @if (iter.decision) {
                   <div class="iter-card-bottom">
-                    <span class="decision-pill" [class.continue]="iter.decision === 'continue'" [class.stop]="iter.decision !== 'continue'">
-                      {{ iter.decision === 'continue' ? 'Continuar ciclo' : 'Respuesta final' }}
+                    <span class="decision-pill {{ describeDecision(iter.decision).tone }}" [attr.title]="iter.decisionReason">
+                      {{ describeDecision(iter.decision).label }}
                     </span>
                   </div>
                 }
@@ -92,7 +93,8 @@ import { AgentV2Iteration, AgentV2Phase } from '../../../models/v2-loop.models';
                 [class.is-failed]="phase.status === 'failed'"
                 [class.is-skipped]="phase.status === 'skipped'"
                 [class.is-idle]="phase.status === 'idle'"
-                [attr.aria-label]="'Fase ' + phase.shortName + ', estado ' + phase.status + (selectedPhaseIndex() === pIdx ? ', seleccionada' : '')"
+                [attr.title]="phase.statusReason || null"
+                [attr.aria-label]="'Fase ' + phase.shortName + ', estado ' + phase.status + (phase.statusReason ? ', ' + phase.statusReason : '') + (selectedPhaseIndex() === pIdx ? ', seleccionada' : '')"
                 (click)="phaseClick.emit(pIdx)"
                 (keydown.enter)="phaseClick.emit(pIdx)"
                 (keydown.space)="phaseClick.emit(pIdx)"
@@ -307,9 +309,21 @@ import { AgentV2Iteration, AgentV2Phase } from '../../../models/v2-loop.models';
       background: rgba(56, 189, 248, 0.15);
       color: var(--accent-cyan);
     }
-    .decision-pill.stop {
+    .decision-pill.success {
       background: rgba(16, 185, 129, 0.15);
       color: var(--accent-emerald);
+    }
+    .decision-pill.warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+    }
+    .decision-pill.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+    }
+    .decision-pill.neutral {
+      background: #1e293b;
+      color: var(--text-secondary);
     }
     .iter-connector {
       flex: 0 0 14px;
@@ -488,6 +502,8 @@ import { AgentV2Iteration, AgentV2Phase } from '../../../models/v2-loop.models';
   `]
 })
 export class V2LoopFlowComponent {
+  readonly describeDecision = describeDecision;
+
   readonly iterations = input<AgentV2Iteration[]>([]);
   readonly selectedIterationIndex = input<number>(1);
   readonly selectedPhaseIndex = input<number>(0);

@@ -18,7 +18,14 @@ interface QuickPromptCard {
   imports: [CommonModule, FormsModule, MarkdownPipe],
   template: `
     <section class="chat-container">
-      <div class="chat-messages" #scrollContainer>
+      <div
+        class="chat-messages"
+        #scrollContainer
+        tabindex="0"
+        role="region"
+        aria-label="Historial de conversación"
+        (scroll)="onScroll()"
+      >
         @if (messages().length === 0) {
           <div class="welcome-hero">
             <div class="hero-badge">
@@ -178,21 +185,37 @@ interface QuickPromptCard {
     </section>
   `,
   styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-height: 0;
+      min-width: 0;
+      width: 100%;
+    }
     .chat-container {
       display: flex;
       flex-direction: column;
-      height: 100%;
+      flex: 1 1 0;
+      min-height: 0;
+      min-width: 0;
       background: var(--bg-surface);
       color: var(--text-primary);
       overflow: hidden;
     }
     .chat-messages {
-      flex: 1;
+      flex: 1 1 0;
+      min-height: 0;
       overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
       padding: 1.25rem;
       display: flex;
       flex-direction: column;
       gap: 1.15rem;
+    }
+    .chat-messages > * {
+      flex-shrink: 0;
     }
     .welcome-hero {
       margin: auto;
@@ -495,6 +518,7 @@ interface QuickPromptCard {
       font-weight: 600;
     }
     .chat-footer {
+      flex-shrink: 0;
       padding: 0.85rem 1.25rem;
       background: var(--bg-surface);
       border-top: 1px solid var(--border-subtle);
@@ -606,7 +630,12 @@ export class ChatPanelComponent {
   readonly sendMessage = output<string>();
   readonly stopStream = output<void>();
 
+  private static readonly NEAR_BOTTOM_PX = 80;
+
   @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLDivElement>;
+
+  private stickToBottom = true;
+  private lastMessageCount = 0;
 
   readonly currentInput = signal<string>('');
 
@@ -633,9 +662,24 @@ export class ChatPanelComponent {
 
   constructor() {
     effect(() => {
-      this.messages();
-      setTimeout(() => this.scrollToBottom(), 50);
+      const msgs = this.messages();
+      const startedNewConversation = msgs.length < this.lastMessageCount;
+      this.lastMessageCount = msgs.length;
+
+      if (startedNewConversation) {
+        this.stickToBottom = true;
+      }
+      if (this.stickToBottom) {
+        requestAnimationFrame(() => this.scrollToBottom());
+      }
     });
+  }
+
+  onScroll(): void {
+    const el = this.scrollContainer?.nativeElement;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    this.stickToBottom = distanceFromBottom <= ChatPanelComponent.NEAR_BOTTOM_PX;
   }
 
   getPhaseLabel(step: AgentJourneyStep | null): string {
@@ -655,6 +699,7 @@ export class ChatPanelComponent {
   handleSend(): void {
     const text = this.currentInput().trim();
     if (!text || this.isStreaming()) return;
+    this.stickToBottom = true;
     this.sendMessage.emit(text);
     this.currentInput.set('');
   }

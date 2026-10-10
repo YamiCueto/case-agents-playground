@@ -7,6 +7,8 @@ import {
   AgentV2Phase,
   AgentV2ToolExecution
 } from '../models/v2-loop.models';
+import { describeDecision } from '../models/v2-decision';
+import { closeIteration, findPhase, setPhaseStatus, skipToolPhases } from './v2-iteration-state';
 
 @Injectable({
   providedIn: 'root'
@@ -173,6 +175,17 @@ export class EventStoreService {
         pedagogicalInsight: 'Control del bucle: el motor evalúa si continuar con la siguiente iteración o emitir la síntesis final.',
         status: 'idle',
         tools: []
+      },
+      {
+        id: `iter-${iterationIndex}-phase-synthesis`,
+        phaseType: 'synthesis',
+        title: 'Síntesis Final Grounded',
+        shortName: 'Síntesis',
+        actor: 'Qwen 3.5 4B (Síntesis)',
+        description: 'Generación de respuesta final en lenguaje natural fundamentada en las observaciones.',
+        pedagogicalInsight: 'Cierre del bucle: la respuesta final sintetiza toda la evidencia recopilada en las iteraciones previas.',
+        status: 'idle',
+        tools: []
       }
     ];
   }
@@ -333,62 +346,71 @@ export class EventStoreService {
         const iterIdx = evt.iteration_index || 1;
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
-          iter.phases[0].status = 'completed';
-          iter.phases[0].durationMs = evt.payload['duration_ms'];
-          iter.phases[0].payload = { ...iter.phases[0].payload, ...evt.payload };
+          const inference = findPhase(iter, 'inference');
+          inference.status = 'completed';
+          inference.statusReason = undefined;
+          inference.durationMs = evt.payload['duration_ms'];
+          inference.payload = { ...inference.payload, ...evt.payload };
           const hasToolCalls = evt.payload['has_tool_calls'] === true;
           if (hasToolCalls) {
-            iter.phases[1].status = 'running';
+            setPhaseStatus(iter, 'proposal', 'running');
           } else {
-            iter.phases[1].status = 'skipped';
-            iter.phases[2].status = 'skipped';
-            iter.phases[3].status = 'skipped';
-            iter.phases[4].status = 'skipped';
-            iter.phases[5].status = 'running';
+            skipToolPhases(
+              iter,
+              'El modelo respondió directamente sin proponer herramientas (tool_calls_count = 0).'
+            );
+            setPhaseStatus(iter, 'decision', 'running');
           }
         }
       } else if (evt.type === 'TOOL_CALL_PROPOSED') {
         const iterIdx = evt.iteration_index || 1;
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
-          iter.phases[1].status = 'completed';
-          iter.phases[1].payload = evt.payload;
-          iter.phases[2].status = 'running';
+          const proposal = findPhase(iter, 'proposal');
+          setPhaseStatus(iter, 'proposal', 'completed');
+          proposal.payload = evt.payload;
+          setPhaseStatus(iter, 'validation', 'running');
           const toolExec: AgentV2ToolExecution = {
             toolCallId: evt.payload['tool_call_id'] || `call-${Date.now()}`,
             toolName: evt.payload['tool_name'] || '',
             arguments: evt.payload['arguments'] || {},
             isMutative: evt.payload['is_mutative'] === true
           };
-          iter.phases[1].tools = [...(iter.phases[1].tools || []), toolExec];
+          proposal.tools = [...(proposal.tools || []), toolExec];
           if (!iter.toolsInvoked.includes(toolExec.toolName)) {
             iter.toolsInvoked.push(toolExec.toolName);
           }
-          iter.toolsCount = iter.phases[1].tools.length;
+          iter.toolsCount = proposal.tools.length;
         }
       } else if (evt.type === 'ARGUMENTS_VALIDATED') {
         const iterIdx = evt.iteration_index || 1;
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
           const isValid = evt.payload['is_valid'] !== false;
-          iter.phases[2].status = isValid ? 'completed' : 'failed';
-          iter.phases[2].payload = evt.payload;
-          iter.phases[3].status = 'running';
+          const validationError = evt.payload['validation_error'];
+          setPhaseStatus(
+            iter,
+            'validation',
+            isValid ? 'completed' : 'failed',
+            isValid ? undefined : `Argumentos inválidos: ${validationError || 'sin detalle'}`
+          );
+          findPhase(iter, 'validation').payload = evt.payload;
+          setPhaseStatus(iter, 'execution', 'running');
           const toolCallId = evt.payload['tool_call_id'];
-          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          const targetTool = findPhase(iter, 'proposal').tools?.find((t) => t.toolCallId === toolCallId);
           if (targetTool) {
             targetTool.isValid = isValid;
-            targetTool.validationError = evt.payload['validation_error'];
+            targetTool.validationError = validationError;
           }
         }
       } else if (evt.type === 'TOOL_EXECUTION_STARTED') {
         const iterIdx = evt.iteration_index || 1;
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
-          iter.phases[3].status = 'running';
-          iter.phases[3].payload = evt.payload;
+          setPhaseStatus(iter, 'execution', 'running');
+          findPhase(iter, 'execution').payload = evt.payload;
           const toolCallId = evt.payload['tool_call_id'];
-          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          const targetTool = findPhase(iter, 'proposal').tools?.find((t) => t.toolCallId === toolCallId);
           if (targetTool) {
             targetTool.policy = evt.payload['policy'];
           }
@@ -398,17 +420,25 @@ export class EventStoreService {
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
           const isSuccess = evt.payload['execution_status'] === 'success';
-          iter.phases[3].status = isSuccess ? 'completed' : 'failed';
-          iter.phases[3].durationMs = evt.payload['duration_ms'];
-          iter.phases[3].payload = evt.payload;
-          iter.phases[4].status = 'running';
+          const result = evt.payload['result'];
+          const detail = result && typeof result['message'] === 'string' ? `: ${result['message']}` : '';
+          const execution = findPhase(iter, 'execution');
+          setPhaseStatus(
+            iter,
+            'execution',
+            isSuccess ? 'completed' : 'failed',
+            isSuccess ? undefined : `La herramienta ${evt.payload['tool_name']} terminó con estado ${evt.payload['execution_status']}${detail}`
+          );
+          execution.durationMs = evt.payload['duration_ms'];
+          execution.payload = evt.payload;
+          setPhaseStatus(iter, 'observation', 'running');
           const toolCallId = evt.payload['tool_call_id'];
-          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          const targetTool = findPhase(iter, 'proposal').tools?.find((t) => t.toolCallId === toolCallId);
           if (targetTool) {
             targetTool.executionStatus = evt.payload['execution_status'];
             targetTool.durationMs = evt.payload['duration_ms'];
             targetTool.idempotencyHit = evt.payload['idempotency_hit'];
-            targetTool.observation = evt.payload['result'];
+            targetTool.observation = result;
           }
           totalToolsExecuted++;
         }
@@ -416,64 +446,63 @@ export class EventStoreService {
         const iterIdx = evt.iteration_index || 1;
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
-          iter.phases[4].status = 'completed';
-          iter.phases[4].payload = evt.payload;
-          iter.phases[5].status = 'running';
+          setPhaseStatus(iter, 'observation', 'completed');
+          findPhase(iter, 'observation').payload = evt.payload;
+          setPhaseStatus(iter, 'decision', 'running');
           const toolCallId = evt.payload['tool_call_id'];
-          const targetTool = iter.phases[1].tools?.find((t) => t.toolCallId === toolCallId);
+          const targetTool = findPhase(iter, 'proposal').tools?.find((t) => t.toolCallId === toolCallId);
           if (targetTool && !targetTool.observation) {
             targetTool.observation = evt.payload['observation'];
           }
+        }
+      } else if (evt.type === 'FINAL_SYNTHESIS') {
+        finalAnswer = evt.payload['answer'] || evt.payload['content'] || evt.payload['message'] || '';
+        const iter = iterationsMap.get(evt.iteration_index || totalIterations || 1);
+        if (iter) {
+          const synthesis = findPhase(iter, 'synthesis');
+          synthesis.status = 'completed';
+          synthesis.statusReason = undefined;
+          synthesis.payload = evt.payload;
+          synthesis.timestamp = evt.timestamp;
         }
       } else if (evt.type === 'ITERATION_COMPLETED') {
         const iterIdx = evt.iteration_index || evt.payload['iteration_index'] || 1;
         const iter = iterationsMap.get(iterIdx);
         if (iter) {
-          iter.status = 'completed';
+          const decision: string = evt.payload['decision'];
           iter.durationMs = evt.payload['duration_ms'];
-          iter.decision = evt.payload['decision'];
           iter.toolsCount = evt.payload['tool_calls_count'] || iter.toolsCount;
           iter.toolsInvoked = evt.payload['tools_invoked'] || iter.toolsInvoked;
-          iter.phases[5].status = 'completed';
-          iter.phases[5].durationMs = evt.payload['duration_ms'];
-          iter.phases[5].payload = evt.payload;
-          const decisionText = iter.decision === 'continue' ? 'Continuar ciclo agéntico' : 'Emitir respuesta final';
-          iter.summary = `Iteración ${iterIdx}: ${iter.toolsCount} herramientas ejecutadas. Decisión: ${decisionText}`;
-        }
-      } else if (evt.type === 'FINAL_SYNTHESIS') {
-        finalAnswer = evt.payload['answer'] || evt.payload['content'] || evt.payload['message'] || '';
-        const lastIterIdx = totalIterations || 1;
-        const lastIter = iterationsMap.get(lastIterIdx);
-        if (lastIter) {
-          const synthesisPhase: AgentV2Phase = {
-            id: `iter-${lastIterIdx}-phase-synthesis`,
-            phaseType: 'synthesis',
-            title: 'Síntesis Final Grounded',
-            shortName: 'Síntesis',
-            actor: 'Qwen 3.5 4B (Síntesis)',
-            description: 'Generación de respuesta final en lenguaje natural fundamentada en las observaciones.',
-            pedagogicalInsight: 'Cierre del bucle: la respuesta final sintetiza toda la evidencia recopilada en las iteraciones previas.',
-            status: 'completed',
-            payload: evt.payload,
-            timestamp: evt.timestamp
-          };
-          const existingSynthIdx = lastIter.phases.findIndex((p) => p.phaseType === 'synthesis');
-          if (existingSynthIdx >= 0) {
-            lastIter.phases[existingSynthIdx] = synthesisPhase;
-          } else {
-            lastIter.phases.push(synthesisPhase);
+          if (decision === 'stagnation_stopped') {
+            setPhaseStatus(
+              iter,
+              'proposal',
+              'skipped',
+              'El modelo propuso herramientas repetidas; el runtime las bloqueó antes de registrar la propuesta.'
+            );
           }
+          closeIteration(iter, decision, iter.decisionReason);
+          const decisionPhase = findPhase(iter, 'decision');
+          decisionPhase.durationMs = evt.payload['duration_ms'];
+          decisionPhase.payload = evt.payload;
+          iter.summary = `Iteración ${iterIdx}: ${iter.toolsCount} herramientas. Decisión: ${describeDecision(decision).label}`;
         }
-      } else if (evt.type === 'LOOP_LIMIT_EXCEEDED' || evt.type === 'LOOP_REPETITION_DETECTED' || evt.type === 'LOOP_TIMEOUT_EXCEEDED') {
+      } else if (evt.type === 'LOOP_REPETITION_DETECTED') {
         stopReason = evt.type.toLowerCase();
         errorMessage = evt.payload['message'];
-        const lastIterIdx = totalIterations || 1;
-        const lastIter = iterationsMap.get(lastIterIdx);
-        if (lastIter) {
-          lastIter.status = evt.type === 'LOOP_TIMEOUT_EXCEEDED' ? 'timeout' : 'failed';
-          lastIter.decision = evt.type;
-          lastIter.phases[5].status = evt.type === 'LOOP_TIMEOUT_EXCEEDED' ? 'timeout' : 'failed';
-          lastIter.phases[5].payload = evt.payload;
+        const iter = iterationsMap.get(evt.iteration_index || totalIterations);
+        if (iter) {
+          iter.decisionReason = evt.payload['message'];
+        }
+      } else if (evt.type === 'LOOP_LIMIT_EXCEEDED' || evt.type === 'LOOP_TIMEOUT_EXCEEDED') {
+        stopReason = evt.type.toLowerCase();
+        errorMessage = evt.payload['message'];
+        const iter = iterationsMap.get(evt.iteration_index || totalIterations);
+        if (iter) {
+          const decision = evt.type === 'LOOP_TIMEOUT_EXCEEDED' ? 'timeout' : 'max_iterations';
+          closeIteration(iter, decision, evt.payload['message']);
+          findPhase(iter, 'decision').payload = evt.payload;
+          iter.summary = `Iteración ${iter.iterationIndex}: ${iter.toolsCount} herramientas. Decisión: ${describeDecision(decision).label}`;
         }
       } else if (evt.type === 'RUN_COMPLETED') {
         finishedAt = evt.timestamp;
@@ -483,9 +512,17 @@ export class EventStoreService {
         finishedAt = evt.timestamp;
         stopReason = evt.payload['stop_reason'] || 'error';
         errorMessage = evt.payload['error_message'];
+        const openIter = iterationsMap.get(totalIterations);
+        if (openIter && openIter.status === 'running') {
+          closeIteration(openIter, 'fatal_error', errorMessage);
+        }
       } else if (evt.type === 'RUN_CANCELLED') {
         finishedAt = evt.timestamp;
         stopReason = 'client_cancelled';
+        const openIter = iterationsMap.get(totalIterations);
+        if (openIter && openIter.status === 'running') {
+          closeIteration(openIter, 'cancelled', evt.payload['message']);
+        }
       }
     }
 

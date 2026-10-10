@@ -14,9 +14,25 @@ export type AgentV2PhaseStatus =
   | 'idle'
   | 'running'
   | 'completed'
-  | 'failed'
+  | 'skipped'
+  | 'failed';
+
+export const PHASE_STATUS_LABELS: Record<AgentV2PhaseStatus, string> = {
+  idle: 'Pendiente',
+  running: 'En ejecución',
+  completed: 'Completada',
+  skipped: 'Omitida',
+  failed: 'Fallida'
+};
+
+export type AgentV2DecisionCode =
+  | 'continue_next_iteration'
+  | 'final_answer'
   | 'timeout'
-  | 'skipped';
+  | 'stagnation_stopped'
+  | 'max_iterations'
+  | 'fatal_error'
+  | 'cancelled';
 
 export interface AgentV2ToolExecution {
   toolCallId: string;
@@ -41,6 +57,7 @@ export interface AgentV2Phase {
   description: string;
   pedagogicalInsight: string;
   status: AgentV2PhaseStatus;
+  statusReason?: string;
   durationMs?: number;
   payload?: any;
   timestamp?: string;
@@ -51,6 +68,7 @@ export interface AgentV2Iteration {
   iterationIndex: number;
   status: 'idle' | 'running' | 'completed' | 'failed' | 'timeout';
   decision?: string;
+  decisionReason?: string;
   durationMs?: number;
   elapsedSeconds?: number;
   phases: AgentV2Phase[];

@@ -7,6 +7,8 @@ import { AgentAvatar3DComponent } from './avatar-3d/agent-avatar-3d.component';
 import { JourneyFlowComponent } from './journey-flow/journey-flow.component';
 import { V2LoopFlowComponent } from './v2-loop-flow/v2-loop-flow.component';
 import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.component';
+import { describeDecision } from '../../models/v2-decision';
+import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
 
 @Component({
   selector: 'app-runtime-inspector',
@@ -260,7 +262,7 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                       <span class="hop-chip">FASE {{ controller.selectedPhaseIndex() + 1 }}</span>
                       <h3 class="step-title">{{ phase.title }}</h3>
                     </div>
-                    <span class="status-pill {{ phase.status }}">{{ phase.status | uppercase }}</span>
+                    <span class="status-pill {{ phase.status }}">{{ phaseStatusLabels[phase.status] | uppercase }}</span>
                   </div>
 
                   <div class="actor-bar">
@@ -279,6 +281,24 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
                     <span class="actor-label">Componente Soberano:</span>
                     <span class="actor-value">{{ phase.actor }}</span>
                   </div>
+
+                  @if (phase.statusReason) {
+                    <div class="phase-reason" [ngClass]="phase.status" role="note">
+                      <span class="phase-reason-label">{{ phase.status === 'skipped' ? 'Motivo de omisión' : phase.status === 'failed' ? 'Motivo del fallo' : 'Detalle' }}</span>
+                      <span class="phase-reason-text">{{ phase.statusReason }}</span>
+                    </div>
+                  }
+
+                  @if (phase.phaseType === 'decision' && controller.activeV2Iteration()?.decision; as decisionCode) {
+                    <div class="decision-banner {{ describeDecision(decisionCode).tone }}" role="note">
+                      <span class="decision-banner-label">Decisión del runtime</span>
+                      <span class="decision-banner-value">{{ describeDecision(decisionCode).label }}</span>
+                      <span class="decision-banner-code">{{ decisionCode }}</span>
+                      <span class="decision-banner-outcome">
+                        {{ describeDecision(decisionCode).isSafetyStop ? 'Terminación por condición de seguridad' : describeDecision(decisionCode).tone === 'danger' ? 'Terminación por error' : describeDecision(decisionCode).isTerminal ? 'Terminación normal' : 'El bucle continúa' }}
+                      </span>
+                    </div>
+                  }
 
                   <div class="pedagogical-grid">
                     <div class="pedagogical-item">
@@ -541,8 +561,10 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
   `,
   styles: [`
     :host {
-      display: block;
-      height: 100%;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-height: 0;
       width: 100%;
       min-width: 0;
       overflow: hidden;
@@ -550,7 +572,8 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     .inspector-card {
       display: flex;
       flex-direction: column;
-      height: 100%;
+      flex: 1 1 0;
+      min-height: 0;
       width: 100%;
       min-width: 0;
       background: var(--bg-surface);
@@ -780,7 +803,8 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     }
 
     .inspector-content {
-      flex: 1;
+      flex: 1 1 0;
+      min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       padding: 0.85rem;
@@ -889,6 +913,49 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
     .status-pill.skipped { background: #334155; color: #cbd5e1; }
     .status-pill.failed { background: #7f1d1d; color: #fca5a5; }
     .status-pill.timeout { background: #78350f; color: #fde68a; }
+    .phase-reason, .decision-banner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.55rem 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      border-left-width: 3px;
+      background: var(--bg-card);
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .phase-reason.skipped { border-left-color: var(--text-muted); }
+    .phase-reason.failed { border-left-color: var(--accent-crimson); }
+    .phase-reason-label, .decision-banner-label {
+      font-size: 0.62rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .phase-reason-text, .decision-banner-outcome {
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+    .decision-banner-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .decision-banner-code {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+    .decision-banner.continue { border-left-color: var(--accent-cyan); }
+    .decision-banner.success { border-left-color: var(--accent-emerald); }
+    .decision-banner.warning { border-left-color: var(--accent-amber); }
+    .decision-banner.danger { border-left-color: var(--accent-crimson); }
+    .decision-banner.neutral { border-left-color: var(--text-muted); }
     .status-pill.idle { background: #1e293b; color: #64748b; }
 
     .actor-bar {
@@ -1247,6 +1314,9 @@ import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.co
 export class RuntimeInspectorComponent {
   readonly events = input<StreamEvent[]>([]);
   readonly activeAgentId = input<string>('v1');
+
+  readonly describeDecision = describeDecision;
+  readonly phaseStatusLabels = PHASE_STATUS_LABELS;
 
   readonly eventStore = inject(EventStoreService);
   readonly controller = inject(PresentationControllerService);

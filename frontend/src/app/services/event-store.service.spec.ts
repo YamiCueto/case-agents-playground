@@ -130,7 +130,7 @@ describe('EventStoreService', () => {
       iteration_index: 1,
       phase: 'loop',
       type: 'ITERATION_COMPLETED',
-      payload: { iteration_index: 1, duration_ms: 220, decision: 'continue', tool_calls_count: 1, tools_invoked: ['identify_overdue_tickets'] },
+      payload: { iteration_index: 1, duration_ms: 220, decision: 'continue_next_iteration', tool_calls_count: 1, tools_invoked: ['identify_overdue_tickets'] },
       timestamp: new Date().toISOString()
     });
 
@@ -138,7 +138,7 @@ describe('EventStoreService', () => {
     expect(v2.iterations.length).toBe(1);
     expect(v2.iterations[0].iterationIndex).toBe(1);
     expect(v2.iterations[0].status).toBe('completed');
-    expect(v2.iterations[0].decision).toBe('continue');
+    expect(v2.iterations[0].decision).toBe('continue_next_iteration');
     expect(v2.iterations[0].toolsCount).toBe(1);
     expect(v2.totalToolsExecuted).toBe(1);
 
@@ -149,6 +149,8 @@ describe('EventStoreService', () => {
     expect(phases[3].status).toBe('completed');
     expect(phases[4].status).toBe('completed');
     expect(phases[5].status).toBe('completed');
+    expect(phases[6].status).toBe('skipped');
+    expect(phases[6].statusReason).toBeTruthy();
   });
 
   it('should handle terminal stop conditions and mark status correctly', () => {
@@ -166,5 +168,115 @@ describe('EventStoreService', () => {
     const v2 = service.v2Execution();
     expect(v2.stopReason).toBe('loop_limit_exceeded');
     expect(v2.errorMessage).toBe('Maximo alcanzado');
+  });
+
+  describe('v2 phase semantics', () => {
+    let seq = 0;
+    const emit = (type: string, iteration: number, payload: Record<string, any> = {}, phase = 'loop'): void => {
+      service.addEvent({
+        event_id: `evt-${++seq}`,
+        agent_version: 'v2',
+        iteration_index: iteration,
+        phase,
+        type,
+        payload,
+        timestamp: new Date().toISOString()
+      });
+    };
+
+    beforeEach(() => {
+      seq = 0;
+      service.startNewRun('v2');
+      emit('RUN_STARTED', 0, { query: 'q', operator: 'usr', max_iterations: 3 }, 'init');
+    });
+
+    it('marks tool phases as skipped with a reason on a direct answer', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('MODEL_INFERENCE_STARTED', 1, {}, 'inference');
+      emit('MODEL_INFERENCE_COMPLETED', 1, { has_tool_calls: false, tool_calls_count: 0, duration_ms: 10 }, 'inference');
+      emit('FINAL_SYNTHESIS', 1, { answer: 'respuesta' }, 'synthesis');
+      emit('ITERATION_COMPLETED', 1, { decision: 'final_answer', tool_calls_count: 0, tools_invoked: [] });
+      emit('RUN_COMPLETED', 1, { stop_reason: 'final_answer' }, 'complete');
+
+      const iter = service.v2Execution().iterations[0];
+      const status = iter.phases.map((p) => p.status);
+      expect(status).toEqual(['completed', 'skipped', 'skipped', 'skipped', 'skipped', 'completed', 'completed']);
+      expect(iter.phases[1].statusReason).toContain('sin proponer herramientas');
+      expect(iter.decision).toBe('final_answer');
+      expect(iter.status).toBe('completed');
+    });
+
+    it('does not complete phases without evidence while the run is in progress', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('MODEL_INFERENCE_STARTED', 1, {}, 'inference');
+
+      const status = service.v2Execution().iterations[0].phases.map((p) => p.status);
+      expect(status).toEqual(['running', 'idle', 'idle', 'idle', 'idle', 'idle', 'idle']);
+    });
+
+    it('reports stagnation as a safety stop with its own decision', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('MODEL_INFERENCE_COMPLETED', 1, { has_tool_calls: true, tool_calls_count: 1, duration_ms: 5 }, 'inference');
+      emit('LOOP_REPETITION_DETECTED', 1, { message: 'Estancamiento detectado' });
+      emit('ITERATION_COMPLETED', 1, { decision: 'stagnation_stopped', tool_calls_count: 1, tools_invoked: ['get_ticket'] });
+      emit('RUN_FAILED', 1, { stop_reason: 'repetitive_tool_call', error_message: 'Estancamiento detectado' }, 'complete');
+
+      const iter = service.v2Execution().iterations[0];
+      expect(iter.decision).toBe('stagnation_stopped');
+      expect(iter.decisionReason).toBe('Estancamiento detectado');
+      expect(iter.status).toBe('failed');
+      expect(iter.phases[5].status).toBe('failed');
+      expect(iter.phases[1].status).toBe('skipped');
+      expect(iter.phases[2].status).toBe('skipped');
+    });
+
+    it('marks inference as failed on inference timeout', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('MODEL_INFERENCE_STARTED', 1, {}, 'inference');
+      emit('LOOP_TIMEOUT_EXCEEDED', 1, { reason: 'inference_timeout', message: 'Inferencia excedió el límite' });
+      emit('RUN_FAILED', 1, { stop_reason: 'inference_timeout', error_message: 'Inferencia excedió el límite' }, 'complete');
+
+      const iter = service.v2Execution().iterations[0];
+      expect(iter.decision).toBe('timeout');
+      expect(iter.status).toBe('timeout');
+      expect(iter.phases[0].status).toBe('failed');
+      expect(iter.phases[0].statusReason).toBe('Inferencia excedió el límite');
+      expect(iter.phases[5].status).toBe('failed');
+    });
+
+    it('replaces continue with max_iterations when the limit is reached', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('ITERATION_COMPLETED', 1, { decision: 'continue_next_iteration', tool_calls_count: 1, tools_invoked: ['get_ticket'] });
+      emit('LOOP_LIMIT_EXCEEDED', 1, { max_iterations: 1, message: 'Límite alcanzado' });
+
+      const iter = service.v2Execution().iterations[0];
+      expect(iter.decision).toBe('max_iterations');
+      expect(iter.status).toBe('failed');
+      expect(iter.phases[5].status).toBe('failed');
+    });
+
+    it('marks execution and validation failures from runtime evidence', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('MODEL_INFERENCE_COMPLETED', 1, { has_tool_calls: true, tool_calls_count: 1, duration_ms: 5 }, 'inference');
+      emit('TOOL_CALL_PROPOSED', 1, { tool_call_id: 'c1', tool_name: 'get_ticket', arguments: {} }, 'proposal');
+      emit('ARGUMENTS_VALIDATED', 1, { tool_call_id: 'c1', is_valid: false, validation_error: 'ticket_id requerido' }, 'validation');
+      emit('TOOL_EXECUTION_COMPLETED', 1, { tool_call_id: 'c1', tool_name: 'get_ticket', execution_status: 'error', result: { message: 'argumentos inválidos' } }, 'execution');
+
+      const phases = service.v2Execution().iterations[0].phases;
+      expect(phases[2].status).toBe('failed');
+      expect(phases[2].statusReason).toContain('ticket_id requerido');
+      expect(phases[3].status).toBe('failed');
+      expect(phases[3].statusReason).toContain('argumentos inválidos');
+    });
+
+    it('marks the running iteration as failed on fatal errors', () => {
+      emit('ITERATION_STARTED', 1, { iteration_index: 1 });
+      emit('MODEL_INFERENCE_STARTED', 1, {}, 'inference');
+      emit('RUN_FAILED', 1, { stop_reason: 'fatal_error', error_message: 'Error en inferencia' }, 'complete');
+
+      const iter = service.v2Execution().iterations[0];
+      expect(iter.decision).toBe('fatal_error');
+      expect(iter.phases[0].status).toBe('failed');
+    });
   });
 });
