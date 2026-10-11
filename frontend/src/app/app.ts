@@ -88,8 +88,19 @@ export class App implements OnInit {
   }
 
   onSelectAgent(agentId: string): void {
+    if (this.isStreaming()) {
+      this.streamService.abortCurrentStream();
+    }
     this.selectedAgentId.set(agentId);
+    this.eventStore.resetAll();
     this.eventStore.activeAgentId.set(agentId);
+    this.controller.resetPlayback();
+  }
+
+  onSelectTaskOption(payload: { decisionId: string; selectedValue: string }): void {
+    console.log('[AEP Phase 6.3] Opción HITL capturada en contenedor padre (App):', payload);
+    // En Fase 6.3 el output está conectado tipadamente al contenedor padre.
+    // La orquestación HTTP definitiva de reanudación (POST /api/chat con decision_id) pertenece a Fase 6.4.
   }
 
   onSelectPersona(personaUsername: string): void {

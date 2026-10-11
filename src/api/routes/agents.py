@@ -38,10 +38,10 @@ AGENTS_CATALOG: List[AgentMeta] = [
         id="v3",
         name="Agent v3 — State & Memory",
         workshop="Taller 04",
-        enabled=False,
-        status="future",
+        enabled=True,
+        status="ready",
         description="ExecutionState efímero y MemoryStore persistente con aislamiento estricto por subject_id.",
-        badge="Próximamente",
+        badge="Operativo (L04)",
     ),
     AgentMeta(
         id="v4",

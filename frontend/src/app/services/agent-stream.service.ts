@@ -7,6 +7,17 @@ export interface StreamCallbacks {
   onComplete: () => void;
 }
 
+export interface ChatStreamPayload {
+  agent_version: string;
+  query: string;
+  user_persona: string;
+  conversation_id?: string;
+  decision_id?: string;
+  selected_value?: string;
+  turn_id?: string;
+  session_id?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -16,7 +27,7 @@ export class AgentStreamService {
   readonly currentStreamError = signal<string | null>(null);
 
   async streamChat(
-    payload: { agent_version: string; query: string; user_persona: string },
+    payload: ChatStreamPayload,
     callbacks: StreamCallbacks,
     apiBaseUrl: string = 'http://localhost:8000'
   ): Promise<void> {

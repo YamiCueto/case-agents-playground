@@ -9,6 +9,16 @@ import {
 } from '../models/v2-loop.models';
 import { describeDecision } from '../models/v2-decision';
 import { closeIteration, findPhase, setPhaseStatus, skipToolPhases } from './v2-iteration-state';
+import {
+  AgentV3State,
+  MemoryHydrationState,
+  ActiveDecisionItem,
+  DecisionRecordEvent,
+  PendingTaskState,
+  TurnPersistedState,
+  TaskRecoveryAlert,
+  HitlExecutionStatus
+} from '../models/v3-memory.models';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +28,7 @@ export class EventStoreService {
   readonly currentRunId = signal<string>('');
   readonly activeAgentId = signal<string>('v1');
   readonly runStatus = signal<'idle' | 'running' | 'completed' | 'failed' | 'timeout' | 'cancelled'>('idle');
+  readonly resumingTaskId = signal<string | null>(null);
 
   private createInitialSteps(): AgentJourneyStep[] {
     return [
@@ -534,7 +545,7 @@ export class EventStoreService {
 
     return {
       executionId: executionId || `run-${Date.now()}`,
-      agentVersion: 'v2',
+      agentVersion: this.activeAgentId() === 'v3' ? 'v3' : 'v2',
       query,
       operator,
       maxIterations,
@@ -552,11 +563,189 @@ export class EventStoreService {
     };
   });
 
+  readonly v3State = computed<AgentV3State>(() => {
+    const rawEvents = this.events();
+    let executionId = this.currentRunId();
+    let confirmedConversationId: string | null = null;
+    let persona = '';
+    let hydration: MemoryHydrationState | null = null;
+    let pendingTask: PendingTaskState | null = null;
+    let hitlStatus: HitlExecutionStatus = 'none';
+    let isRecoveryRequired = false;
+    let recoveryAlert: TaskRecoveryAlert | null = null;
+
+    const activeDecisionsMap = new Map<string, ActiveDecisionItem>();
+    const decisionsHistory: DecisionRecordEvent[] = [];
+    const revokedKeys: string[] = [];
+    const persistedTurns: TurnPersistedState[] = [];
+    const v3Events: StreamEvent[] = [];
+
+    for (let i = 0; i < rawEvents.length; i++) {
+      const evt = rawEvents[i];
+      if (evt.agent_version === 'v3') {
+        v3Events.push(evt);
+      }
+      if (evt.execution_id && (!executionId || executionId.startsWith('run-'))) {
+        executionId = evt.execution_id;
+      }
+
+      if (evt.type === 'USER_REQUEST' || evt.type === 'RUN_STARTED') {
+        if (evt.payload['persona']) persona = evt.payload['persona'];
+        if (evt.payload['operator']) persona = evt.payload['operator'];
+      } else if (evt.type === 'MEMORY_HYDRATED') {
+        confirmedConversationId = evt.payload['conversation_id'] || null;
+        const stats = evt.payload['stats'] || {};
+        const rawDecisions = (evt.payload['active_decisions'] || []) as ActiveDecisionItem[];
+
+        for (const dec of rawDecisions) {
+          activeDecisionsMap.set(dec.key, {
+            key: dec.key,
+            value: dec.value,
+            scope: dec.scope || 'persistent',
+            version: dec.version || 1,
+            status: 'active'
+          });
+        }
+
+        const maxLimit = stats['max_context_budget'] || stats['total_context_limit'] || 4096;
+        hydration = {
+          conversationId: confirmedConversationId || '',
+          hydratedTurnsCount: evt.payload['turns_count'] ?? stats['history_turns_count'] ?? 0,
+          decisionsCount: evt.payload['decisions_count'] ?? rawDecisions.length,
+          activeDecisions: Array.from(activeDecisionsMap.values()),
+          budget: {
+            queryTokensEst: stats['query_tokens'] || 0,
+            systemPromptTokensEst: stats['system_prompt_tokens'] || 0,
+            decisionsTokensEst: stats['decisions_tokens'] || 0,
+            historyTokensEst: stats['history_tokens'] || 0,
+            totalInitialTokensEst: stats['total_initial_tokens'] || 0,
+            availableHistoryBudget: stats['available_history_budget'] || 0,
+            historyTurnsCount: stats['history_turns_count'] || 0,
+            decisionsCount: stats['decisions_count'] || rawDecisions.length,
+            maxContextLimit: maxLimit,
+            isHeuristicEstimate: true
+          },
+          hydratedAt: evt.timestamp
+        };
+      } else if (evt.type === 'DECISION_SAVED') {
+        const item: ActiveDecisionItem = {
+          key: evt.payload['key'],
+          value: evt.payload['value'],
+          scope: evt.payload['scope'] || 'persistent',
+          version: evt.payload['version'] || 1,
+          rationale: evt.payload['rationale'],
+          status: evt.payload['status'] || 'active'
+        };
+        activeDecisionsMap.set(item.key, item);
+
+        decisionsHistory.push({
+          decisionId: evt.payload['decision_id'] || `dec-${Date.now()}`,
+          key: item.key,
+          value: item.value,
+          scope: item.scope,
+          version: item.version,
+          status: item.status || 'active',
+          rationale: item.rationale || '',
+          timestamp: evt.timestamp
+        });
+      } else if (evt.type === 'DECISION_REVOKED') {
+        const revokedKey = evt.payload['decision_key'];
+        if (revokedKey) {
+          revokedKeys.push(revokedKey);
+          const existing = activeDecisionsMap.get(revokedKey);
+          if (existing) {
+            activeDecisionsMap.set(revokedKey, {
+              ...existing,
+              status: 'revoked'
+            });
+          }
+        }
+      } else if (evt.type === 'PENDING_TASK_PROPOSED') {
+        pendingTask = {
+          decisionId: evt.payload['decision_id'],
+          question: evt.payload['question'],
+          options: evt.payload['options'] || [],
+          targetToolName: evt.payload['target_tool_name'],
+          missingParameterName: evt.payload['missing_parameter_name'],
+          requiredRole: evt.payload['required_role'],
+          status: 'pending',
+          timestamp: evt.timestamp
+        };
+        hitlStatus = 'waiting_human_decision';
+      } else if (evt.type === 'PENDING_TASK_RESOLVED') {
+        const dId = evt.payload['decision_id'];
+        const selectedVal = evt.payload['selected_value'];
+        if (pendingTask !== null && pendingTask.decisionId === dId) {
+          pendingTask.selectedValue = selectedVal;
+          pendingTask.status = 'resolved';
+        } else {
+          pendingTask = {
+            decisionId: dId,
+            question: '',
+            options: [],
+            targetToolName: evt.payload['target_tool_name'] || '',
+            missingParameterName: '',
+            status: 'resolved',
+            selectedValue: selectedVal,
+            timestamp: evt.timestamp
+          };
+        }
+        hitlStatus = 'resolved';
+      } else if (evt.type === 'TASK_RECOVERY_REQUIRED') {
+        isRecoveryRequired = true;
+        hitlStatus = 'recovery_required';
+        recoveryAlert = {
+          decisionId: evt.payload['decision_id'],
+          targetToolName: evt.payload['target_tool_name'],
+          status: evt.payload['status'] || 'recovery_required',
+          recoveryReason: evt.payload['recovery_reason'] || '',
+          executionCheckpoint: evt.payload['execution_checkpoint'],
+          timestamp: evt.timestamp
+        };
+        if (pendingTask !== null && pendingTask.decisionId === recoveryAlert.decisionId) {
+          pendingTask.status = 'recovery_required';
+          pendingTask.recoveryReason = recoveryAlert.recoveryReason;
+          pendingTask.executionCheckpoint = recoveryAlert.executionCheckpoint;
+        }
+      } else if (evt.type === 'TURN_PERSISTED') {
+        confirmedConversationId = evt.payload['conversation_id'] || confirmedConversationId;
+        persistedTurns.push({
+          turnId: evt.payload['turn_id'],
+          conversationId: evt.payload['conversation_id'],
+          status: evt.payload['status'] || 'stored_in_mysql',
+          timestamp: evt.timestamp
+        });
+      }
+    }
+
+    // Si hay una reanudación activa en tránsito y la tarea no se ha resuelto aún, reflejarlo
+    if (this.resumingTaskId() && hitlStatus !== 'resolved' && hitlStatus !== 'recovery_required') {
+      hitlStatus = 'resuming_task';
+    }
+
+    return {
+      executionId: executionId || `v3-run-${Date.now()}`,
+      confirmedConversationId,
+      persona,
+      hydration,
+      activeDecisions: Array.from(activeDecisionsMap.values()),
+      decisionsHistory,
+      revokedKeys,
+      pendingTask,
+      hitlStatus,
+      persistedTurns,
+      isRecoveryRequired,
+      recoveryAlert,
+      rawV3Events: v3Events
+    };
+  });
+
   startNewRun(agentVersion: string = 'v1'): void {
     this.currentRunId.set(`run-${Date.now()}`);
     this.activeAgentId.set(agentVersion);
     this.events.set([]);
     this.runStatus.set('running');
+    this.resumingTaskId.set(null);
   }
 
   addEvent(event: StreamEvent): void {
@@ -569,7 +758,17 @@ export class EventStoreService {
       this.runStatus.set('cancelled');
     } else if (event.type === 'LOOP_TIMEOUT_EXCEEDED') {
       this.runStatus.set('timeout');
+    } else if (event.type === 'PENDING_TASK_RESOLVED') {
+      this.resumingTaskId.set(null);
     }
+  }
+
+  markResumingTask(decisionId: string): void {
+    this.resumingTaskId.set(decisionId);
+  }
+
+  getConfirmedConversationId(): string | null {
+    return this.v3State().confirmedConversationId;
   }
 
   markCancelled(): void {
@@ -579,5 +778,6 @@ export class EventStoreService {
   resetAll(): void {
     this.events.set([]);
     this.runStatus.set('idle');
+    this.resumingTaskId.set(null);
   }
 }

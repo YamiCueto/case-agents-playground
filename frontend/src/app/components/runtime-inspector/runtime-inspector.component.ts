@@ -1,4 +1,4 @@
-import { Component, input, signal, computed, inject } from '@angular/core';
+import { Component, input, output, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StreamEvent } from '../../models/agent.models';
 import { EventStoreService } from '../../services/event-store.service';
@@ -6,6 +6,7 @@ import { PresentationControllerService, PlaybackSpeed } from '../../services/pre
 import { AgentAvatar3DComponent } from './avatar-3d/agent-avatar-3d.component';
 import { JourneyFlowComponent } from './journey-flow/journey-flow.component';
 import { V2LoopFlowComponent } from './v2-loop-flow/v2-loop-flow.component';
+import { V3MemoryInspectorComponent } from './v3-memory-inspector/v3-memory-inspector.component';
 import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.component';
 import { describeDecision } from '../../models/v2-decision';
 import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
@@ -18,6 +19,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
     AgentAvatar3DComponent,
     JourneyFlowComponent,
     V2LoopFlowComponent,
+    V3MemoryInspectorComponent,
     TechnicalViewerComponent
   ],
   template: `
@@ -170,7 +172,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
             </div>
 
             <span class="step-indicator">
-              @if (activeAgentId() === 'v2') {
+              @if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
                 Iteración {{ controller.selectedIterationIndex() }} &bull; Fase {{ controller.selectedPhaseIndex() + 1 }}
               } @else {
                 Hop {{ (controller.activeStep()?.hopNumber || 1) }} / 7
@@ -189,7 +191,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
             <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
-            <span>{{ activeAgentId() === 'v2' ? 'Agent Loop Journey' : 'Execution Journey' }}</span>
+            <span>{{ activeAgentId() === 'v3' ? 'Agent v3 Loop & Memory' : activeAgentId() === 'v2' ? 'Agent Loop Journey' : 'Execution Journey' }}</span>
           </button>
           <button 
             class="tab-btn" 
@@ -217,7 +219,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
               <circle cx="12" cy="12" r="10"></circle>
               <polygon points="12 6 12 12 16 14"></polygon>
             </svg>
-            <span>Hoja de Ruta v3..v6</span>
+            <span>Hoja de Ruta v4..v6</span>
           </button>
         </nav>
       </header>
@@ -229,11 +231,11 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
               <div class="avatar-container">
                 <app-agent-avatar-3d
                   [mood]="controller.avatarMood()"
-                  [targetHop]="activeAgentId() === 'v2' ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
+                  [targetHop]="(activeAgentId() === 'v2' || activeAgentId() === 'v3') ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
                 ></app-agent-avatar-3d>
               </div>
 
-              @if (activeAgentId() === 'v2') {
+              @if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
                 <div class="loop-flow-wrapper">
                   <app-v2-loop-flow
                     [iterations]="v2Execution().iterations"
@@ -254,7 +256,8 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
               }
             </section>
 
-            @if (activeAgentId() === 'v2') {
+            <!-- Plantilla reutilizable para la fase activa del Agent Loop (reutilizada en v2 y v3) -->
+            <ng-template #phaseDetailCard>
               @if (controller.activeV2Phase(); as phase) {
                 <article class="step-detail-card" [ngClass]="phase.status">
                   <div class="card-headline">
@@ -406,9 +409,84 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
                   <h3>Esperando Ejecución del Agent Loop</h3>
-                  <p>Inicia una consulta en el chat para observar las dimensiones macro y micro de Agent v2 en tiempo real.</p>
+                  <p>Inicia una consulta en el chat para observar las dimensiones macro y micro de la ejecución en tiempo real.</p>
                 </div>
               }
+            </ng-template>
+
+            @if (activeAgentId() === 'v3') {
+              <!-- 1. Vista Dual de Agent v3 (Agent Loop + State & Memory) -->
+              <div class="v3-subnav-bar" role="group" aria-label="Modo de visualización Agent v3">
+                <div class="v3-subnav-title">
+                  <span class="v3-pill">v3 DUAL PROJECTION</span>
+                  <span>Agent Loop + State &amp; Memory</span>
+                </div>
+                <div class="v3-subnav-buttons">
+                  <button
+                    type="button"
+                    class="v3-subnav-btn"
+                    [class.active]="v3ViewMode() === 'dual'"
+                    (click)="v3ViewMode.set('dual')"
+                    aria-label="Ver ambas visualizaciones sincronizadas"
+                  >
+                    Vista Dual
+                  </button>
+                  <button
+                    type="button"
+                    class="v3-subnav-btn"
+                    [class.active]="v3ViewMode() === 'loop'"
+                    (click)="v3ViewMode.set('loop')"
+                    aria-label="Ver solo el bucle iterativo"
+                  >
+                    Solo Loop
+                  </button>
+                  <button
+                    type="button"
+                    class="v3-subnav-btn"
+                    [class.active]="v3ViewMode() === 'memory'"
+                    (click)="v3ViewMode.set('memory')"
+                    aria-label="Ver solo estado y memoria MySQL"
+                  >
+                    Solo Memoria
+                  </button>
+                </div>
+              </div>
+
+              <div class="v3-dual-container" [attr.data-mode]="v3ViewMode()">
+                @if (v3ViewMode() === 'dual' || v3ViewMode() === 'loop') {
+                  <div class="v3-panel-loop">
+                    <div class="panel-column-header">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                      </svg>
+                      <h4>Agent Loop (Fases &amp; Hops)</h4>
+                    </div>
+                    <ng-container *ngTemplateOutlet="phaseDetailCard"></ng-container>
+                  </div>
+                }
+
+                @if (v3ViewMode() === 'dual' || v3ViewMode() === 'memory') {
+                  <div class="v3-panel-memory">
+                    <div class="panel-column-header">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                      </svg>
+                      <h4>State &amp; Memory (MySQL Persistente)</h4>
+                    </div>
+                    <app-v3-memory-inspector
+                      [state]="v3State()"
+                      (selectTaskOption)="onSelectTaskOption($event)"
+                    ></app-v3-memory-inspector>
+                  </div>
+                }
+              </div>
+            } @else if (activeAgentId() === 'v2') {
+              <!-- 2. Vista estándar de Agent v2 -->
+              <ng-container *ngTemplateOutlet="phaseDetailCard"></ng-container>
             } @else {
               @if (controller.activeStep(); as step) {
                 <article class="step-detail-card" [ngClass]="step.status">
@@ -534,10 +612,12 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
               </div>
               <p>Bucle iterativo con control de max_iterations, circuit breaker y decisiones dependientes multi-step.</p>
             </div>
-            <div class="future-card">
-              <h4>Agent v3 &bull; State & Memory</h4>
-              <p>Inspección de <code>ExecutionState</code>, recuerdos de <code>MemoryStore</code> y bloque de hidratación.</p>
-              <span class="locked-badge">Pendiente Taller 04</span>
+            <div class="future-card active-card">
+              <div class="future-card-header">
+                <h4>Agent v3 &bull; State & Memory</h4>
+                <span class="active-badge">Operativo (Taller 04)</span>
+              </div>
+              <p>ExecutionState efímero, MemoryStore persistente con MySQL, aislamiento estricto por subject_id y HITL.</p>
             </div>
             <div class="future-card">
               <h4>Agent v4 &bull; Planning</h4>
@@ -1309,11 +1389,101 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       border-radius: 4px;
       border: 1px solid rgba(167, 139, 250, 0.3);
     }
+
+    /* Agent v3 Dual View Styles */
+    .v3-subnav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.35rem 0.65rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .v3-subnav-title {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .v3-pill {
+      background: var(--accent-cyan-bg);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+    .v3-subnav-buttons {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .v3-subnav-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .v3-subnav-btn.active, .v3-subnav-btn:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+    .v3-dual-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+      width: 100%;
+      min-width: 0;
+    }
+    @media (min-width: 1100px) {
+      .v3-dual-container[data-mode="dual"] {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      }
+    }
+    .v3-panel-loop, .v3-panel-memory {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      min-width: 0;
+      width: 100%;
+    }
+    .panel-column-header {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.6rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+    }
+    .panel-column-header h4 {
+      font-size: 0.74rem;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: var(--text-primary);
+    }
   `]
 })
 export class RuntimeInspectorComponent {
   readonly events = input<StreamEvent[]>([]);
   readonly activeAgentId = input<string>('v1');
+  readonly selectTaskOption = output<{ decisionId: string; selectedValue: string }>();
 
   readonly describeDecision = describeDecision;
   readonly phaseStatusLabels = PHASE_STATUS_LABELS;
@@ -1323,7 +1493,13 @@ export class RuntimeInspectorComponent {
 
   readonly activeTab = signal<'journey' | 'events' | 'future'>('journey');
   readonly isTechOpen = signal<boolean>(false);
+  readonly v3ViewMode = signal<'dual' | 'loop' | 'memory'>('dual');
 
   readonly journey = this.eventStore.journey;
   readonly v2Execution = this.eventStore.v2Execution;
+  readonly v3State = this.eventStore.v3State;
+
+  onSelectTaskOption(payload: { decisionId: string; selectedValue: string }): void {
+    this.selectTaskOption.emit(payload);
+  }
 }

@@ -67,7 +67,7 @@ export class PresentationControllerService {
 
   readonly avatarMood = computed<AvatarMood>(() => {
     const status = this.runStatus();
-    if (this.activeAgentId() === 'v2') {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const phase = this.activeV2Phase();
       if (status === 'failed' || phase?.status === 'failed') return 'failed';
       if (phase?.status === 'skipped') return 'skipped';
@@ -126,7 +126,7 @@ export class PresentationControllerService {
   }
 
   jumpToLatest(): void {
-    if (this.activeAgentId() === 'v2') {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const iters = this.v2Execution().iterations;
       if (iters.length > 0) {
         const lastIter = iters[iters.length - 1];
@@ -231,7 +231,7 @@ export class PresentationControllerService {
   }
 
   stepForward(): void {
-    if (this.activeAgentId() === 'v2') {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const iters = this.v2Execution().iterations;
       if (iters.length === 0) return;
       const currentIter = this.activeV2Iteration();
@@ -262,7 +262,7 @@ export class PresentationControllerService {
 
   stepBackward(): void {
     this.pauseReplay();
-    if (this.activeAgentId() === 'v2') {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const iters = this.v2Execution().iterations;
       if (iters.length === 0) return;
       const currentPhaseIdx = this.selectedPhaseIndex();
@@ -287,6 +287,14 @@ export class PresentationControllerService {
 
   resetReplay(): void {
     this.pauseReplay();
+    this.selectedStepIndex.set(0);
+    this.selectedIterationIndex.set(1);
+    this.selectedPhaseIndex.set(0);
+  }
+
+  resetPlayback(): void {
+    this.pauseReplay();
+    this.mode.set('live');
     this.selectedStepIndex.set(0);
     this.selectedIterationIndex.set(1);
     this.selectedPhaseIndex.set(0);

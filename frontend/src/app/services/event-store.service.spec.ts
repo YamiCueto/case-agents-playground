@@ -279,4 +279,385 @@ describe('EventStoreService', () => {
       expect(iter.phases[0].status).toBe('failed');
     });
   });
+
+  describe('Agent v3 State & Memory Projection (Phase 6.1)', () => {
+    it('projects a single SSE stream simultaneously to v2Execution and v3State (Dual Projection)', () => {
+      service.startNewRun('v3');
+      expect(service.activeAgentId()).toBe('v3');
+
+      // 1. Memory Hydration
+      service.addEvent({
+        event_id: 'evt-v3-hyd',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        type: 'MEMORY_HYDRATED',
+        phase: 'hydration',
+        payload: {
+          conversation_id: 'conv-carlos-101',
+          turns_count: 2,
+          decisions_count: 1,
+          active_decisions: [
+            { key: 'theme_mode', value: 'dark', scope: 'persistent', version: 1 }
+          ],
+          stats: {
+            query_tokens: 25,
+            system_prompt_tokens: 350,
+            decisions_tokens: 40,
+            available_history_budget: 1200,
+            history_turns_count: 2,
+            total_initial_tokens: 415
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      // 2. Loop Execution Events (emitted by v3 using v2 engine)
+      service.addEvent({
+        event_id: 'evt-v3-run-start',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        type: 'RUN_STARTED',
+        payload: { query: '¿Quién lo tiene asignado?', operator: 'usr_carlos', max_iterations: 5 },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-iter-start',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'loop',
+        type: 'ITERATION_STARTED',
+        payload: { iteration_index: 1, max_iterations: 5 },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-inf-done',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'inference',
+        type: 'MODEL_INFERENCE_COMPLETED',
+        payload: { has_tool_calls: true, tool_calls_count: 1, duration_ms: 150 },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-prop',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'proposal',
+        type: 'TOOL_CALL_PROPOSED',
+        payload: { tool_call_id: 'call-v3-1', tool_name: 'get_ticket', arguments: { ticket_code: 'TICK-1001' } },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-val',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'validation',
+        type: 'ARGUMENTS_VALIDATED',
+        payload: { tool_call_id: 'call-v3-1', is_valid: true },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-exec',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'execution',
+        type: 'TOOL_EXECUTION_COMPLETED',
+        payload: { tool_call_id: 'call-v3-1', execution_status: 'success', duration_ms: 30, result: { assignee: 'usr_carlos' } },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-obs',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'observation',
+        type: 'OBSERVATION_APPENDED',
+        payload: { tool_call_id: 'call-v3-1', observation: { assignee: 'usr_carlos' } },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-synth',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        phase: 'synthesis',
+        type: 'FINAL_SYNTHESIS',
+        payload: { answer: 'El ticket TICK-1001 está asignado a Carlos Restrepo.' },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-iter-done',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        iteration_index: 1,
+        type: 'ITERATION_COMPLETED',
+        payload: { decision: 'final_answer', tool_calls_count: 1, duration_ms: 350 },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-persisted',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        type: 'TURN_PERSISTED',
+        phase: 'persistence',
+        payload: { turn_id: 'turn-999', conversation_id: 'conv-carlos-101', status: 'stored_in_mysql' },
+        timestamp: new Date().toISOString()
+      });
+      service.addEvent({
+        event_id: 'evt-v3-run-done',
+        agent_version: 'v3',
+        execution_id: 'v3-exec-001',
+        type: 'RUN_COMPLETED',
+        payload: { stop_reason: 'final_answer', total_duration_ms: 600 },
+        timestamp: new Date().toISOString()
+      });
+
+      // Verification of Projection A: v2Execution is fully populated for V2LoopFlowComponent
+      const v2Exec = service.v2Execution();
+      expect(v2Exec.agentVersion).toBe('v3');
+      expect(v2Exec.status).toBe('completed');
+      expect(v2Exec.totalIterations).toBe(1);
+      expect(v2Exec.totalToolsExecuted).toBe(1);
+      expect(v2Exec.iterations[0].phases.length).toBe(7);
+      expect(v2Exec.iterations[0].phases[0].status).toBe('completed');
+      expect(v2Exec.iterations[0].phases[1].tools?.length).toBe(1);
+      expect(v2Exec.iterations[0].phases[3].status).toBe('completed');
+      expect(v2Exec.finalAnswer).toContain('Carlos Restrepo');
+
+      // Verification of Projection B: v3State is fully populated for V3MemoryInspectorComponent
+      const v3 = service.v3State();
+      expect(v3.executionId).toBe('v3-exec-001');
+      expect(v3.confirmedConversationId).toBe('conv-carlos-101');
+      expect(v3.persona).toBe('usr_carlos');
+      expect(v3.hydration).not.toBeNull();
+      expect(v3.hydration?.hydratedTurnsCount).toBe(2);
+      expect(v3.activeDecisions.length).toBe(1);
+      expect(v3.activeDecisions[0].key).toBe('theme_mode');
+      expect(v3.persistedTurns.length).toBe(1);
+      expect(v3.persistedTurns[0].turnId).toBe('turn-999');
+    });
+
+    it('captures memory hydration and context budget with heuristic indicators (Ajustes 1 y 5)', () => {
+      service.startNewRun('v3');
+      service.addEvent({
+        event_id: 'evt-hyd',
+        agent_version: 'v3',
+        type: 'MEMORY_HYDRATED',
+        payload: {
+          conversation_id: 'conv-laura-202',
+          turns_count: 5,
+          decisions_count: 2,
+          active_decisions: [
+            { key: 'preferred_channel', value: 'SLACK', scope: 'persistent', version: 2 },
+            { key: 'default_priority', value: 'HIGH', scope: 'persistent', version: 1 }
+          ],
+          stats: {
+            query_tokens: 30,
+            system_prompt_tokens: 360,
+            decisions_tokens: 75,
+            available_history_budget: 1800,
+            history_tokens: 520,
+            history_turns_count: 5,
+            total_initial_tokens: 985,
+            max_context_budget: 4096
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      const v3 = service.v3State();
+      expect(v3.confirmedConversationId).toBe('conv-laura-202');
+      expect(v3.hydration?.hydratedTurnsCount).toBe(5);
+      expect(v3.hydration?.budget.queryTokensEst).toBe(30);
+      expect(v3.hydration?.budget.systemPromptTokensEst).toBe(360);
+      expect(v3.hydration?.budget.decisionsTokensEst).toBe(75);
+      expect(v3.hydration?.budget.historyTokensEst).toBe(520);
+      expect(v3.hydration?.budget.totalInitialTokensEst).toBe(985);
+      expect(v3.hydration?.budget.availableHistoryBudget).toBe(1800);
+      expect(v3.hydration?.budget.maxContextLimit).toBe(4096);
+      expect(v3.hydration?.budget.isHeuristicEstimate).toBe(true);
+      expect(v3.activeDecisions.length).toBe(2);
+      // Persisted turns in the current active session starts empty until TURN_PERSISTED
+      expect(v3.persistedTurns.length).toBe(0);
+    });
+
+    it('handles explicit decision persistence and revocation lifecycle', () => {
+      service.startNewRun('v3');
+
+      // 1. Save decision
+      service.addEvent({
+        event_id: 'evt-dec-1',
+        agent_version: 'v3',
+        type: 'DECISION_SAVED',
+        payload: {
+          decision_id: 'dec-prio-001',
+          key: 'default_priority',
+          value: 'HIGH',
+          scope: 'persistent',
+          version: 1,
+          status: 'active',
+          rationale: 'Preferencia explícita del usuario'
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      let v3 = service.v3State();
+      expect(v3.activeDecisions.length).toBe(1);
+      expect(v3.activeDecisions[0].key).toBe('default_priority');
+      expect(v3.activeDecisions[0].value).toBe('HIGH');
+      expect(v3.activeDecisions[0].status).toBe('active');
+      expect(v3.decisionsHistory.length).toBe(1);
+
+      // 2. Revoke decision
+      service.addEvent({
+        event_id: 'evt-dec-2',
+        agent_version: 'v3',
+        type: 'DECISION_REVOKED',
+        payload: { decision_key: 'default_priority', status: 'revoked' },
+        timestamp: new Date().toISOString()
+      });
+
+      v3 = service.v3State();
+      expect(v3.revokedKeys).toContain('default_priority');
+      expect(v3.activeDecisions[0].status).toBe('revoked');
+    });
+
+    it('strictly separates visual pause, human wait (HITL), and task resumption (Ajuste 3)', () => {
+      service.startNewRun('v3');
+      expect(service.v3State().hitlStatus).toBe('none');
+
+      // 1. Proposal of pending task
+      service.addEvent({
+        event_id: 'evt-task-prop',
+        agent_version: 'v3',
+        type: 'PENDING_TASK_PROPOSED',
+        phase: 'hitl_pause',
+        payload: {
+          decision_id: 'task-assign-123',
+          question: '¿A quién deseas asignar el ticket TICK-1001?',
+          options: ['usr_carlos', 'usr_laura'],
+          target_tool_name: 'assign_ticket',
+          missing_parameter_name: 'assignee_username'
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      let v3 = service.v3State();
+      expect(v3.hitlStatus).toBe('waiting_human_decision');
+      expect(v3.pendingTask?.status).toBe('pending');
+      expect(v3.pendingTask?.options).toEqual(['usr_carlos', 'usr_laura']);
+
+      // 2. Mark resuming task in transit
+      service.markResumingTask('task-assign-123');
+      v3 = service.v3State();
+      expect(v3.hitlStatus).toBe('resuming_task');
+
+      // 3. Resolution confirmed by backend
+      service.addEvent({
+        event_id: 'evt-task-res',
+        agent_version: 'v3',
+        type: 'PENDING_TASK_RESOLVED',
+        phase: 'resumption',
+        payload: {
+          decision_id: 'task-assign-123',
+          selected_value: 'usr_laura',
+          target_tool_name: 'assign_ticket',
+          status: 'resolved'
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      v3 = service.v3State();
+      expect(v3.hitlStatus).toBe('resolved');
+      expect(service.resumingTaskId()).toBeNull();
+      expect(v3.pendingTask?.status).toBe('resolved');
+      expect(v3.pendingTask?.selectedValue).toBe('usr_laura');
+    });
+
+    it('captures recovery alert on uncertain mutation failure', () => {
+      service.startNewRun('v3');
+      service.addEvent({
+        event_id: 'evt-task-prop',
+        agent_version: 'v3',
+        type: 'PENDING_TASK_PROPOSED',
+        payload: {
+          decision_id: 'task-mut-404',
+          question: 'Reintento de mutación',
+          target_tool_name: 'update_ticket_status',
+          missing_parameter_name: 'new_status'
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      service.addEvent({
+        event_id: 'evt-recovery-alert',
+        agent_version: 'v3',
+        type: 'TASK_RECOVERY_REQUIRED',
+        phase: 'reconciliation',
+        payload: {
+          decision_id: 'task-mut-404',
+          target_tool_name: 'update_ticket_status',
+          status: 'recovery_required',
+          recovery_reason: 'Lease expirado durante la mutación, resultado incierto',
+          execution_checkpoint: { step: 'db_commit_timeout' }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      const v3 = service.v3State();
+      expect(v3.isRecoveryRequired).toBe(true);
+      expect(v3.hitlStatus).toBe('recovery_required');
+      expect(v3.recoveryAlert?.recoveryReason).toContain('Lease expirado');
+      expect(v3.pendingTask?.status).toBe('recovery_required');
+    });
+
+    it('treats FastAPI as authority on conversation_id and supports retrieval (Ajuste 4)', () => {
+      service.startNewRun('v3');
+      expect(service.getConfirmedConversationId()).toBeNull();
+
+      service.addEvent({
+        event_id: 'evt-hyd',
+        agent_version: 'v3',
+        type: 'MEMORY_HYDRATED',
+        payload: { conversation_id: 'conv-backend-auth-777', stats: {} },
+        timestamp: new Date().toISOString()
+      });
+
+      expect(service.getConfirmedConversationId()).toBe('conv-backend-auth-777');
+      expect(service.v3State().confirmedConversationId).toBe('conv-backend-auth-777');
+    });
+
+    it('maintains visual idempotency and clean state on resetAll', () => {
+      service.startNewRun('v3');
+      service.addEvent({
+        event_id: 'evt-dec',
+        agent_version: 'v3',
+        type: 'DECISION_SAVED',
+        payload: { key: 'pref_1', value: 'val_1', version: 1 },
+        timestamp: new Date().toISOString()
+      });
+      // Duplicate event with same key updates map in-place
+      service.addEvent({
+        event_id: 'evt-dec-dup',
+        agent_version: 'v3',
+        type: 'DECISION_SAVED',
+        payload: { key: 'pref_1', value: 'val_1_updated', version: 2 },
+        timestamp: new Date().toISOString()
+      });
+
+      expect(service.v3State().activeDecisions.length).toBe(1);
+      expect(service.v3State().activeDecisions[0].value).toBe('val_1_updated');
+
+      service.resetAll();
+      expect(service.events().length).toBe(0);
+      expect(service.v3State().activeDecisions.length).toBe(0);
+      expect(service.v3State().hitlStatus).toBe('none');
+      expect(service.resumingTaskId()).toBeNull();
+    });
+  });
 });

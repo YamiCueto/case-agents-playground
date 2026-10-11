@@ -7,6 +7,11 @@ class ChatRequest(BaseModel):
     agent_version: str = Field(min_length=2, max_length=10)
     query: str = Field(min_length=1)
     user_persona: str = Field(default="usr_carlos")
+    conversation_id: Optional[str] = None
+    turn_id: Optional[str] = None
+    session_id: Optional[str] = None
+    selected_value: Optional[str] = None
+    decision_id: Optional[str] = None
 
 
 class AgentMeta(BaseModel):

@@ -41,10 +41,12 @@ async def default_controlled_test_dispatcher(req: ChatRequest) -> AsyncGenerator
 
 from src.agents.v1_tool_calling.agent import run_agent_v1_stream
 from src.agents.v2_agent_loop.agent import run_agent_v2_stream
+from src.agents.v3_state_and_memory.orchestrator import run_agent_v3_stream
 
 register_agent_stream_dispatcher("test_sse", default_controlled_test_dispatcher)
 register_agent_stream_dispatcher("v1", run_agent_v1_stream)
 register_agent_stream_dispatcher("v2", run_agent_v2_stream)
+register_agent_stream_dispatcher("v3", run_agent_v3_stream)
 
 
 async def format_and_log_event(event: StreamEvent) -> str:

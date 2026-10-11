@@ -23,9 +23,8 @@ def sanitize_value(key: str, value: Any) -> Any:
         return "***REDACTED***"
 
     if isinstance(value, str):
-        if CONNECTION_STRING_PATTERN.search(value):
-            return CONNECTION_STRING_PATTERN.sub(r"://\1:***REDACTED***@", value)
-        return value
+        from src.domain.memory.policy import MemoryPolicy
+        return MemoryPolicy.sanitize_text(value)
 
     if isinstance(value, dict):
         return sanitize_payload(value)
