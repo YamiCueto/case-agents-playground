@@ -632,7 +632,10 @@ export class EventStoreService {
             historyTurnsCount: parseSafeMetric(stats['history_turns_count'], 0),
             decisionsCount: parseSafeMetric(stats['decisions_count'] ?? rawDecisions.length, 0),
             maxContextLimit: maxLimit,
-            isHeuristicEstimate: true
+            isHeuristicEstimate: true,
+            serverContextLimit: parseSafeMetric(stats['server_context_limit'], maxLimit),
+            modelContextCapacity: parseSafeMetric(stats['model_context_capacity'], maxLimit),
+            effectiveAppBudget: parseSafeMetric(stats['effective_app_budget'], maxLimit)
           },
           hydratedAt: evt.timestamp
         };

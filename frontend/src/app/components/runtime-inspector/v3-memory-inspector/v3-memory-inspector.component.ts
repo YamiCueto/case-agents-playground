@@ -111,7 +111,10 @@ import {
               <span class="estimate-chip" title="Estimación heurística determinista del TokenBudgetManager">
                 ESTIMADO
               </span>
-              <span class="limit-chip">
+              <span
+                class="limit-chip"
+                [attr.title]="'Presupuesto efectivo: ' + b.maxContextLimit + ' tokens | Servidor llama.cpp: ' + (b.serverContextLimit || b.maxContextLimit) + ' tokens | Capacidad del modelo: ' + (b.modelContextCapacity || b.maxContextLimit) + ' tokens'"
+              >
                 Límite: {{ b.maxContextLimit }} tokens
               </span>
             </div>

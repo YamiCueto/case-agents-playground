@@ -93,7 +93,7 @@ def clean_test_mutations() -> None:
                 synchronize_session=False
             )
         # Clean mutations on ticket 1 to prevent context window overflow in Agent v1
-        session.query(TicketCommentModel).filter(TicketCommentModel.ticket_id == 1, TicketCommentModel.id > 2).delete(synchronize_session=False)
+        session.query(TicketCommentModel).filter(TicketCommentModel.ticket_id == 1).delete(synchronize_session=False)
         session.query(TicketHistoryModel).filter(TicketHistoryModel.ticket_id == 1, TicketHistoryModel.id > 1).delete(synchronize_session=False)
         session.commit()
     finally:

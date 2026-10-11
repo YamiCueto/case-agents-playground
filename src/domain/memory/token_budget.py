@@ -31,8 +31,13 @@ class TokenBudgetManager:
         max_active_memory_tokens: int = 400,
         max_user_query_tokens: int = 500,
         max_observation_tokens: int = 600,
+        server_context_limit: Optional[int] = None,
+        model_context_capacity: Optional[int] = None,
     ) -> None:
+        self.server_context_limit = server_context_limit or total_context_limit
+        self.model_context_capacity = model_context_capacity or self.server_context_limit
         self.total_context_limit = max(1024, total_context_limit)
+        self.effective_app_budget = self.total_context_limit
         self.output_reserve = output_reserve
         self.tools_schemas_reserve = tools_schemas_reserve
         self.system_prompt_reserve = system_prompt_reserve
@@ -46,21 +51,54 @@ class TokenBudgetManager:
         cls,
         provider: Any = None,
         default_limit: int = 4096,
+        app_budget_override: Optional[int] = None,
         **kwargs: Any,
     ) -> "TokenBudgetManager":
         """
-        Instancia el gestor inspeccionando la configuración real del proveedor si está disponible.
+        Instancia el gestor inspeccionando la configuración real del proveedor y servidor si está disponible.
+        Diferencia explícitamente entre:
+        - model_context_capacity: Capacidad teórica/entrenamiento de los pesos del modelo (ej. 262.144).
+        - server_context_limit: Límite efectivo configurado en llama-server (ej. 8.192 en /props).
+        - effective_app_budget: Presupuesto efectivo asignado al Agent Loop de la aplicación.
         """
-        limit = default_limit
-        if provider is not None:
-            # Inspeccionar atributos comunes en proveedores OpenAI-compatible o locales
-            for attr in ("max_context_tokens", "context_window", "n_ctx", "context_length"):
-                val = getattr(provider, attr, None)
-                if isinstance(val, int) and val > 0:
-                    limit = val
-                    break
+        srv_limit = None
+        model_cap = None
 
-        return cls(total_context_limit=limit, **kwargs)
+        if provider is not None:
+            if hasattr(provider, "get_context_metadata") and callable(provider.get_context_metadata):
+                try:
+                    meta = provider.get_context_metadata()
+                    if isinstance(meta, dict):
+                        srv_limit = meta.get("server_context_limit")
+                        model_cap = meta.get("model_context_capacity")
+                except Exception:
+                    pass
+
+            if not srv_limit:
+                for attr in ("server_context_limit", "context_window", "n_ctx", "max_context_tokens", "context_length"):
+                    val = getattr(provider, attr, None)
+                    if isinstance(val, int) and val > 0:
+                        srv_limit = val
+                        break
+
+            if not model_cap:
+                val_cap = getattr(provider, "model_context_capacity", None)
+                if isinstance(val_cap, int) and val_cap > 0:
+                    model_cap = val_cap
+
+        # Fallback conservador si el servidor no expone información válida
+        effective_srv_limit = srv_limit if (isinstance(srv_limit, int) and srv_limit > 0) else default_limit
+        effective_model_cap = model_cap if (isinstance(model_cap, int) and model_cap > 0) else effective_srv_limit
+
+        # Presupuesto efectivo: si hay app_budget_override se respeta; si no, adopta el límite del servidor
+        effective_budget = app_budget_override if (isinstance(app_budget_override, int) and app_budget_override > 0) else effective_srv_limit
+
+        return cls(
+            total_context_limit=effective_budget,
+            server_context_limit=effective_srv_limit,
+            model_context_capacity=effective_model_cap,
+            **kwargs,
+        )
 
     def estimate_tokens(self, text: Optional[str]) -> int:
         """Estima la cantidad de tokens basada en heurística conservadora."""

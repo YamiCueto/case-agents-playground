@@ -17,6 +17,9 @@ export interface ContextBudgetTokens {
   maxContextLimit: number;
   /** Indica explícitamente que los tokens son estimaciones heurísticas del TokenBudgetManager y no mediciones de hardware */
   isHeuristicEstimate: boolean;
+  serverContextLimit?: number;
+  modelContextCapacity?: number;
+  effectiveAppBudget?: number;
 }
 
 /**

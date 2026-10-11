@@ -52,6 +52,84 @@ class OpenAICompatibleProvider(ModelProvider):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.temperature = temperature
         self._model = model
+        self.base_url = base_url
+        self._cached_context_meta: Optional[Dict[str, Optional[int]]] = None
+
+    def get_context_metadata(self, force_refresh: bool = False, timeout: float = 1.5) -> Dict[str, Optional[int]]:
+        """
+        Consulta de forma dinámica y no bloqueante los límites de contexto de llama-server (/props y /models).
+        Devuelve server_context_limit y model_context_capacity, o None si el servidor no está disponible.
+        """
+        if self._cached_context_meta is not None and not force_refresh:
+            return self._cached_context_meta
+
+        import json
+        import urllib.request
+
+        res: Dict[str, Optional[int]] = {
+            "server_context_limit": None,
+            "model_context_capacity": None,
+        }
+
+        try:
+            root_url = self.base_url.rstrip("/")
+            if root_url.endswith("/v1"):
+                root_url = root_url[:-3]
+
+            # 1. Consultar /props para n_ctx efectivo del servidor
+            try:
+                req = urllib.request.Request(f"{root_url}/props", headers={"User-Agent": "AEP-Provider"})
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        n_ctx = data.get("default_generation_settings", {}).get("n_ctx")
+                        if isinstance(n_ctx, int) and n_ctx > 0:
+                            res["server_context_limit"] = n_ctx
+            except Exception:
+                pass
+
+            # 2. Consultar /models para metadatos del modelo GGUF (n_ctx_train)
+            try:
+                req = urllib.request.Request(f"{root_url}/models", headers={"User-Agent": "AEP-Provider"})
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        data_list = data.get("data", [])
+                        if data_list and isinstance(data_list, list):
+                            meta = data_list[0].get("meta", {})
+                            n_train = meta.get("n_ctx_train")
+                            if isinstance(n_train, int) and n_train > 0:
+                                res["model_context_capacity"] = n_train
+                            if not res["server_context_limit"]:
+                                srv_n_ctx = meta.get("n_ctx")
+                                if isinstance(srv_n_ctx, int) and srv_n_ctx > 0:
+                                    res["server_context_limit"] = srv_n_ctx
+            except Exception:
+                pass
+
+        except Exception:
+            pass
+
+        self._cached_context_meta = res
+        return res
+
+    @property
+    def server_context_limit(self) -> Optional[int]:
+        meta = self.get_context_metadata()
+        return meta.get("server_context_limit")
+
+    @property
+    def model_context_capacity(self) -> Optional[int]:
+        meta = self.get_context_metadata()
+        return meta.get("model_context_capacity")
+
+    @property
+    def context_window(self) -> int:
+        return self.server_context_limit or 4096
+
+    @property
+    def n_ctx(self) -> int:
+        return self.server_context_limit or 4096
 
     @property
     def model_name(self) -> str:

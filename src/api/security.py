@@ -8,7 +8,7 @@ CONNECTION_STRING_PATTERN = re.compile(r"://([^:@]+):([^@]+)@")
 
 
 def sanitize_value(key: str, value: Any) -> Any:
-    if MemoryPolicy.is_sensitive_key(key):
+    if MemoryPolicy.is_sensitive_key(key, value):
         return "***REDACTED***"
 
     if isinstance(value, str):

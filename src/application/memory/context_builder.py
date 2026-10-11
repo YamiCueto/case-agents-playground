@@ -129,6 +129,11 @@ class ContextBuilder:
             "history_tokens": history_tokens,
             "history_turns_count": len(turns_to_include),
             "total_initial_tokens": system_prompt_tokens + history_tokens + query_tokens,
+            "total_context_limit": self.budget_manager.total_context_limit,
+            "max_context_budget": self.budget_manager.total_context_limit,
+            "effective_app_budget": self.budget_manager.effective_app_budget,
+            "server_context_limit": self.budget_manager.server_context_limit,
+            "model_context_capacity": self.budget_manager.model_context_capacity,
         }
 
         return messages, stats

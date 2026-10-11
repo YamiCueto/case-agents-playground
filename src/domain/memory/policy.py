@@ -65,6 +65,9 @@ SAFE_METRIC_FIELD_NAMES: Set[str] = {
     "token_budget",
     "tokens_budget",
     "budget_tokens",
+    "server_context_limit",
+    "model_context_capacity",
+    "effective_app_budget",
     # Camel case (lowercased)
     "querytokens",
     "querytokensest",
@@ -84,7 +87,21 @@ SAFE_METRIC_FIELD_NAMES: Set[str] = {
     "tokenscount",
     "historyturnscount",
     "decisionscount",
+    "servercontextlimit",
+    "modelcontextcapacity",
+    "effectiveappbudget",
 }
+
+_NO_VALUE = object()
+
+
+def is_valid_metric_number(val: Any) -> bool:
+    """Verifica si el valor es un número finito válido, excluyendo booleanos, NaN e Infinity."""
+    if isinstance(val, bool):
+        return False
+    if not isinstance(val, (int, float)):
+        return False
+    return math.isfinite(val)
 
 EXPLICIT_PREFERENCE_PHRASES: List[str] = [
     "siempre",
@@ -191,37 +208,32 @@ class MemoryPolicy:
         return sanitized
 
     @classmethod
-    def is_sensitive_key(cls, key: str) -> bool:
-        """Determina si una clave de diccionario corresponde a secretos reales, protegiendo métricas de tokens."""
+    def is_sensitive_key(cls, key: str, value: Any = _NO_VALUE) -> bool:
+        """
+        Determina si una clave (y opcionalmente su valor asociado) corresponde a información sensible.
+
+        Reglas de seguridad estricta:
+        1. Las métricas autorizadas en SAFE_METRIC_FIELD_NAMES solo se consideran seguras
+           si su valor asociado es un número finito válido (int o float, no bool, no NaN, no Inf).
+        2. Si una clave autorizada recibe una cadena, booleano, dict, lista o número inválido,
+           se trata como un intento de evadir la sanitización y se clasifica como sensible (True).
+        3. Se eliminan excepciones genéricas basadas en sufijos como endswith("_tokens") para evitar claves arbitrarias.
+        4. Las claves no autorizadas que contengan 'token' o nombres sensibles en SENSITIVE_FIELD_NAMES se marcan como sensibles (True).
+        """
         key_lower = str(key).lower()
+
+        # Comprobación de métricas autorizadas explícitas
         if key_lower in SAFE_METRIC_FIELD_NAMES:
-            return False
-        if (
-            key_lower.endswith("_tokens")
-            or key_lower.endswith("_tokens_est")
-            or key_lower.endswith("tokens")
-            or key_lower.endswith("tokensest")
-            or key_lower.startswith("tokens_")
-            or "token_budget" in key_lower
-            or "budget_tokens" in key_lower
-        ) and not any(
-            auth in key_lower
-            for auth in (
-                "auth",
-                "access",
-                "session",
-                "refresh",
-                "secret",
-                "api",
-                "bearer",
-                "jwt",
-                "password",
-                "credential",
-                "private_key",
-            )
-        ):
+            if value is not _NO_VALUE:
+                # Validar tipo y finitud estricta del valor numérico
+                if is_valid_metric_number(value):
+                    return False
+                # Valor no es número finito válido (ej. string, bool, objeto, lista, NaN, Inf) -> Bloquear/Redactar
+                return True
+            # Si no se pasó valor, la clave por sí sola está en la lista blanca de nombres
             return False
 
+        # Comprobación de claves sensibles estándar
         for s in SENSITIVE_FIELD_NAMES:
             if s == "token":
                 if key_lower == "token" or any(
@@ -241,6 +253,11 @@ class MemoryPolicy:
                     return True
             elif s in key_lower:
                 return True
+
+        # Cualquier otra clave que contenga 'token' y NO esté en SAFE_METRIC_FIELD_NAMES es no autorizada
+        if "token" in key_lower:
+            return True
+
         return False
 
     @classmethod
@@ -252,7 +269,7 @@ class MemoryPolicy:
         if isinstance(data, dict):
             sanitized_dict: Dict[str, Any] = {}
             for k, v in data.items():
-                if cls.is_sensitive_key(str(k)):
+                if cls.is_sensitive_key(str(k), v):
                     sanitized_dict[k] = "***REDACTED***"
                 else:
                     sanitized_dict[k] = cls.sanitize_payload(v)

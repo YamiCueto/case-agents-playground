@@ -1,3 +1,4 @@
+import json
 import sys
 import pytest
 from src.domain.exceptions import (
@@ -481,3 +482,202 @@ def test_domain_memory_is_framework_agnostic():
                 mod_name = mod_obj.__name__
                 assert "sqlalchemy" not in mod_name, f"Violación de Clean Architecture: {mod_name} importado en {mod.__name__}"
                 assert "fastapi" not in mod_name, f"Violación de Clean Architecture: {mod_name} importado en {mod.__name__}"
+
+
+# ===========================================================================
+# 6. PRUEBAS ADVERSARIALES DE SEGURIDAD EN MÉTRICAS Y CONTEXTO LLAMA.CPP
+# ===========================================================================
+
+def test_memory_policy_rejects_adversarial_and_non_numeric_payloads_in_safe_metrics():
+    """
+    PRIORIDAD 1 AUDITORÍA UI-5:
+    Garantiza que MemoryPolicy rechace y redacte cualquier valor sensible o no numérico
+    que intente transmitirse usando nombres de métricas autorizadas.
+    
+    Requisitos:
+    - Solo admitir números finitos válidos (int, float).
+    - Rechazar cadenas, booleanos, objetos, listas, NaN, Infinity y None.
+    - Rechazar sufijos genéricos de tokens no autorizados.
+    """
+    adversarial_payload = {
+        # 1. Contrabando de cadenas secretas en claves de métricas
+        "query_tokens": "PlainSecretPassword123",
+        "system_prompt_tokens": "sk-proj-malicious-api-key-value",
+        "decisions_tokens": "Bearer 1234567890abcdef1234567890",
+        "history_tokens": "https://root:supersecret@db:3306/db",
+        "total_initial_tokens": "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+        
+        # 2. Booleanos haciéndose pasar por enteros (en Python isinstance(True, int) es True)
+        "available_history_budget": True,
+        "max_context_budget": False,
+        
+        # 3. Objetos y colecciones
+        "server_context_limit": {"nested_secret": "clave_oculta"},
+        "model_context_capacity": ["secreto1", "secreto2"],
+        
+        # 4. Números no finitos (NaN e Infinity)
+        "tokens_estimate": float("nan"),
+        "remaining_tokens": float("inf"),
+        "tokens_used": float("-inf"),
+        
+        # 5. Claves arbitrarias no autorizadas que intentan usar el sufijo '_tokens'
+        "custom_exploit_tokens": 120,
+        "unauthorized_tokens": 500,
+        "hacked_tokens": "texto",
+        
+        # 6. Credenciales estándar
+        "password": "PasswordReal123!",
+        "api_key": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+        
+        # 7. Métricas legítimas numéricas finitas
+        "legit_query_tokens": 42,  # no autorizada pero con 'tokens' -> redactada
+        "queryTokensEst": 35,
+        "systemPromptTokensEst": 180,
+        "decisionsTokensEst": 25,
+        "historyTokensEst": 140,
+        "totalInitialTokensEst": 380,
+        "maxContextLimit": 8192,
+        "effective_app_budget": 8192,
+        "history_turns_count": 3,
+        "decisions_count": 2,
+    }
+
+    sanitized = MemoryPolicy.sanitize_payload(adversarial_payload)
+
+    # 1. Todos los contrabandos de cadenas en métricas deben estar redactados
+    assert sanitized["query_tokens"] == "***REDACTED***"
+    assert sanitized["system_prompt_tokens"] == "***REDACTED***"
+    assert sanitized["decisions_tokens"] == "***REDACTED***"
+    assert sanitized["history_tokens"] == "***REDACTED***"
+    assert sanitized["total_initial_tokens"] == "***REDACTED***"
+
+    # 2. Booleanos deben estar redactados
+    assert sanitized["available_history_budget"] == "***REDACTED***"
+    assert sanitized["max_context_budget"] == "***REDACTED***"
+
+    # 3. Objetos y listas en métricas deben estar redactados
+    assert sanitized["server_context_limit"] == "***REDACTED***"
+    assert sanitized["model_context_capacity"] == "***REDACTED***"
+
+    # 4. NaN e Infinity deben estar redactados
+    assert sanitized["tokens_estimate"] == "***REDACTED***"
+    assert sanitized["remaining_tokens"] == "***REDACTED***"
+    assert sanitized["tokens_used"] == "***REDACTED***"
+
+    # 5. Claves arbitrarias con sufijo token deben estar redactadas
+    assert sanitized["custom_exploit_tokens"] == "***REDACTED***"
+    assert sanitized["unauthorized_tokens"] == "***REDACTED***"
+    assert sanitized["hacked_tokens"] == "***REDACTED***"
+    assert sanitized["legit_query_tokens"] == "***REDACTED***"
+
+    # 6. Credenciales estándar redactadas
+    assert sanitized["password"] == "***REDACTED***"
+    assert sanitized["api_key"] == "***REDACTED***"
+
+    # 7. Métricas legítimas autorizadas numéricas deben ser preservadas
+    assert sanitized["queryTokensEst"] == 35
+    assert sanitized["systemPromptTokensEst"] == 180
+    assert sanitized["decisionsTokensEst"] == 25
+    assert sanitized["historyTokensEst"] == 140
+    assert sanitized["totalInitialTokensEst"] == 380
+    assert sanitized["maxContextLimit"] == 8192
+    assert sanitized["effective_app_budget"] == 8192
+    assert sanitized["history_turns_count"] == 3
+    assert sanitized["decisions_count"] == 2
+
+
+def test_llama_server_context_discovery_and_fallbacks(monkeypatch):
+    """
+    PRIORIDAD 2 AUDITORÍA UI-5:
+    Valida la consulta de /props y /models en llama-server, diferenciación de límites,
+    fallbacks ante fallos de conexión o respuestas malformadas, y asignación al TokenBudgetManager.
+    """
+    import urllib.request
+    from io import BytesIO
+    from src.agents.common.providers import OpenAICompatibleProvider
+
+    provider = OpenAICompatibleProvider(base_url="http://127.0.0.1:8080/v1")
+
+    # Caso 1: Servidor responde correctamente con 8192 en /props y 262144 en /models
+    class MockResponse:
+        def __init__(self, data_bytes: bytes, status: int = 200):
+            self.data = data_bytes
+            self.status = status
+
+        def read(self):
+            return self.data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    def mock_urlopen_success(req, timeout=1.5):
+        url = req.full_url if hasattr(req, "full_url") else str(req)
+        if "/props" in url:
+            payload = json.dumps({"default_generation_settings": {"n_ctx": 8192}}).encode("utf-8")
+            return MockResponse(payload)
+        elif "/models" in url:
+            payload = json.dumps({
+                "data": [{
+                    "meta": {"n_ctx": 8192, "n_ctx_train": 262144}
+                }]
+            }).encode("utf-8")
+            return MockResponse(payload)
+        raise ValueError(f"URL no mockeada: {url}")
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen_success)
+    meta = provider.get_context_metadata(force_refresh=True)
+    assert meta["server_context_limit"] == 8192
+    assert meta["model_context_capacity"] == 262144
+    assert provider.server_context_limit == 8192
+    assert provider.model_context_capacity == 262144
+    assert provider.context_window == 8192
+    assert provider.n_ctx == 8192
+
+    # Construir TokenBudgetManager a partir del proveedor mockeado
+    manager = TokenBudgetManager.from_provider_config(provider=provider)
+    assert manager.server_context_limit == 8192
+    assert manager.model_context_capacity == 262144
+    assert manager.total_context_limit == 8192
+    assert manager.effective_app_budget == 8192
+
+    # Caso 2: Fallo de conexión o timeout en llama-server -> Fallback conservador a 4096
+    def mock_urlopen_network_error(req, timeout=1.5):
+        raise urllib.error.URLError("Connection refused: 127.0.0.1:8080")
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen_network_error)
+    meta_failed = provider.get_context_metadata(force_refresh=True)
+    assert meta_failed["server_context_limit"] is None
+    assert meta_failed["model_context_capacity"] is None
+    assert provider.context_window == 4096  # fallback
+
+    manager_fallback = TokenBudgetManager.from_provider_config(provider=provider)
+    assert manager_fallback.total_context_limit == 4096
+    assert manager_fallback.server_context_limit == 4096
+    assert manager_fallback.model_context_capacity == 4096
+    assert manager_fallback.effective_app_budget == 4096
+
+    # Caso 3: Servidor devuelve JSON malformado -> Fallback conservador a 4096
+    def mock_urlopen_bad_json(req, timeout=1.5):
+        return MockResponse(b"<html>502 Bad Gateway</html>")
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen_bad_json)
+    meta_bad = provider.get_context_metadata(force_refresh=True)
+    assert meta_bad["server_context_limit"] is None
+    manager_bad = TokenBudgetManager.from_provider_config(provider=provider)
+    assert manager_bad.total_context_limit == 4096
+
+    # Caso 4: Presupuesto efectivo con app_budget_override diferenciado del límite del servidor
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen_success)
+    provider.get_context_metadata(force_refresh=True)
+    manager_override = TokenBudgetManager.from_provider_config(
+        provider=provider,
+        app_budget_override=2048,
+    )
+    assert manager_override.model_context_capacity == 262144
+    assert manager_override.server_context_limit == 8192
+    assert manager_override.total_context_limit == 2048
+    assert manager_override.effective_app_budget == 2048
+
