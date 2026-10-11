@@ -108,7 +108,7 @@ describe('RuntimeInspectorComponent (Phase 6.3 Integration)', () => {
     });
   });
 
-  it('shows Agent v3 as Operativo (Taller 04) in future/roadmap tab', () => {
+  it('shows Agent v3 and Agent v4 as Operativo in future/roadmap tab', () => {
     component.activeTab.set('future');
     fixture.detectChanges();
 
@@ -118,5 +118,64 @@ describe('RuntimeInspectorComponent (Phase 6.3 Integration)', () => {
     expect(v3Card).toBeDefined();
     expect(v3Card?.textContent).toContain('Operativo (Taller 04)');
     expect(v3Card?.classList.contains('active-card')).toBe(true);
+
+    const v4Card = Array.from(cards).find((c) => c.textContent?.includes('Agent v4'));
+    expect(v4Card).toBeDefined();
+    expect(v4Card?.textContent).toContain('Operativo (Taller 05)');
+    expect(v4Card?.classList.contains('active-card')).toBe(true);
+
+    const v5Card = Array.from(cards).find((c) => c.textContent?.includes('Agent v5'));
+    expect(v5Card).toBeDefined();
+    expect(v5Card?.textContent).toContain('Pendiente Taller 06');
+  });
+
+  it('renders v4 view with PlanDAGViewerComponent and Planificación DAG v4 tab', () => {
+    fixture.componentRef.setInput('activeAgentId', 'v4');
+    eventStore.activeAgentId.set('v4');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.version-tag')?.textContent).toContain('V4');
+    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Planificación DAG v4');
+    expect(compiled.querySelector('app-plan-dag-viewer')).not.toBeNull();
+    expect(compiled.querySelector('app-journey-flow')).toBeNull();
+    expect(compiled.querySelector('app-v2-loop-flow')).toBeNull();
+  });
+
+  it('renders trace toggle button and toggles DecisionTraceComponent visibility with localStorage persistence', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const toggleBtn = compiled.querySelector('.btn-toggle-trace') as HTMLButtonElement;
+    expect(toggleBtn).not.toBeNull();
+    expect(toggleBtn.textContent).toContain('Mostrar traza');
+
+    // Inicialmente oculto si no hay preferencia en localStorage
+    expect(compiled.querySelector('app-decision-trace')).toBeNull();
+
+    // Activar traza
+    toggleBtn.click();
+    fixture.detectChanges();
+
+    expect(component.isTraceVisible()).toBe(true);
+    expect(toggleBtn.textContent).toContain('Ocultar traza');
+    expect(compiled.querySelector('app-decision-trace')).not.toBeNull();
+    expect(window.localStorage.getItem('aep_decision_trace_visible')).toBe('true');
+
+    // Desactivar traza
+    toggleBtn.click();
+    fixture.detectChanges();
+
+    expect(component.isTraceVisible()).toBe(false);
+    expect(compiled.querySelector('app-decision-trace')).toBeNull();
+    expect(window.localStorage.getItem('aep_decision_trace_visible')).toBe('false');
+  });
+
+  it('persists and updates traceViewMode preference safely in localStorage', () => {
+    component.setTraceViewMode('technical');
+    expect(component.traceViewMode()).toBe('technical');
+    expect(window.localStorage.getItem('aep_decision_trace_view_mode')).toBe('technical');
+
+    component.setTraceViewMode('summary');
+    expect(component.traceViewMode()).toBe('summary');
+    expect(window.localStorage.getItem('aep_decision_trace_view_mode')).toBe('summary');
   });
 });

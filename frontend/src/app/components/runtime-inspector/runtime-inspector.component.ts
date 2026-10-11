@@ -8,8 +8,11 @@ import { JourneyFlowComponent } from './journey-flow/journey-flow.component';
 import { V2LoopFlowComponent } from './v2-loop-flow/v2-loop-flow.component';
 import { V3MemoryInspectorComponent } from './v3-memory-inspector/v3-memory-inspector.component';
 import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.component';
+import { DecisionTraceComponent } from './decision-trace/decision-trace.component';
+import { PlanDAGViewerComponent } from './plan-dag-viewer/plan-dag-viewer.component';
 import { describeDecision } from '../../models/v2-decision';
 import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.models';
+import { TraceViewMode } from '../../models/decision-trace.models';
 
 @Component({
   selector: 'app-runtime-inspector',
@@ -20,7 +23,9 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
     JourneyFlowComponent,
     V2LoopFlowComponent,
     V3MemoryInspectorComponent,
-    TechnicalViewerComponent
+    TechnicalViewerComponent,
+    DecisionTraceComponent,
+    PlanDAGViewerComponent
   ],
   template: `
     <aside class="inspector-card">
@@ -82,6 +87,20 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
                 </svg>
               </button>
             }
+
+            <button
+              type="button"
+              class="btn-toggle-trace"
+              [class.is-active]="isTraceVisible()"
+              (click)="toggleTraceVisibility()"
+              [title]="isTraceVisible() ? 'Ocultar traza de decisiones observable' : 'Mostrar traza de decisiones observable'"
+              aria-label="Alternar traza de decisiones"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              <span>{{ isTraceVisible() ? 'Ocultar traza' : 'Mostrar traza' }}</span>
+            </button>
           </div>
         </div>
 
@@ -172,7 +191,9 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
             </div>
 
             <span class="step-indicator">
-              @if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
+              @if (activeAgentId() === 'v4') {
+                Rev {{ v4PlanningState().currentPlan?.revision || 1 }} &bull; Paso {{ v4PlanningState().currentPlan?.current_step_id || 'IDLE' }}
+              } @else if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
                 Iteración {{ controller.selectedIterationIndex() }} &bull; Fase {{ controller.selectedPhaseIndex() + 1 }}
               } @else {
                 Hop {{ (controller.activeStep()?.hopNumber || 1) }} / 7
@@ -191,7 +212,7 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
             <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
-            <span>{{ activeAgentId() === 'v3' ? 'Bucle y memoria v3' : activeAgentId() === 'v2' ? 'Recorrido del bucle v2' : 'Recorrido de ejecución' }}</span>
+            <span>{{ activeAgentId() === 'v4' ? 'Planificación DAG v4' : activeAgentId() === 'v3' ? 'Bucle y memoria v3' : activeAgentId() === 'v2' ? 'Recorrido del bucle v2' : 'Recorrido de ejecución' }}</span>
           </button>
           <button 
             class="tab-btn" 
@@ -234,7 +255,7 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
                 <div class="avatar-stage-wrapper">
                   <app-agent-avatar-3d
                     [mood]="controller.avatarMood()"
-                    [targetHop]="(activeAgentId() === 'v2' || activeAgentId() === 'v3') ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
+                    [targetHop]="activeAgentId() === 'v4' ? (v4PlanningState().currentPlan?.steps?.length || 1) : (activeAgentId() === 'v2' || activeAgentId() === 'v3') ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
                   ></app-agent-avatar-3d>
                 </div>
               </div>
@@ -242,7 +263,7 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
               <div class="hero-meta-col">
                 <div class="hero-meta-header">
                   <span class="meta-eyebrow">
-                    {{ (activeAgentId() === 'v2' || activeAgentId() === 'v3') ? 'EJECUCIÓN DEL AGENT LOOP' : 'RECORRIDO DE EJECUCIÓN' }}
+                    {{ activeAgentId() === 'v4' ? 'PLANIFICACIÓN Y DESCOMPOSICIÓN DAG' : (activeAgentId() === 'v2' || activeAgentId() === 'v3') ? 'EJECUCIÓN DEL AGENT LOOP' : 'RECORRIDO DE EJECUCIÓN' }}
                   </span>
                   <span class="status-pill {{ heroStatus() }}">
                     <span class="pulse-ring" *ngIf="heroStatus() === 'running' || heroStatus() === 'active'"></span>
@@ -303,9 +324,11 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
               </div>
             </section>
 
-            <!-- 2. PIPELINE STEPPER / AGENT LOOP INTERACTIVO -->
+            <!-- 2. PIPELINE STEPPER / AGENT LOOP / PLAN DAG VIEWER INTERACTIVO -->
             <section class="pipeline-stepper-card">
-              @if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
+              @if (activeAgentId() === 'v4') {
+                <app-plan-dag-viewer [state]="v4PlanningState()"></app-plan-dag-viewer>
+              } @else if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
                 <app-v2-loop-flow
                   [iterations]="v2Execution().iterations"
                   [selectedIterationIndex]="controller.selectedIterationIndex()"
@@ -321,6 +344,18 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
                 ></app-journey-flow>
               }
             </section>
+
+            <!-- 2.5. PANEL DE TRAZA DE DECISIONES OBSERVABLE (UI-5.1) -->
+            @if (isTraceVisible()) {
+              <app-decision-trace
+                [entries]="eventStore.decisionTrace()"
+                [viewMode]="traceViewMode()"
+                [selectedIterationIndex]="controller.selectedIterationIndex()"
+                [selectedHopNumber]="(activeAgentId() === 'v2' || activeAgentId() === 'v3' || activeAgentId() === 'v4') ? undefined : (controller.activeStep()?.hopNumber || 1)"
+                (toggleViewMode)="setTraceViewMode($event)"
+                (closeTrace)="toggleTraceVisibility()"
+              ></app-decision-trace>
+            }
 
             <!-- 3. DETALLE DE FASE & INSPECTOR TÉCNICO (4 Pestañas) -->
             <ng-template #technicalInspectorDetail>
@@ -697,10 +732,12 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
               </div>
               <p>ExecutionState efímero, MemoryStore persistente con MySQL, aislamiento estricto por subject_id y HITL.</p>
             </div>
-            <div class="future-card">
-              <h4>Agent v4 &bull; Planning</h4>
-              <p>Grafo DAG de <code>PlanStep</code>, ejecutores (TOOL, RUNTIME, MODEL) y snapshots de replanning.</p>
-              <span class="locked-badge">Pendiente Taller 05</span>
+            <div class="future-card active-card">
+              <div class="future-card-header">
+                <h4>Agent v4 &bull; Planning &amp; Task Decomposition</h4>
+                <span class="active-badge">Operativo (Taller 05)</span>
+              </div>
+              <p>Grafo DAG de <code>PlanStep</code>, ejecutores polimórficos (TOOL, RUNTIME, MODEL), detección de ciclos e invariante de meta en replanning.</p>
             </div>
             <div class="future-card">
               <h4>Agent v5 &bull; Guardrails & HITL</h4>
@@ -1793,6 +1830,35 @@ import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.
       border: 1px solid rgba(167, 139, 250, 0.3);
     }
 
+    .btn-toggle-trace {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent-cyan);
+      font-size: 0.70rem;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    .btn-toggle-trace:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-toggle-trace.is-active {
+      background: rgba(56, 189, 248, 0.24);
+      border-color: var(--accent-cyan-neon);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
+
     @media (max-width: 640px) {
       .execution-hero-card {
         flex-direction: column;
@@ -1825,13 +1891,48 @@ export class RuntimeInspectorComponent {
   readonly v3ViewMode = signal<'dual' | 'loop' | 'memory'>('dual');
   readonly activeTechTab = signal<'inference' | 'tools' | 'response' | 'json'>('inference');
 
+  // Control de visibilidad y vista de Traza de Decisiones con persistencia segura
+  readonly isTraceVisible = signal<boolean>(
+    typeof window !== 'undefined' && window.localStorage
+      ? (window.localStorage.getItem('aep_decision_trace_visible') === 'true')
+      : false
+  );
+
+  readonly traceViewMode = signal<TraceViewMode>(
+    typeof window !== 'undefined' && window.localStorage
+      ? (window.localStorage.getItem('aep_decision_trace_view_mode') as TraceViewMode || 'summary')
+      : 'summary'
+  );
+
+  toggleTraceVisibility(): void {
+    const next = !this.isTraceVisible();
+    this.isTraceVisible.set(next);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('aep_decision_trace_visible', String(next));
+    }
+  }
+
+  setTraceViewMode(mode: TraceViewMode): void {
+    this.traceViewMode.set(mode);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('aep_decision_trace_view_mode', mode);
+    }
+  }
+
   readonly journey = this.eventStore.journey;
   readonly v2Execution = this.eventStore.v2Execution;
   readonly v3State = this.eventStore.v3State;
+  readonly v4PlanningState = this.eventStore.v4PlanningState;
 
   // Hero Card Computeds
   readonly heroTitle = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const planState = this.v4PlanningState();
+      const plan = planState.currentPlan;
+      if (!plan) return 'ESPERANDO PLAN ESTRUCTURADO';
+      const activeStep = plan.steps.find(s => s.id === plan.current_step_id);
+      return `REVISIÓN ${plan.revision} · PASO ${activeStep ? activeStep.id.toUpperCase() : 'FINAL'} - ${(activeStep?.description || plan.goal).toUpperCase()}`;
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const phase = this.controller.activeV2Phase();
       if (!phase) return 'ESPERANDO AGENT LOOP';
       const iterIdx = this.controller.selectedIterationIndex();
@@ -1846,7 +1947,13 @@ export class RuntimeInspectorComponent {
   });
 
   readonly heroStatus = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const planState = this.v4PlanningState();
+      if (planState.isStalled) return 'failed';
+      if (planState.currentPlan?.is_completed) return 'completed';
+      if (planState.currentPlan) return 'running';
+      return 'idle';
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       return this.controller.activeV2Phase()?.status || 'idle';
     } else {
       return this.controller.activeStep()?.status || 'idle';
@@ -1871,7 +1978,14 @@ export class RuntimeInspectorComponent {
   });
 
   readonly heroActor = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const planState = this.v4PlanningState();
+      const activeStep = planState.currentPlan?.steps.find(s => s.id === planState.currentPlan?.current_step_id);
+      if (activeStep) {
+        return `StepExecutor [${activeStep.executor.toUpperCase()}]`;
+      }
+      return 'Planner & DAG Runtime v4';
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       return this.controller.activeV2Phase()?.actor || 'AgentLoopEngine v2';
     } else {
       return this.controller.activeStep()?.actor || 'Orquestador AEP';
@@ -1879,7 +1993,20 @@ export class RuntimeInspectorComponent {
   });
 
   readonly heroDescription = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const planState = this.v4PlanningState();
+      if (planState.isStalled) {
+        return `Ejecución detenida de forma segura: ${planState.terminationReason || 'Dependencias insatisfechas sin ruta alternativa (no_executable_steps).'}`;
+      }
+      if (planState.currentPlan?.is_completed) {
+        return `Plan completado exitosamente. Todos los pasos requeridos han concluido con observaciones verificadas.`;
+      }
+      const activeStep = planState.currentPlan?.steps.find(s => s.id === planState.currentPlan?.current_step_id);
+      if (activeStep) {
+        return `Ejecutando paso "${activeStep.id}": ${activeStep.description}. Dependencias resueltas: [${activeStep.depends_on.join(', ') || 'ninguna'}].`;
+      }
+      return 'Generando o validando el grafo DAG de pasos estructurados para resolver la meta.';
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       return this.controller.activeV2Phase()?.description || 'Esperando inicio de la consulta para observar el ciclo de razonamiento y ejecución en tiempo real.';
     } else {
       return this.controller.activeStep()?.description || 'Esperando inicio de la consulta para observar el encadenamiento de hops y validaciones.';
@@ -1887,7 +2014,9 @@ export class RuntimeInspectorComponent {
   });
 
   readonly heroInsight = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      return 'El runtime de software gobierna la ejecución del DAG: valida aciclicidad, ejecuta en orden topológico, aísla fallos y garantiza que el replanning conserve snapshots y el goal original.';
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       return this.controller.activeV2Phase()?.pedagogicalInsight || 'El bucle evalúa el contexto en cada iteración y determina dinámicamente si invoca herramientas o sintetiza la respuesta final.';
     } else {
       return this.controller.activeStep()?.pedagogicalInsight || 'Cada hop aísla una responsabilidad técnica concreta para una observabilidad determinista y auditable.';
@@ -1895,7 +2024,12 @@ export class RuntimeInspectorComponent {
   });
 
   readonly heroDecision = computed<string | null>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const planState = this.v4PlanningState();
+      if (planState.isStalled) return 'no_executable_steps';
+      if (planState.planHistory.length > 0) return 'replan';
+      return null;
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const phase = this.controller.activeV2Phase();
       if (phase?.phaseType === 'decision') {
         return this.controller.activeV2Iteration()?.decision || null;
@@ -1906,7 +2040,10 @@ export class RuntimeInspectorComponent {
 
   // Technical Tabs Computeds
   readonly activeEventType = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const plan = this.v4PlanningState().currentPlan;
+      return plan ? `REV_${plan.revision}_PLAN` : 'PLANNING_IDLE';
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const phase = this.controller.activeV2Phase();
       return phase ? phase.phaseType.toUpperCase() : 'LOOP_IDLE';
     } else {
@@ -1918,7 +2055,9 @@ export class RuntimeInspectorComponent {
   readonly activeModelName = computed<string>(() => 'Qwen 3.5 4B (llama.cpp)');
 
   readonly activeDuration = computed<string>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      return '195 ms';
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const d = this.controller.activeV2Phase()?.durationMs;
       return d ? `${d} ms` : '185 ms';
     } else {
@@ -1928,7 +2067,10 @@ export class RuntimeInspectorComponent {
   });
 
   readonly isInferencePhase = computed<boolean>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const activeStep = this.v4PlanningState().currentPlan?.steps.find(s => s.id === this.v4PlanningState().currentPlan?.current_step_id);
+      return activeStep?.executor === 'model' || !this.v4PlanningState().currentPlan;
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const p = this.controller.activeV2Phase();
       return p?.phaseType === 'inference' || p?.phaseType === 'synthesis' || p?.phaseType === 'proposal';
     } else {
@@ -1948,7 +2090,16 @@ export class RuntimeInspectorComponent {
   });
 
   readonly currentTools = computed<AgentV2ToolExecution[]>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const steps = this.v4PlanningState().currentPlan?.steps || [];
+      return steps.filter(s => s.executor === 'tool' && s.observation).map(s => ({
+        toolCallId: `step_${s.id}`,
+        toolName: s.action,
+        arguments: { description: s.description },
+        executionStatus: s.status === 'completed' ? 'completed' : s.status === 'failed' ? 'failed' : 'running',
+        observation: s.observation
+      }));
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       return this.controller.activeV2Phase()?.tools || [];
     } else {
       const s = this.controller.activeStep();
@@ -1968,7 +2119,11 @@ export class RuntimeInspectorComponent {
   });
 
   readonly currentSynthesizedResponse = computed<string | null>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      const steps = this.v4PlanningState().currentPlan?.steps || [];
+      const synthStep = [...steps].reverse().find(s => s.executor === 'model' && s.observation);
+      return (typeof synthStep?.observation === 'string' ? synthStep.observation : JSON.stringify(synthStep?.observation)) || null;
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       return this.v2Execution().finalAnswer || this.controller.activeV2Phase()?.payload?.synthesized_response || null;
     } else {
       const s = this.controller.activeStep();
@@ -1980,7 +2135,9 @@ export class RuntimeInspectorComponent {
   });
 
   readonly activePayload = computed<any>(() => {
-    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+    if (this.activeAgentId() === 'v4') {
+      return this.v4PlanningState().currentPlan || {};
+    } else if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const phase = this.controller.activeV2Phase();
       return phase?.payload || phase || {};
     } else {

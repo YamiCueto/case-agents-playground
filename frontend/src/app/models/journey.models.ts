@@ -11,7 +11,31 @@ export type JourneyActorType =
   | 'injector'
   | 'synthesis';
 
-export type AvatarMood = 'idle' | 'running' | 'pointing' | 'completed' | 'failed' | 'skipped';
+export type AvatarVisualState =
+  | 'idle'
+  | 'planning'
+  | 'inference'
+  | 'tool_proposed'
+  | 'tool_executing'
+  | 'tool_completed'
+  | 'streaming'
+  | 'completed'
+  | 'error';
+
+export type AvatarMood =
+  | 'idle'
+  | 'planning'
+  | 'running'
+  | 'pointing'
+  | 'completed'
+  | 'failed'
+  | 'skipped'
+  | 'inference'
+  | 'tool_proposed'
+  | 'tool_executing'
+  | 'tool_completed'
+  | 'streaming'
+  | 'error';
 
 export interface AgentJourneyStep {
   id: string;

@@ -47,10 +47,10 @@ AGENTS_CATALOG: List[AgentMeta] = [
         id="v4",
         name="Agent v4 — Planning",
         workshop="Taller 05",
-        enabled=False,
-        status="future",
+        enabled=True,
+        status="ready",
         description="Descomposición en grafos DAG, ejecutores tipados (TOOL, RUNTIME, MODEL) y replanning.",
-        badge="Próximamente",
+        badge="Operativo (L05)",
     ),
     AgentMeta(
         id="v5",

@@ -67,21 +67,90 @@ export class PresentationControllerService {
 
   readonly avatarMood = computed<AvatarMood>(() => {
     const status = this.runStatus();
+    if (this.activeAgentId() === 'v4') {
+      const v4State = this.eventStore.v4PlanningState();
+      if (status === 'failed' || v4State.isStalled) return 'error';
+      if (status === 'completed' || v4State.currentPlan?.is_completed) return 'completed';
+      if (status === 'running') {
+        if (!v4State.isValidated || !v4State.activeStepId) {
+          return 'planning';
+        }
+        const activeStep = v4State.currentPlan?.steps.find((s) => s.id === v4State.activeStepId);
+        if (activeStep) {
+          if (activeStep.executor === 'tool') return 'tool_executing';
+          if (activeStep.executor === 'model') return 'streaming';
+          return 'inference';
+        }
+        return 'planning';
+      }
+      return 'idle';
+    }
+
     if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
       const phase = this.activeV2Phase();
-      if (status === 'failed' || phase?.status === 'failed') return 'failed';
-      if (phase?.status === 'skipped') return 'skipped';
-      if (status === 'running' || phase?.status === 'running') return 'running';
+      if (status === 'failed' || phase?.status === 'failed') return 'error';
+      if (phase?.status === 'skipped') return 'idle';
+      
+      if (status === 'running' || phase?.status === 'running') {
+        switch (phase?.phaseType) {
+          case 'inference': return 'inference';
+          case 'proposal': return 'tool_proposed';
+          case 'validation':
+          case 'execution': return 'tool_executing';
+          case 'observation': return 'tool_completed';
+          case 'synthesis': return 'streaming';
+          case 'decision': return 'inference';
+          default: return 'inference';
+        }
+      }
+
+      // Si estamos en modo replay o visual pause sobre una fase completada
+      if (phase?.status === 'completed') {
+        switch (phase.phaseType) {
+          case 'inference': return 'inference';
+          case 'proposal': return 'tool_proposed';
+          case 'validation':
+          case 'execution': return 'tool_executing';
+          case 'observation': return 'tool_completed';
+          case 'synthesis': return status === 'completed' ? 'completed' : 'streaming';
+          default: break;
+        }
+      }
+
       if (status === 'completed') return 'completed';
       return 'idle';
     }
 
     const step = this.activeStep();
-    if (status === 'failed' || step?.status === 'failed') return 'failed';
-    if (step?.status === 'skipped') return 'skipped';
-    if (status === 'running' || step?.status === 'active') return 'running';
-    if (status === 'completed' && step?.hopNumber === 7) return 'completed';
-    if (step && step.status === 'completed') return 'pointing';
+    if (status === 'failed' || step?.status === 'failed') return 'error';
+    if (step?.status === 'skipped') return 'idle';
+    
+    if (status === 'running' || step?.status === 'active') {
+      switch (step?.hopNumber) {
+        case 1: return 'idle';
+        case 2: return 'inference';
+        case 3: return 'tool_proposed';
+        case 4:
+        case 5: return 'tool_executing';
+        case 6: return 'tool_completed';
+        case 7: return 'streaming';
+        default: return 'inference';
+      }
+    }
+
+    if (step?.status === 'completed') {
+      if (step.hopNumber === 7 || status === 'completed') return 'completed';
+      switch (step.hopNumber) {
+        case 2: return 'inference';
+        case 3: return 'tool_proposed';
+        case 4:
+        case 5: return 'tool_executing';
+        case 6: return 'tool_completed';
+        default: return 'idle';
+      }
+    }
+
+    if (status === 'completed') return 'completed';
     return 'idle';
   });
 

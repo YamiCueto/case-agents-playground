@@ -19,6 +19,13 @@ import {
   TaskRecoveryAlert,
   HitlExecutionStatus
 } from '../models/v3-memory.models';
+import {
+  AgentV4PlanningState,
+  PlanModel,
+  PlanStepModel,
+  PlanRevisionSnapshot
+} from '../models/plan.models';
+import { DecisionTraceEntry, buildDecisionTrace } from '../models/decision-trace.models';
 
 @Injectable({
   providedIn: 'root'
@@ -749,6 +756,177 @@ export class EventStoreService {
       isRecoveryRequired,
       recoveryAlert,
       rawV3Events: v3Events
+    };
+  });
+
+  readonly decisionTrace = computed<DecisionTraceEntry[]>(() => {
+    return buildDecisionTrace(this.events(), this.activeAgentId());
+  });
+
+  readonly v4PlanningState = computed<AgentV4PlanningState>(() => {
+    const rawEvents = this.events();
+    let currentPlan: PlanModel | null = null;
+    const planHistory: PlanRevisionSnapshot[] = [];
+    let selectedRevision = 1;
+    let activeStepId: string | null = null;
+    let isStalled = false;
+    let blockedStepIds: string[] = [];
+    let terminationReason: string | null = null;
+    let isValidated = false;
+    let planProposedCount = 0;
+
+    for (let i = 0; i < rawEvents.length; i++) {
+      const evt = rawEvents[i];
+      const payload = evt.payload || {};
+
+      switch (evt.type) {
+        case 'PLAN_GENERATED': {
+          planProposedCount++;
+          const rawSteps = payload['steps'] || [];
+          const steps: PlanStepModel[] = rawSteps.map((s: any) => ({
+            id: s.id,
+            action: s.action,
+            description: s.description,
+            executor: s.executor || 'tool',
+            status: s.status || 'pending',
+            depends_on: s.depends_on || [],
+            observation: s.observation || null,
+            required: s.required !== false,
+            skip_reason: s.skip_reason || null
+          }));
+          currentPlan = {
+            goal: payload['goal'] || '',
+            revision: payload['revision'] || 1,
+            steps,
+            current_step_id: null,
+            is_completed: false
+          };
+          selectedRevision = currentPlan.revision;
+          break;
+        }
+
+        case 'PLAN_VALIDATED': {
+          isValidated = true;
+          break;
+        }
+
+        case 'STEP_STARTED': {
+          const stepId = payload['step_id'];
+          activeStepId = stepId;
+          if (currentPlan) {
+            currentPlan.current_step_id = stepId;
+            const target = currentPlan.steps.find((s) => s.id === stepId);
+            if (target) {
+              target.status = 'in_progress';
+            }
+          }
+          break;
+        }
+
+        case 'STEP_COMPLETED': {
+          const stepId = payload['step_id'];
+          if (currentPlan) {
+            const target = currentPlan.steps.find((s) => s.id === stepId);
+            if (target) {
+              target.status = 'completed';
+              target.observation = payload['observation'] || null;
+            }
+          }
+          break;
+        }
+
+        case 'STEP_FAILED': {
+          const stepId = payload['step_id'];
+          if (currentPlan) {
+            const target = currentPlan.steps.find((s) => s.id === stepId);
+            if (target) {
+              target.status = 'failed';
+              target.observation = payload['observation'] || null;
+            }
+          }
+          break;
+        }
+
+        case 'REPLANNING_TRIGGERED': {
+          if (currentPlan) {
+            // Snapshot profundo independiente archivado (evitando duplicar el mismo snapshot)
+            const alreadyArchived = planHistory.some((h) => h.revision === currentPlan!.revision);
+            if (!alreadyArchived) {
+              planHistory.push({
+                revision: currentPlan.revision,
+                goal: currentPlan.goal,
+                steps: currentPlan.steps.map((s) => ({ ...s, depends_on: [...s.depends_on] })),
+                timestamp: evt.timestamp,
+                isArchived: true,
+                triggerReason: payload['reason']
+              });
+            }
+          }
+          break;
+        }
+
+        case 'PLAN_REVISION_CREATED': {
+          const rawSteps = payload['steps'] || [];
+          const steps: PlanStepModel[] = rawSteps.map((s: any) => ({
+            id: s.id,
+            action: s.action,
+            description: s.description,
+            executor: s.executor || 'tool',
+            status: s.status || 'pending',
+            depends_on: s.depends_on || [],
+            observation: s.observation || null,
+            required: s.required !== false,
+            skip_reason: s.skip_reason || null
+          }));
+          const previousGoal: string = currentPlan ? (currentPlan as PlanModel).goal : '';
+          currentPlan = {
+            goal: (payload['goal'] as string) || previousGoal,
+            revision: (payload['new_revision'] as number) || (currentPlan ? (currentPlan as PlanModel).revision + 1 : 2),
+            steps,
+            current_step_id: null,
+            is_completed: false
+          };
+          selectedRevision = currentPlan.revision;
+          break;
+        }
+
+        case 'PLAN_BLOCKED': {
+          isStalled = true;
+          blockedStepIds = payload['blocked_step_ids'] || [];
+          terminationReason = 'no_executable_steps';
+          break;
+        }
+
+        case 'PLAN_COMPLETED': {
+          if (currentPlan) {
+            currentPlan.is_completed = true;
+          }
+          terminationReason = 'plan_completed';
+          break;
+        }
+
+        case 'FINAL_SYNTHESIS':
+        case 'RUN_COMPLETED': {
+          if (payload['termination_reason']) {
+            terminationReason = payload['termination_reason'];
+          } else if (payload['stop_reason']) {
+            terminationReason = payload['stop_reason'];
+          }
+          break;
+        }
+      }
+    }
+
+    return {
+      currentPlan,
+      planHistory,
+      selectedRevision,
+      activeStepId,
+      isStalled,
+      blockedStepIds,
+      terminationReason,
+      isValidated,
+      planProposedCount
     };
   });
 

@@ -149,6 +149,7 @@ class OpenAICompatibleProvider(ModelProvider):
         messages: List[Dict[str, Any]],
         tools: List[Dict[str, Any]],
         timeout: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ) -> ModelResponse:
         formatted_tools = (
             [{"type": "function", "function": tool} for tool in tools] if tools else None
@@ -159,6 +160,7 @@ class OpenAICompatibleProvider(ModelProvider):
             messages=messages,
             tools=formatted_tools,
             temperature=self.temperature,
+            max_tokens=max_tokens or 1024,
             timeout=timeout,
         )
 

@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
-import { AvatarMood } from '../../../models/journey.models';
+import { AvatarMood, AvatarVisualState } from '../../../models/journey.models';
 
 @Component({
   selector: 'app-agent-avatar-3d',
@@ -19,7 +19,7 @@ import { AvatarMood } from '../../../models/journey.models';
     <div class="avatar-canvas-wrapper" #containerRef>
       @if (hasWebGLError()) {
         <!-- Fallback 2D de alta fidelidad cuando WebGL no está disponible -->
-        <div class="avatar-2d-fallback" [ngClass]="mood()">
+        <div class="avatar-2d-fallback" [ngClass]="normalizedMood()">
           <div class="robot-stage-2d">
             <div class="halo-ring-2d halo-pulse"></div>
             <div class="halo-ring-2d halo-dashed"></div>
@@ -40,8 +40,8 @@ import { AvatarMood } from '../../../models/journey.models';
         <canvas #canvasRef class="three-canvas" aria-label="Robot Holográfico 3D del Runtime AEP"></canvas>
       }
 
-      <!-- Pastilla de Estado Reactivo de la Inferencia -->
-      <div class="mood-pill" [ngClass]="mood()">
+      <!-- Pastilla de Estado Reactivo de la Inferencia (8 Estados) -->
+      <div class="mood-pill" [ngClass]="normalizedMood()">
         <span class="mood-indicator"></span>
         <span class="mood-label">{{ getMoodText(mood()) }}</span>
       </div>
@@ -107,10 +107,45 @@ import { AvatarMood } from '../../../models/journey.models';
       box-shadow: 0 0 6px var(--accent-cyan);
     }
 
-    .mood-pill.running .mood-indicator {
+    /* 8 Estados reactivos sincronizados con Stitch y DESIGN.md */
+    .mood-pill.idle .mood-indicator {
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
+    }
+
+    .mood-pill.inference .mood-indicator {
       background: var(--accent-cyan-neon);
       box-shadow: 0 0 10px var(--accent-cyan-neon);
-      animation: pulseMood 0.8s infinite alternate;
+      animation: pulseMood 0.75s infinite alternate;
+    }
+
+    .mood-pill.planning .mood-indicator {
+      background: var(--accent-violet);
+      box-shadow: 0 0 10px var(--accent-violet);
+      animation: pulseMood 0.65s infinite alternate;
+    }
+
+    .mood-pill.tool_proposed .mood-indicator {
+      background: var(--accent-amber);
+      box-shadow: 0 0 8px var(--accent-amber);
+      animation: pulseMood 0.85s infinite alternate;
+    }
+
+    .mood-pill.tool_executing .mood-indicator {
+      background: var(--accent-violet);
+      box-shadow: 0 0 10px var(--accent-violet);
+      animation: pulseMood 0.55s infinite alternate;
+    }
+
+    .mood-pill.tool_completed .mood-indicator {
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+    }
+
+    .mood-pill.streaming .mood-indicator {
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulseMood 0.6s infinite alternate;
     }
 
     .mood-pill.completed .mood-indicator {
@@ -118,19 +153,9 @@ import { AvatarMood } from '../../../models/journey.models';
       box-shadow: 0 0 8px var(--accent-emerald);
     }
 
-    .mood-pill.failed .mood-indicator {
+    .mood-pill.error .mood-indicator {
       background: var(--accent-crimson);
       box-shadow: 0 0 8px var(--accent-crimson);
-    }
-
-    .mood-pill.pointing .mood-indicator {
-      background: var(--accent-amber);
-      box-shadow: 0 0 8px var(--accent-amber);
-    }
-
-    .mood-pill.skipped .mood-indicator {
-      background: var(--text-muted);
-      box-shadow: 0 0 4px var(--text-muted);
     }
 
     .mood-label {
@@ -140,7 +165,7 @@ import { AvatarMood } from '../../../models/journey.models';
 
     @keyframes pulseMood {
       from { transform: scale(0.85); opacity: 0.7; }
-      to { transform: scale(1.25); opacity: 1; }
+      to { transform: scale(1.3); opacity: 1; }
     }
 
     /* Fallback 2D cuando WebGL no está disponible */
@@ -240,14 +265,24 @@ import { AvatarMood } from '../../../models/journey.models';
       box-shadow: 0 0 6px var(--accent-emerald);
     }
 
-    .avatar-2d-fallback.failed .eye-2d {
+    .avatar-2d-fallback.error .eye-2d {
       background: var(--accent-crimson);
       box-shadow: 0 0 6px var(--accent-crimson);
     }
 
-    .avatar-2d-fallback.pointing .eye-2d {
+    .avatar-2d-fallback.tool_proposed .eye-2d {
       background: var(--accent-amber);
       box-shadow: 0 0 6px var(--accent-amber);
+    }
+
+    .avatar-2d-fallback.planning .eye-2d {
+      background: var(--accent-violet);
+      box-shadow: 0 0 8px var(--accent-violet);
+    }
+
+    .avatar-2d-fallback.tool_executing .eye-2d {
+      background: var(--accent-violet);
+      box-shadow: 0 0 6px var(--accent-violet);
     }
 
     .chest-badge-2d {
@@ -294,6 +329,8 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
   private camera?: THREE.PerspectiveCamera;
   private animFrameId?: number;
   private resizeObserver?: ResizeObserver;
+  private intersectionObserver?: IntersectionObserver;
+  private isVisible = true;
 
   // Grupos 3D principales del Robot
   private robotRoot?: THREE.Group;
@@ -315,6 +352,7 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
   private blinkTimer = 0;
   private isBlinking = false;
   private isReducedMotion = false;
+  private streamWaveTimer = 0;
 
   constructor() {
     effect(() => {
@@ -332,20 +370,59 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.initThree();
+    this.setupIntersectionObserver();
   }
 
   ngOnDestroy(): void {
     this.cleanupThree();
   }
 
+  /**
+   * Normaliza la entrada de mood a uno de los 8 estados visuales canónicos
+   */
+  normalizedMood(): AvatarVisualState {
+    const m = this.mood();
+    switch (m) {
+      case 'planning':
+        return 'planning';
+      case 'inference':
+      case 'running':
+        return 'inference';
+      case 'tool_proposed':
+      case 'pointing':
+        return 'tool_proposed';
+      case 'tool_executing':
+        return 'tool_executing';
+      case 'tool_completed':
+        return 'tool_completed';
+      case 'streaming':
+        return 'streaming';
+      case 'completed':
+        return 'completed';
+      case 'error':
+      case 'failed':
+        return 'error';
+      case 'skipped':
+      case 'idle':
+      default:
+        return 'idle';
+    }
+  }
+
   getMoodText(mood: AvatarMood): string {
-    switch (mood) {
-      case 'running': return 'Inferencia Activa';
-      case 'pointing': return 'Llamada a Tool';
+    const state = this.normalizedMood();
+    switch (state) {
+      case 'planning': return 'Planificación (DAG)';
+      case 'inference': return 'Inferencia Activa';
+      case 'tool_proposed': return 'Llamada Propuesta';
+      case 'tool_executing': return 'Ejecución en CPU / DB';
+      case 'tool_completed': return 'Retorno de Datos';
+      case 'streaming': return 'Síntesis Grounded';
       case 'completed': return 'Grounded & Listo';
-      case 'failed': return 'Fallo en Runtime';
-      case 'skipped': return 'Fase Omitida';
-      default: return 'En Espera';
+      case 'error': return 'Fallo en Runtime';
+      case 'idle':
+      default:
+        return 'En Reposo';
     }
   }
 
@@ -381,7 +458,7 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
       this.pedestalLight.position.set(0, -0.65, 0.8);
       this.scene.add(this.pedestalLight);
 
-      // 2. Construcción matemática del Robot y Pedestal (<2,000 vértices)
+      // 2. Construcción matemática del Robot y Pedestal (<2,000 polígonos)
       this.buildRobotAndPedestal();
 
       // 3. Observer de redimensionamiento
@@ -391,6 +468,21 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
       this.animate();
     } catch (err) {
       console.warn('WebGL initialization failed, falling back to 2D vector core:', err);
+    }
+  }
+
+  private setupIntersectionObserver(): void {
+    if (typeof IntersectionObserver !== 'undefined' && this.containerRef?.nativeElement) {
+      this.intersectionObserver = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        this.isVisible = entry.isIntersecting;
+        if (this.isVisible && !this.animFrameId) {
+          this.lastTime = performance.now();
+          this.animate();
+        }
+      }, { threshold: 0.1 });
+
+      this.intersectionObserver.observe(this.containerRef.nativeElement);
     }
   }
 
@@ -493,7 +585,7 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
     // Brazos compactos en reposo a los costados
     const armGeo = new THREE.CapsuleGeometry(0.05, 0.2, 12, 16);
     const armMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2 });
-    
+
     const leftArm = new THREE.Mesh(armGeo, armMat);
     leftArm.position.set(-0.31, 0.02, 0);
     leftArm.rotation.z = 0.12;
@@ -530,7 +622,7 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
       emissive: 0x00f0ff,
       emissiveIntensity: 0.5
     });
-    
+
     const leftEar = new THREE.Mesh(earGeo, earMat);
     leftEar.rotation.z = Math.PI / 2;
     leftEar.position.set(-0.32, 0, 0);
@@ -578,13 +670,13 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
     this.eyeCanvas.height = 128;
     this.eyeCtx = this.eyeCanvas.getContext('2d');
 
-    this.drawVisorFace(this.mood(), false);
+    this.drawVisorFace(this.normalizedMood(), false);
 
     this.dynamicCanvasTexture = new THREE.CanvasTexture(this.eyeCanvas);
     this.dynamicCanvasTexture.needsUpdate = true;
   }
 
-  private drawVisorFace(mood: AvatarMood, isBlinking: boolean): void {
+  private drawVisorFace(state: AvatarVisualState, isBlinking: boolean): void {
     if (!this.eyeCtx || !this.eyeCanvas) return;
     const ctx = this.eyeCtx;
     const w = this.eyeCanvas.width;
@@ -594,28 +686,29 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
     ctx.fillStyle = '#050914';
     ctx.fillRect(0, 0, w, h);
 
-    // Borde curvo tenue del visor
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
-    ctx.lineWidth = 4;
+    // Borde curvo tenue del visor con el acento del estado
+    let accentColor = '#00f0ff';
+    if (state === 'completed') accentColor = '#10b981';
+    else if (state === 'error') accentColor = '#ef4444';
+    else if (state === 'tool_proposed') accentColor = '#f59e0b';
+    else if (state === 'tool_executing') accentColor = '#a855f7';
+    else if (state === 'tool_completed') accentColor = '#34d399';
+    else if (state === 'streaming') accentColor = '#38bdf8';
+
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 3;
     ctx.strokeRect(6, 6, w - 12, h - 12);
 
-    let eyeColor = '#00f0ff';
-    if (mood === 'completed') eyeColor = '#10b981';
-    else if (mood === 'failed') eyeColor = '#ef4444';
-    else if (mood === 'pointing') eyeColor = '#f59e0b';
-    else if (mood === 'skipped') eyeColor = '#64748b';
-
-    ctx.fillStyle = eyeColor;
-    ctx.strokeStyle = eyeColor;
-    ctx.shadowColor = eyeColor;
+    ctx.fillStyle = accentColor;
+    ctx.shadowColor = accentColor;
     ctx.shadowBlur = 12;
 
     const leftX = 75;
     const rightX = 181;
     const centerY = 64;
 
-    if (isBlinking) {
-      // Ojos cerrados por parpadeo: líneas horizontales
+    if (isBlinking && state !== 'error') {
+      // Ojos cerrados por parpadeo: líneas horizontales suaves
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(leftX - 16, centerY);
@@ -626,127 +719,360 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
       ctx.moveTo(rightX - 16, centerY);
       ctx.lineTo(rightX + 16, centerY);
       ctx.stroke();
-    } else if (mood === 'completed') {
-      // Expresión feliz: arcos sonrientes (^ ^)
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.arc(leftX, centerY + 8, 16, Math.PI, 0, false);
-      ctx.stroke();
+      return;
+    }
 
-      ctx.beginPath();
-      ctx.arc(rightX, centerY + 8, 16, Math.PI, 0, false);
-      ctx.stroke();
-    } else if (mood === 'failed') {
-      // Expresión de fallo: cruces (X X)
-      ctx.lineWidth = 5;
-      const size = 12;
-      // Cruz izquierda
-      ctx.beginPath();
-      ctx.moveTo(leftX - size, centerY - size);
-      ctx.lineTo(leftX + size, centerY + size);
-      ctx.moveTo(leftX + size, centerY - size);
-      ctx.lineTo(leftX - size, centerY + size);
-      ctx.stroke();
-      // Cruz derecha
-      ctx.beginPath();
-      ctx.moveTo(rightX - size, centerY - size);
-      ctx.lineTo(rightX + size, centerY + size);
-      ctx.moveTo(rightX + size, centerY - size);
-      ctx.lineTo(rightX - size, centerY + size);
-      ctx.stroke();
-    } else if (mood === 'running') {
-      // Expresión atenta con pulso: círculos grandes con pupila
-      ctx.beginPath();
-      ctx.arc(leftX, centerY, 16, 0, Math.PI * 2);
-      ctx.fill();
+    switch (state) {
+      // 1. INFERENCE: pupila atenta brillante con scanning focal
+      case 'inference': {
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 16, 0, Math.PI * 2);
+        ctx.fill();
 
-      ctx.beginPath();
-      ctx.arc(rightX, centerY, 16, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.beginPath();
+        ctx.arc(rightX, centerY, 16, 0, Math.PI * 2);
+        ctx.fill();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(leftX - 4, centerY - 4, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(rightX - 4, centerY - 4, 5, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      // Expresión estándar / Idle: dos círculos suaves
-      ctx.beginPath();
-      ctx.arc(leftX, centerY, 13, 0, Math.PI * 2);
-      ctx.fill();
+        // Destello central
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(leftX - 3, centerY - 3, 5, 0, Math.PI * 2);
+        ctx.arc(rightX - 3, centerY - 3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
 
-      ctx.beginPath();
-      ctx.arc(rightX, centerY, 13, 0, Math.PI * 2);
-      ctx.fill();
+      // 1.5. PLANNING: descomposición gráfica en grafo DAG de tareas
+      case 'planning': {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#c084fc';
+
+        // Ojo izquierdo: nodo raíz hacia dos bifurcaciones
+        ctx.beginPath();
+        ctx.arc(leftX - 8, centerY - 4, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#a855f7';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(leftX + 10, centerY - 12, 5, 0, Math.PI * 2);
+        ctx.arc(leftX + 10, centerY + 8, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(leftX - 8, centerY - 4); ctx.lineTo(leftX + 10, centerY - 12);
+        ctx.moveTo(leftX - 8, centerY - 4); ctx.lineTo(leftX + 10, centerY + 8);
+        ctx.stroke();
+
+        // Ojo derecho simétrico
+        ctx.beginPath();
+        ctx.arc(rightX - 8, centerY - 4, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#a855f7';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(rightX + 10, centerY - 12, 5, 0, Math.PI * 2);
+        ctx.arc(rightX + 10, centerY + 8, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(rightX - 8, centerY - 4); ctx.lineTo(rightX + 10, centerY - 12);
+        ctx.moveTo(rightX - 8, centerY - 4); ctx.lineTo(rightX + 10, centerY + 8);
+        ctx.stroke();
+        break;
+      }
+
+      // 2. TOOL_PROPOSED: corchetes de selección de herramienta [ • ]  [ • ]
+      case 'tool_proposed': {
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#f59e0b';
+        // Corchete izquierdo
+        ctx.beginPath();
+        ctx.moveTo(leftX - 18, centerY - 14);
+        ctx.lineTo(leftX - 22, centerY - 14);
+        ctx.lineTo(leftX - 22, centerY + 14);
+        ctx.lineTo(leftX - 18, centerY + 14);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(leftX + 18, centerY - 14);
+        ctx.lineTo(leftX + 22, centerY - 14);
+        ctx.lineTo(leftX + 22, centerY + 14);
+        ctx.lineTo(leftX + 18, centerY + 14);
+        ctx.stroke();
+
+        // Corchete derecho
+        ctx.beginPath();
+        ctx.moveTo(rightX - 18, centerY - 14);
+        ctx.lineTo(rightX - 22, centerY - 14);
+        ctx.lineTo(rightX - 22, centerY + 14);
+        ctx.lineTo(rightX - 18, centerY + 14);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(rightX + 18, centerY - 14);
+        ctx.lineTo(rightX + 22, centerY - 14);
+        ctx.lineTo(rightX + 22, centerY + 14);
+        ctx.lineTo(rightX + 18, centerY + 14);
+        ctx.stroke();
+
+        // Puntos centrales
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 9, 0, Math.PI * 2);
+        ctx.arc(rightX, centerY, 9, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      // 3. TOOL_EXECUTING: arcos concéntricos giratorios de procesamiento en CPU
+      case 'tool_executing': {
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#c084fc';
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 15, 0.4, Math.PI * 1.6);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(rightX, centerY, 15, 0.4, Math.PI * 1.6);
+        ctx.stroke();
+
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 7, 0, Math.PI * 2);
+        ctx.arc(rightX, centerY, 7, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      // 4. TOOL_COMPLETED: ojos brillantes de confirmación con halo esmeralda
+      case 'tool_completed': {
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 14, 0, Math.PI * 2);
+        ctx.arc(rightX, centerY, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 5, 0, Math.PI * 2);
+        ctx.arc(rightX, centerY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      // 5. STREAMING: barras de ecualizador de tokens en el centro
+      case 'streaming': {
+        const barHeights = [18, 28, 22, 32, 20];
+        const barW = 8;
+        const startX = (w - (5 * 14)) / 2;
+        ctx.fillStyle = '#38bdf8';
+        for (let i = 0; i < 5; i++) {
+          const bh = barHeights[i];
+          const bx = startX + i * 14;
+          const by = centerY - bh / 2;
+          ctx.beginPath();
+          ctx.roundRect(bx, by, barW, bh, 3);
+          ctx.fill();
+        }
+        break;
+      }
+
+      // 6. COMPLETED: arcos felices sonrientes (^ ^)
+      case 'completed': {
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(leftX, centerY + 8, 16, Math.PI, 0, false);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(rightX, centerY + 8, 16, Math.PI, 0, false);
+        ctx.stroke();
+        break;
+      }
+
+      // 7. ERROR: cruces discretas de advertencia (x x)
+      case 'error': {
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#ef4444';
+        const s = 12;
+        ctx.beginPath();
+        ctx.moveTo(leftX - s, centerY - s); ctx.lineTo(leftX + s, centerY + s);
+        ctx.moveTo(leftX + s, centerY - s); ctx.lineTo(leftX - s, centerY + s);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(rightX - s, centerY - s); ctx.lineTo(rightX + s, centerY + s);
+        ctx.moveTo(rightX + s, centerY - s); ctx.lineTo(rightX - s, centerY + s);
+        ctx.stroke();
+        break;
+      }
+
+      // 8. IDLE: dos círculos suaves simétricos
+      case 'idle':
+      default: {
+        ctx.beginPath();
+        ctx.arc(leftX, centerY, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(rightX, centerY, 13, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
     }
   }
 
   private updateRobotAppearance(mood: AvatarMood, _targetHop: number): void {
     if (!this.pedestalLight) return;
 
+    const state = this.normalizedMood();
     let hexColor = 0x00f0ff;
-    if (mood === 'completed') hexColor = 0x10b981;
-    else if (mood === 'failed') hexColor = 0xef4444;
-    else if (mood === 'pointing') hexColor = 0xf59e0b;
-    else if (mood === 'skipped') hexColor = 0x64748b;
+    let lightIntensity = 3.0;
+
+    switch (state) {
+      case 'planning':
+        hexColor = 0xa855f7;
+        lightIntensity = 4.6;
+        break;
+      case 'inference':
+        hexColor = 0x00f0ff;
+        lightIntensity = 4.5;
+        break;
+      case 'tool_proposed':
+        hexColor = 0xf59e0b;
+        lightIntensity = 3.8;
+        break;
+      case 'tool_executing':
+        hexColor = 0xa855f7;
+        lightIntensity = 4.8;
+        break;
+      case 'tool_completed':
+        hexColor = 0x10b981;
+        lightIntensity = 3.8;
+        break;
+      case 'streaming':
+        hexColor = 0x38bdf8;
+        lightIntensity = 4.2;
+        break;
+      case 'completed':
+        hexColor = 0x10b981;
+        lightIntensity = 3.0;
+        break;
+      case 'error':
+        hexColor = 0xef4444;
+        lightIntensity = 2.2;
+        break;
+      case 'idle':
+      default:
+        hexColor = 0x00f0ff;
+        lightIntensity = 2.6;
+        break;
+    }
 
     this.pedestalLight.color.setHex(hexColor);
-    this.pedestalLight.intensity = mood === 'running' ? 4.5 : 3.0;
+    this.pedestalLight.intensity = lightIntensity;
 
     if (this.pedestalRing1) {
       (this.pedestalRing1.material as THREE.MeshBasicMaterial).color.setHex(hexColor);
     }
     if (this.pedestalRing2) {
-      (this.pedestalRing2.material as THREE.MeshBasicMaterial).color.setHex(hexColor);
+      (this.pedestalRing2.material as THREE.MeshBasicMaterial).color.setHex(
+        state === 'tool_executing' ? 0xf59e0b : hexColor
+      );
     }
 
-    this.drawVisorFace(mood, this.isBlinking);
+    this.drawVisorFace(state, this.isBlinking);
     if (this.dynamicCanvasTexture) {
       this.dynamicCanvasTexture.needsUpdate = true;
     }
   }
 
   private animate = (): void => {
+    if (!this.isVisible) {
+      this.animFrameId = undefined;
+      return;
+    }
+
     this.animFrameId = requestAnimationFrame(this.animate);
 
     const now = performance.now();
     const delta = this.lastTime ? Math.min((now - this.lastTime) / 1000, 0.1) : 0.016;
     this.lastTime = now;
 
-    // Ciclo de parpadeo periódico determinista cada 4 segundos
+    const state = this.normalizedMood();
+
+    // Ciclo de parpadeo periódico determinista cada 4 segundos (solo en estados activos o de reposo)
     this.blinkTimer += delta;
-    if (this.blinkTimer > 3.8 && !this.isBlinking && this.mood() !== 'failed' && this.mood() !== 'completed') {
+    if (this.blinkTimer > 3.8 && !this.isBlinking && state !== 'error' && state !== 'completed') {
       this.isBlinking = true;
-      this.drawVisorFace(this.mood(), true);
+      this.drawVisorFace(state, true);
       if (this.dynamicCanvasTexture) this.dynamicCanvasTexture.needsUpdate = true;
     }
     if (this.blinkTimer > 4.0) {
       this.blinkTimer = 0;
       this.isBlinking = false;
-      this.drawVisorFace(this.mood(), false);
+      this.drawVisorFace(state, false);
       if (this.dynamicCanvasTexture) this.dynamicCanvasTexture.needsUpdate = true;
+    }
+
+    // Modo streaming: redibujo suave de onda de tokens cada 100ms
+    if (state === 'streaming') {
+      this.streamWaveTimer += delta;
+      if (this.streamWaveTimer > 0.1) {
+        this.streamWaveTimer = 0;
+        this.drawVisorFace(state, false);
+        if (this.dynamicCanvasTexture) this.dynamicCanvasTexture.needsUpdate = true;
+      }
     }
 
     if (!this.isReducedMotion && this.robotRoot) {
       const time = now * 0.001;
-      const isRunning = this.mood() === 'running';
-      const speedMult = isRunning ? 2.2 : 1.0;
+      let speedMult = 1.0;
+      if (state === 'inference') speedMult = 2.2;
+      else if (state === 'planning') speedMult = 2.4;
+      else if (state === 'tool_executing') speedMult = 2.8;
+      else if (state === 'streaming') speedMult = 1.6;
 
-      // 1. Respiración / Flotación vertical suave
+      // 1. Respiración / Flotación vertical según estado
       if (this.bodyGroup && this.headGroup) {
-        const floatY = Math.sin(time * 1.5 * speedMult) * 0.025;
+        const floatAmplitude = state === 'inference' || state === 'tool_executing' || state === 'planning' ? 0.035 : 0.025;
+        const floatY = Math.sin(time * 1.5 * speedMult) * floatAmplitude;
         this.bodyGroup.position.y = -0.15 + floatY;
         this.headGroup.position.y = 0.38 + floatY * 1.2;
       }
 
-      // 2. Giro sutil de cabeza cuando está en inferencia
+      // 2. Comportamiento cinético de la cabeza
       if (this.headGroup) {
-        if (isRunning) {
+        if (state === 'inference') {
+          // Inferencia: la cabeza busca suavemente
           this.headGroup.rotation.y = Math.sin(time * 2.0) * 0.14;
+          this.headGroup.rotation.x = 0;
+        } else if (state === 'planning') {
+          // Planning: cabeza con micro-escaneo orbital hacia el horizonte
+          this.headGroup.rotation.y = Math.sin(time * 2.4) * 0.10;
+          this.headGroup.rotation.x = 0.04;
+        } else if (state === 'tool_proposed') {
+          // Tool proposed: mirada fija hacia adelante con ligero avance
+          this.headGroup.rotation.y = 0;
+          this.headGroup.rotation.x = 0.06;
+        } else if (state === 'tool_completed') {
+          // Tool completed: asentimiento de confirmación
+          this.headGroup.rotation.y = 0;
+          this.headGroup.rotation.x = Math.sin(time * 3.0) * 0.05;
+        } else if (state === 'error') {
+          // Error: cabeza ligeramente baja en reposo de precaución
+          this.headGroup.rotation.y = 0;
+          this.headGroup.rotation.x = -0.06;
         } else {
+          // Idle / Streaming / Completed: oscilación muy suave
           this.headGroup.rotation.y = Math.sin(time * 0.6) * 0.04;
+          this.headGroup.rotation.x = 0;
         }
       }
 
@@ -762,8 +1088,9 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
       if (this.particles) {
         const pos = this.particles.geometry.attributes['position'];
         const arr = pos.array as Float32Array;
+        const pSpeed = delta * (0.35 * speedMult);
         for (let i = 1; i < arr.length; i += 3) {
-          arr[i] += delta * (0.35 * speedMult);
+          arr[i] += pSpeed;
           if (arr[i] > 1.3) {
             arr[i] = 0.0;
           }
@@ -791,9 +1118,13 @@ export class AgentAvatar3DComponent implements OnInit, OnDestroy {
   private cleanupThree(): void {
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = undefined;
     }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
+    }
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect();
     }
 
     if (this.dynamicCanvasTexture) {

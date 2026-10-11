@@ -75,7 +75,7 @@ def test_get_ticket_detail_api(client: TestClient) -> None:
 
 def test_chat_stream_pending_agent(client: TestClient) -> None:
     payload = {
-        "agent_version": "v4",
+        "agent_version": "v5",
         "query": "Consulta el ticket TICK-1001",
         "user_persona": "usr_carlos",
     }
@@ -94,6 +94,31 @@ def test_chat_stream_pending_agent(client: TestClient) -> None:
     types = [e["type"] for e in events]
     assert "USER_REQUEST" in types
     assert "AGENT_NOT_READY" in types
+    assert "RUN_COMPLETED" in types
+
+
+def test_chat_stream_agent_v4(client: TestClient) -> None:
+    payload = {
+        "agent_version": "v4",
+        "query": "Consulta el ticket TICK-1001",
+        "user_persona": "usr_carlos",
+    }
+    response = client.post("/api/chat/stream", json=payload)
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers["content-type"]
+
+    events = []
+    for line in response.text.split("\n"):
+        if line.startswith("data: "):
+            raw_json = line[6:].strip()
+            if raw_json:
+                events.append(json.loads(raw_json))
+
+    assert len(events) >= 3
+    types = [e["type"] for e in events]
+    assert "USER_REQUEST" in types
+    assert "PLAN_GENERATED" in types
+    assert "PLAN_VALIDATED" in types
     assert "RUN_COMPLETED" in types
 
 
