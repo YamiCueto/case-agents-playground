@@ -2,28 +2,16 @@ import re
 from typing import Any, Dict
 from src.domain.enums import UserRole
 
-SENSITIVE_FIELD_NAMES = {
-    "password",
-    "token",
-    "secret",
-    "api_key",
-    "apikey",
-    "auth",
-    "authorization",
-    "credential",
-    "private_key",
-}
+from src.domain.memory.policy import MemoryPolicy, SENSITIVE_FIELD_NAMES, SAFE_METRIC_FIELD_NAMES
 
 CONNECTION_STRING_PATTERN = re.compile(r"://([^:@]+):([^@]+)@")
 
 
 def sanitize_value(key: str, value: Any) -> Any:
-    key_lower = key.lower()
-    if any(s in key_lower for s in SENSITIVE_FIELD_NAMES):
+    if MemoryPolicy.is_sensitive_key(key):
         return "***REDACTED***"
 
     if isinstance(value, str):
-        from src.domain.memory.policy import MemoryPolicy
         return MemoryPolicy.sanitize_text(value)
 
     if isinstance(value, dict):

@@ -1,17 +1,25 @@
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ChatRequest(BaseModel):
     agent_version: str = Field(min_length=2, max_length=10)
-    query: str = Field(min_length=1)
+    query: str = Field(default="")
     user_persona: str = Field(default="usr_carlos")
     conversation_id: Optional[str] = None
     turn_id: Optional[str] = None
     session_id: Optional[str] = None
     selected_value: Optional[str] = None
     decision_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_query_or_decision(self) -> "ChatRequest":
+        if not self.decision_id and (not self.query or not self.query.strip()):
+            raise ValueError("El campo 'query' no puede estar vacío a menos que se especifique 'decision_id'.")
+        if self.decision_id and (not self.query or not self.query.strip()):
+            self.query = f"Selección HITL: {self.selected_value or self.decision_id}"
+        return self
 
 
 class AgentMeta(BaseModel):

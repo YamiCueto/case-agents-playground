@@ -587,3 +587,184 @@ def test_v3_chat_stream_api_endpoint():
             session.execute(text("DELETE FROM agent_conversations WHERE conversation_id = :cid"), {"cid": conv_id})
             session.commit()
 
+
+def test_v3_hitl_resumption_rejections_and_validations(identity_carlos_and_laura):
+    """
+    Validaciones obligatorias de la Fase 6.4:
+    1. Rechazo por usuario incorrecto (Laura intentando resolver tarea de Carlos).
+    2. Rechazo por conversación incorrecta.
+    3. Rechazo por selección inválida (opción fuera de lista permitida).
+    4. Rechazo de una tarea ya resuelta.
+    5. recovery_required bloquea reejecución automática.
+    """
+    carlos, laura = identity_carlos_and_laura
+    orchestrator = AgentV3Orchestrator()
+    task_id = f"task-val-{uuid.uuid4().hex[:6]}"
+    conv_id = f"conv-val-{uuid.uuid4().hex[:6]}"
+
+    pending_rec = PendingDecisionRecord(
+        decision_id=task_id,
+        user_id=carlos.user_id,
+        subject_id=carlos.username,
+        session_id=f"sess-{uuid.uuid4().hex[:4]}",
+        conversation_id=conv_id,
+        original_query="Asignar prioridad al ticket",
+        question="Seleccione prioridad requerida",
+        options=["LOW", "MEDIUM", "HIGH"],
+        target_tool_name="update_ticket_status",
+        pending_tool_arguments={
+            "ticket_code": "TICK-1001",
+            "new_status": "IN_PROGRESS",
+            "comment": "Iniciando atención",
+        },
+        missing_parameter_name="priority",
+    )
+    orchestrator.decision_store.save_pending_task(pending_rec)
+
+    try:
+        # 1. Rechazo por usuario incorrecto: Laura intenta reanudar tarea de Carlos
+        with pytest.raises(UnauthorizedActionError) as exc_user:
+            orchestrator.run(
+                query="Selección de Laura",
+                user_persona="usr_laura",
+                decision_id=task_id,
+                selected_value="HIGH",
+            )
+        assert f"no tiene permiso para consultar la tarea '{task_id}'" in str(exc_user.value)
+
+        # 2. Rechazo por conversación incorrecta: se pasa conv_id ajeno
+        with pytest.raises(ValidationError) as exc_conv:
+            orchestrator.run(
+                query="Selección con conversación errónea",
+                user_persona="usr_carlos",
+                conversation_id="conv-ajena-9999",
+                decision_id=task_id,
+                selected_value="HIGH",
+            )
+        assert f"pertenece a la conversación '{conv_id}'" in str(exc_conv.value)
+
+        # 3. Rechazo por selección inválida: valor no permitido en options
+        with pytest.raises(ValidationError) as exc_opt:
+            orchestrator.run(
+                query="Opción inválida",
+                user_persona="usr_carlos",
+                conversation_id=conv_id,
+                decision_id=task_id,
+                selected_value="CRITICAL_INVENTADA",
+            )
+        assert "no es una opción válida" in str(exc_opt.value)
+
+        # 4. Rechazo cuando la tarea está en RECOVERY_REQUIRED
+        factory = get_app_session_factory()
+        with factory() as session:
+            session.execute(
+                text("UPDATE agent_pending_tasks SET status = 'recovery_required' WHERE decision_id = :did"),
+                {"did": task_id},
+            )
+            session.commit()
+
+        with pytest.raises(ValidationError) as exc_rec:
+            orchestrator.run(
+                query="Reanudar tarea con fallo incierto",
+                user_persona="usr_carlos",
+                conversation_id=conv_id,
+                decision_id=task_id,
+                selected_value="HIGH",
+            )
+        assert "recovery_required" in str(exc_rec.value)
+
+        # 5. Rechazo cuando la tarea ya está resuelta
+        with factory() as session:
+            session.execute(
+                text("UPDATE agent_pending_tasks SET status = 'resolved' WHERE decision_id = :did"),
+                {"did": task_id},
+            )
+            session.commit()
+
+        with pytest.raises(ValidationError) as exc_resolved:
+            orchestrator.run(
+                query="Reanudar tarea ya resuelta",
+                user_persona="usr_carlos",
+                conversation_id=conv_id,
+                decision_id=task_id,
+                selected_value="HIGH",
+            )
+        assert "ya no se encuentra en estado 'pending'" in str(exc_resolved.value)
+
+    finally:
+        factory = get_app_session_factory()
+        with factory() as session:
+            session.execute(text("DELETE FROM agent_pending_tasks WHERE decision_id = :did"), {"did": task_id})
+            session.execute(text("DELETE FROM agent_conversation_messages WHERE conversation_id = :cid"), {"cid": conv_id})
+            session.execute(text("DELETE FROM agent_conversations WHERE conversation_id = :cid"), {"cid": conv_id})
+            session.commit()
+
+
+@pytest.mark.anyio
+async def test_v3_hitl_resumption_stream_dual_projection_and_continuity(identity_carlos_and_laura):
+    """
+    Valida que run_stream al reanudar una tarea pendiente:
+    1. Emite USER_REQUEST con el id de conversación persistido.
+    2. Emite TOOL_EXECUTION_STARTED y TOOL_EXECUTION_COMPLETED para la proyección dual.
+    3. Emite PENDING_TASK_RESOLVED.
+    4. Emite FINAL_SYNTHESIS y RUN_COMPLETED.
+    5. Emite TURN_PERSISTED confirmando persistencia en MySQL.
+    """
+    carlos, _ = identity_carlos_and_laura
+    orchestrator = AgentV3Orchestrator()
+    task_id = f"task-stream-{uuid.uuid4().hex[:6]}"
+    conv_id = f"conv-stream-{uuid.uuid4().hex[:6]}"
+
+    pending_rec = PendingDecisionRecord(
+        decision_id=task_id,
+        user_id=carlos.user_id,
+        subject_id=carlos.username,
+        session_id=f"sess-{uuid.uuid4().hex[:4]}",
+        conversation_id=conv_id,
+        original_query="Actualizar prioridad del incidente",
+        question="Seleccione prioridad requerida",
+        options=["LOW", "HIGH"],
+        target_tool_name="list_tickets",
+        pending_tool_arguments={"limit": 2},
+        missing_parameter_name="priority",
+    )
+    orchestrator.decision_store.save_pending_task(pending_rec)
+
+    try:
+        events = []
+        async for evt in orchestrator.run_stream(
+            query="Opción: HIGH",
+            user_persona="usr_carlos",
+            conversation_id=conv_id,
+            decision_id=task_id,
+            selected_value="HIGH",
+        ):
+            events.append(evt)
+
+        event_types = [e.type for e in events]
+        assert "USER_REQUEST" in event_types
+        assert "TOOL_EXECUTION_STARTED" in event_types
+        assert "TOOL_EXECUTION_COMPLETED" in event_types
+        assert "PENDING_TASK_RESOLVED" in event_types
+        assert "FINAL_SYNTHESIS" in event_types
+        assert "RUN_COMPLETED" in event_types
+        assert "TURN_PERSISTED" in event_types
+
+        # Validar estabilidad del conversation_id confirmado
+        persisted_evt = next(e for e in events if e.type == "TURN_PERSISTED")
+        assert persisted_evt.payload["conversation_id"] == conv_id
+
+        # Validar que PENDING_TASK_RESOLVED incluye el valor seleccionado
+        resolved_evt = next(e for e in events if e.type == "PENDING_TASK_RESOLVED")
+        assert resolved_evt.payload["decision_id"] == task_id
+        assert resolved_evt.payload["selected_value"] == "HIGH"
+
+    finally:
+        factory = get_app_session_factory()
+        with factory() as session:
+            session.execute(text("DELETE FROM agent_pending_tasks WHERE decision_id = :did"), {"did": task_id})
+            session.execute(text("DELETE FROM agent_conversation_messages WHERE conversation_id = :cid"), {"cid": conv_id})
+            session.execute(text("DELETE FROM agent_conversations WHERE conversation_id = :cid"), {"cid": conv_id})
+            session.commit()
+
+

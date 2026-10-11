@@ -4,7 +4,7 @@ import { HeaderComponent } from './components/header/header.component';
 import { ChatPanelComponent } from './components/chat-panel/chat-panel.component';
 import { RuntimeInspectorComponent } from './components/runtime-inspector/runtime-inspector.component';
 import { TicketsDrawerComponent } from './components/tickets-drawer/tickets-drawer.component';
-import { AgentStreamService } from './services/agent-stream.service';
+import { AgentStreamService, ChatStreamPayload } from './services/agent-stream.service';
 import { TicketsService } from './services/tickets.service';
 import { EventStoreService } from './services/event-store.service';
 import { PresentationControllerService } from './services/presentation-controller.service';
@@ -43,6 +43,8 @@ export class App implements OnInit {
   readonly messages = signal<ChatMessage[]>([]);
   readonly currentRunEvents = this.eventStore.events;
   readonly tickets = signal<TicketSummary[]>([]);
+  readonly activeConversationsByPersona = signal<Record<string, string>>({});
+  readonly messagesByPersona = signal<Record<string, ChatMessage[]>>({});
 
   readonly isStreaming = this.streamService.isStreaming;
 
@@ -88,6 +90,7 @@ export class App implements OnInit {
   }
 
   onSelectAgent(agentId: string): void {
+    if (this.selectedAgentId() === agentId) return;
     if (this.isStreaming()) {
       this.streamService.abortCurrentStream();
     }
@@ -97,15 +100,126 @@ export class App implements OnInit {
     this.controller.resetPlayback();
   }
 
-  onSelectTaskOption(payload: { decisionId: string; selectedValue: string }): void {
-    console.log('[AEP Phase 6.3] Opción HITL capturada en contenedor padre (App):', payload);
-    // En Fase 6.3 el output está conectado tipadamente al contenedor padre.
-    // La orquestación HTTP definitiva de reanudación (POST /api/chat con decision_id) pertenece a Fase 6.4.
+  onSelectPersona(personaUsername: string): void {
+    if (this.selectedPersona() === personaUsername) return;
+    if (this.isStreaming()) {
+      this.streamService.abortCurrentStream();
+    }
+
+    // Persistir mensajes del chat para la persona saliente
+    const prevPersona = this.selectedPersona();
+    this.messagesByPersona.update((prev) => ({
+      ...prev,
+      [prevPersona]: this.messages()
+    }));
+
+    // Cambiar persona activa
+    this.selectedPersona.set(personaUsername);
+
+    // Restaurar mensajes de la nueva persona activa
+    const restored = this.messagesByPersona()[personaUsername] || [];
+    this.messages.set(restored);
+
+    // Reiniciar observabilidad e inspectores para aislamiento estricto
+    this.eventStore.resetAll();
+    this.controller.resetPlayback();
+    this.refreshTickets();
   }
 
-  onSelectPersona(personaUsername: string): void {
-    this.selectedPersona.set(personaUsername);
-    this.refreshTickets();
+  onSelectTaskOption(payload: { decisionId: string; selectedValue: string }): void {
+    if (this.isStreaming() || this.eventStore.v3State().hitlStatus === 'resuming_task') {
+      return;
+    }
+
+    const persona = this.selectedPersona();
+    const currentCid =
+      this.activeConversationsByPersona()[persona] ||
+      this.eventStore.getConfirmedConversationId() ||
+      undefined;
+
+    // 1. Marcar estado local de solicitud en tránsito (resuming_task)
+    this.eventStore.markResumingTask(payload.decisionId);
+
+    // 2. Reflejar acción humana en el Chat Panel
+    const userMsgId = `user-hitl-${Date.now()}`;
+    const agentMsgId = `agent-hitl-${Date.now()}`;
+
+    const userMsg: ChatMessage = {
+      id: userMsgId,
+      sender: 'user',
+      persona,
+      text: `[Decisión HITL]: Selección confirmada -> "${payload.selectedValue}"`,
+      timestamp: new Date().toISOString()
+    };
+
+    const agentPlaceholderMsg: ChatMessage = {
+      id: agentMsgId,
+      sender: 'agent',
+      text: 'Reanudando tarea con FastAPI...',
+      timestamp: new Date().toISOString(),
+      isLoading: true
+    };
+
+    this.messages.update((msgs) => [...msgs, userMsg, agentPlaceholderMsg]);
+    this.controller.setMode('live');
+
+    // 3. Despachar payload formal al runtime de FastAPI
+    const streamPayload: ChatStreamPayload = {
+      agent_version: 'v3',
+      query: `Opción seleccionada: ${payload.selectedValue}`,
+      user_persona: persona,
+      conversation_id: currentCid,
+      decision_id: payload.decisionId,
+      selected_value: payload.selectedValue
+    };
+
+    this.streamService.streamChat(streamPayload, {
+      onEvent: (event: StreamEvent) => {
+        if (this.selectedPersona() !== persona) return;
+
+        this.controller.onNewEvent(event);
+
+        if (event.type === 'MEMORY_HYDRATED' || event.type === 'TURN_PERSISTED') {
+          const confirmedCid = event.payload['conversation_id'];
+          if (confirmedCid) {
+            this.activeConversationsByPersona.update((prev) => ({
+              ...prev,
+              [persona]: confirmedCid
+            }));
+          }
+        }
+
+        if (event.type === 'FINAL_SYNTHESIS') {
+          const content =
+            event.payload['answer'] ||
+            event.payload['content'] ||
+            event.payload['message'] ||
+            '';
+          this.updateAgentMessageText(agentMsgId, content);
+        } else if (event.type === 'ERROR' || event.type === 'RUN_FAILED') {
+          const errDetail =
+            event.payload['message'] ||
+            event.payload['error_message'] ||
+            'Error al reanudar tarea.';
+          this.updateAgentMessageText(agentMsgId, `[Error de Reanudación]: ${errDetail}`);
+          this.setAgentMessageLoading(agentMsgId, false);
+          this.eventStore.resumingTaskId.set(null);
+        } else if (event.type === 'RUN_COMPLETED') {
+          this.setAgentMessageLoading(agentMsgId, false);
+        }
+      },
+      onError: (error: Error) => {
+        if (this.selectedPersona() !== persona) return;
+        this.updateAgentMessageText(agentMsgId, `Error en comunicación SSE: ${error.message}`);
+        this.setAgentMessageLoading(agentMsgId, false);
+        this.eventStore.resumingTaskId.set(null);
+      },
+      onComplete: () => {
+        if (this.selectedPersona() !== persona) return;
+        this.setAgentMessageLoading(agentMsgId, false);
+        this.refreshTickets();
+      }
+    });
   }
 
   toggleDbDrawer(): void {
@@ -199,15 +313,31 @@ export class App implements OnInit {
     this.eventStore.startNewRun(this.selectedAgentId());
     this.controller.setMode('live');
 
-    const payload = {
+    const persona = this.selectedPersona();
+    const currentCid = this.activeConversationsByPersona()[persona];
+
+    const payload: ChatStreamPayload = {
       agent_version: this.selectedAgentId(),
       query,
-      user_persona: this.selectedPersona()
+      user_persona: persona,
+      conversation_id: currentCid || undefined
     };
 
     this.streamService.streamChat(payload, {
       onEvent: (event: StreamEvent) => {
+        if (this.selectedPersona() !== persona) return;
+
         this.controller.onNewEvent(event);
+
+        if (event.type === 'MEMORY_HYDRATED' || event.type === 'TURN_PERSISTED') {
+          const confirmedCid = event.payload['conversation_id'];
+          if (confirmedCid) {
+            this.activeConversationsByPersona.update((prev) => ({
+              ...prev,
+              [persona]: confirmedCid
+            }));
+          }
+        }
 
         if (event.type === 'AGENT_NOT_READY' || event.type === 'FINAL_SYNTHESIS' || event.type === 'DIRECT_ANSWER') {
           const content = event.payload['answer'] || event.payload['content'] || event.payload['message'] || event.payload['synthesis'] || event.payload['response_preview'] || '';

@@ -479,6 +479,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
                     </div>
                     <app-v3-memory-inspector
                       [state]="v3State()"
+                      [showHitlControls]="false"
                       (selectTaskOption)="onSelectTaskOption($event)"
                     ></app-v3-memory-inspector>
                   </div>

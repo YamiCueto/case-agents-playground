@@ -229,6 +229,63 @@ def test_memory_policy_sanitizes_payloads():
     assert sanitized["public_note"] == "Nota sin secretos para el ticket TICK-1001"
 
 
+def test_memory_policy_preserves_token_budget_metrics_while_sanitizing_secrets():
+    """
+    REQUISITO CRÍTICO FASE 6.4 (Context Budget):
+    Preservar métricas numéricas seguras de presupuesto de contexto (query_tokens,
+    system_prompt_tokens, decisions_tokens, history_tokens, total_initial_tokens,
+    available_history_budget, tokens_estimate, etc.) sin redactarlas a ***REDACTED***,
+    mientras se bloquean de manera estricta contraseñas, tokens de autenticación (auth_token,
+    access_token, token, bearer) y credenciales reales.
+    """
+    stats_payload = {
+        "query_tokens": 42,
+        "system_prompt_tokens": 180,
+        "decisions_tokens": 30,
+        "history_tokens": 150,
+        "total_initial_tokens": 402,
+        "available_history_budget": 800,
+        "tokens_estimate": 25,
+        "history_turns_count": 3,
+        "decisions_count": 1,
+        "max_context_budget": 4096,
+        "password": "db_super_password_123",
+        "auth_token": "secret_oauth_token",
+        "access_token": "sk-proj-super-secret-token",
+        "api_key": "AIzaSyD-secret-api-key",
+        "token": "raw_auth_token",
+        "nested": {
+            "query_tokens": 10,
+            "secret": "very_secret",
+            "bearer_token": "Bearer abc123xyz789",
+        },
+    }
+
+    sanitized = MemoryPolicy.sanitize_payload(stats_payload)
+
+    # Métricas preservadas numéricamente
+    assert sanitized["query_tokens"] == 42
+    assert sanitized["system_prompt_tokens"] == 180
+    assert sanitized["decisions_tokens"] == 30
+    assert sanitized["history_tokens"] == 150
+    assert sanitized["total_initial_tokens"] == 402
+    assert sanitized["available_history_budget"] == 800
+    assert sanitized["tokens_estimate"] == 25
+    assert sanitized["history_turns_count"] == 3
+    assert sanitized["decisions_count"] == 1
+    assert sanitized["max_context_budget"] == 4096
+    assert sanitized["nested"]["query_tokens"] == 10
+
+    # Secretos rigurosamente redactados
+    assert sanitized["password"] == "***REDACTED***"
+    assert sanitized["auth_token"] == "***REDACTED***"
+    assert sanitized["access_token"] == "***REDACTED***"
+    assert sanitized["api_key"] == "***REDACTED***"
+    assert sanitized["token"] == "***REDACTED***"
+    assert sanitized["nested"]["secret"] == "***REDACTED***"
+    assert sanitized["nested"]["bearer_token"] == "***REDACTED***"
+
+
 # ===========================================================================
 # 3. PRUEBAS DE AUTORIZACIÓN DE PERSISTENCIA Y NO EXTRAPOLACIÓN DE LLM
 # ===========================================================================

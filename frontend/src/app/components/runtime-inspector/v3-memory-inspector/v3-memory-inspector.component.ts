@@ -39,7 +39,7 @@ import {
               </div>
             }
 
-            @if (hitlStatusBadge(); as hitl) {
+            @if (showHitlControls() && hitlStatusBadge(); as hitl) {
               <div class="hitl-status-pill {{ hitl.tone }}">
                 <span class="status-dot"></span>
                 <span>{{ hitl.label }}</span>
@@ -166,7 +166,7 @@ import {
       }
 
       <!-- 3. Tarea Pendiente / Human-in-the-Loop (HITL) -->
-      @if (state()?.pendingTask; as task) {
+      @if (showHitlControls() && state()?.pendingTask; as task) {
         <section class="section-card task-card" [class.resolved]="task.status === 'resolved'" [class.waiting]="state()?.hitlStatus === 'waiting_human_decision'">
           <div class="section-header">
             <div class="header-title-group">
@@ -931,6 +931,13 @@ import {
 })
 export class V3MemoryInspectorComponent {
   readonly state = input<AgentV3State | null>(null);
+
+  /**
+   * Enfoque pedagógico: en la lección de State & Memory se ocultan los controles
+   * interactivos de HITL de la experiencia principal. La capacidad técnica se mantiene
+   * intacta para lecciones posteriores.
+   */
+  readonly showHitlControls = input<boolean>(true);
 
   /**
    * Evento emitido cuando el usuario selecciona una opción de una tarea HITL.

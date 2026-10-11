@@ -35,6 +35,28 @@ SENSITIVE_FIELD_NAMES: Set[str] = {
     "contraseña",
 }
 
+SAFE_METRIC_FIELD_NAMES: Set[str] = {
+    "query_tokens",
+    "system_prompt_tokens",
+    "decisions_tokens",
+    "history_tokens",
+    "total_initial_tokens",
+    "available_history_budget",
+    "max_context_budget",
+    "total_context_limit",
+    "max_context_tokens",
+    "remaining_tokens",
+    "tokens_estimate",
+    "prompt_tokens",
+    "completion_tokens",
+    "total_tokens",
+    "tokens_used",
+    "tokens_left",
+    "history_turns_count",
+    "decisions_count",
+    "turns_count",
+}
+
 EXPLICIT_PREFERENCE_PHRASES: List[str] = [
     "siempre",
     "mi preferencia",
@@ -140,6 +162,38 @@ class MemoryPolicy:
         return sanitized
 
     @classmethod
+    def is_sensitive_key(cls, key: str) -> bool:
+        """Determina si una clave de diccionario corresponde a secretos reales, protegiendo métricas de tokens."""
+        key_lower = str(key).lower()
+        if key_lower in SAFE_METRIC_FIELD_NAMES:
+            return False
+        if (key_lower.endswith("_tokens") or key_lower.endswith("_tokens_est") or key_lower.startswith("tokens_")) and not any(
+            auth in key_lower for auth in ("auth", "access", "session", "refresh", "secret", "api", "bearer", "jwt")
+        ):
+            return False
+
+        for s in SENSITIVE_FIELD_NAMES:
+            if s == "token":
+                if key_lower == "token" or any(
+                    tok in key_lower
+                    for tok in (
+                        "auth_token",
+                        "access_token",
+                        "session_token",
+                        "refresh_token",
+                        "bearer_token",
+                        "api_token",
+                        "secret_token",
+                        "jwt_token",
+                        "csrf_token",
+                    )
+                ):
+                    return True
+            elif s in key_lower:
+                return True
+        return False
+
+    @classmethod
     def sanitize_payload(cls, data: Any) -> Any:
         """Sanitiza recursivamente diccionarios, listas y valores escalares."""
         if isinstance(data, str):
@@ -148,8 +202,7 @@ class MemoryPolicy:
         if isinstance(data, dict):
             sanitized_dict: Dict[str, Any] = {}
             for k, v in data.items():
-                k_lower = str(k).lower()
-                if any(s in k_lower for s in SENSITIVE_FIELD_NAMES):
+                if cls.is_sensitive_key(str(k)):
                     sanitized_dict[k] = "***REDACTED***"
                 else:
                     sanitized_dict[k] = cls.sanitize_payload(v)

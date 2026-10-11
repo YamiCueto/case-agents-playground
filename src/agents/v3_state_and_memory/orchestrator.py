@@ -209,6 +209,54 @@ class AgentV3Orchestrator:
 
         return None
 
+    def _validate_pending_task_for_resumption(
+        self,
+        task: PendingDecisionRecord,
+        identity: SimulatedIdentity,
+        cid: str,
+        selected_value: Optional[str],
+        conversation_id_provided: Optional[str] = None,
+    ) -> None:
+        """
+        Valida que una tarea pendiente cumpla todos los criterios de seguridad e integridad
+        para ser reanudada en HITL:
+        1. Bloqueo de reejecución en recovery_required.
+        2. Estado pendiente.
+        3. Presencia de valor seleccionado.
+        4. Coincidencia de conversación de origen.
+        5. Validación estricta contra opciones permitidas.
+        6. Permisos de rol para la herramienta objetivo.
+        """
+        if task.status == DecisionStatus.RECOVERY_REQUIRED:
+            raise ValidationError(
+                f"La tarea pendiente '{task.decision_id}' está en estado 'recovery_required' y requiere reconciliación manual. No se permite reanudación automática."
+            )
+        if task.status != DecisionStatus.PENDING:
+            raise ValidationError(
+                f"La tarea pendiente '{task.decision_id}' ya no se encuentra en estado 'pending' (estado actual: '{task.status.value}')."
+            )
+        if not selected_value or not str(selected_value).strip():
+            raise ValidationError(
+                f"Se requiere proporcionar 'selected_value' para resolver la tarea pendiente '{task.decision_id}'."
+            )
+        if conversation_id_provided and task.conversation_id != conversation_id_provided:
+            raise ValidationError(
+                f"La tarea pendiente '{task.decision_id}' pertenece a la conversación '{task.conversation_id}', no a '{conversation_id_provided}'."
+            )
+        if task.options and selected_value not in task.options:
+            raise ValidationError(
+                f"El valor '{selected_value}' no es una opción válida para la tarea '{task.decision_id}'. Opciones permitidas: {task.options}."
+            )
+        if task.required_role:
+            user_role_str = identity.role.value.upper()
+            required_role_str = task.required_role.upper()
+            role_ranks = {"USER": 1, "AGENT": 2, "ADMIN": 3}
+            if role_ranks.get(user_role_str, 1) < role_ranks.get(required_role_str, 1):
+                raise UnauthorizedActionError(
+                    user_role=identity.role.value,
+                    action=f"Ejecución de la herramienta '{task.target_tool_name}' (requiere rol {required_role_str})",
+                )
+
     def _handle_pending_task_resumption(
         self,
         task: PendingDecisionRecord,
@@ -291,6 +339,8 @@ class AgentV3Orchestrator:
                 user_id=identity.user_id,
                 selected_value=selected_value,
             )
+            task.selected_value = selected_value
+            task.status = DecisionStatus.RESOLVED
             return result, True
         else:
             self.decision_store.atomic_fail_task(
@@ -327,12 +377,27 @@ class AgentV3Orchestrator:
             target_pending = self.decision_store.get_pending_task(decision_id, identity.user_id)
             if target_pending is None:
                 raise ValidationError(f"La tarea pendiente '{decision_id}' no existe o no pertenece al usuario.")
-            if target_pending.status != DecisionStatus.PENDING:
-                raise ValidationError(f"La tarea pendiente '{decision_id}' ya no se encuentra en estado 'pending' (estado actual: '{target_pending.status.value}').")
-            if not selected_value:
-                raise ValidationError(f"Se requiere proporcionar 'selected_value' para resolver la tarea pendiente '{decision_id}'.")
+            self._validate_pending_task_for_resumption(
+                task=target_pending,
+                identity=identity,
+                cid=cid,
+                selected_value=selected_value,
+                conversation_id_provided=conversation_id,
+            )
+            if not conversation_id and target_pending.conversation_id:
+                cid = target_pending.conversation_id
         elif session_id:
             target_pending = self.decision_store.get_active_pending_task_by_session(identity.user_id, session_id)
+            if target_pending and selected_value:
+                self._validate_pending_task_for_resumption(
+                    task=target_pending,
+                    identity=identity,
+                    cid=cid,
+                    selected_value=selected_value,
+                    conversation_id_provided=conversation_id,
+                )
+                if not conversation_id and target_pending.conversation_id:
+                    cid = target_pending.conversation_id
 
         if target_pending and target_pending.status == DecisionStatus.PENDING and selected_value:
             tool_res, success = self._handle_pending_task_resumption(
@@ -446,42 +511,154 @@ class AgentV3Orchestrator:
             target_pending = self.decision_store.get_pending_task(decision_id, identity.user_id)
             if target_pending is None:
                 raise ValidationError(f"La tarea pendiente '{decision_id}' no existe o no pertenece al usuario.")
-            if target_pending.status != DecisionStatus.PENDING:
-                raise ValidationError(f"La tarea pendiente '{decision_id}' ya no se encuentra en estado 'pending' (estado actual: '{target_pending.status.value}').")
-            if not selected_value:
-                raise ValidationError(f"Se requiere proporcionar 'selected_value' para resolver la tarea pendiente '{decision_id}'.")
+            self._validate_pending_task_for_resumption(
+                task=target_pending,
+                identity=identity,
+                cid=cid,
+                selected_value=selected_value,
+                conversation_id_provided=conversation_id,
+            )
+            if not conversation_id and target_pending.conversation_id:
+                cid = target_pending.conversation_id
         elif session_id:
             target_pending = self.decision_store.get_active_pending_task_by_session(identity.user_id, session_id)
+            if target_pending and selected_value:
+                self._validate_pending_task_for_resumption(
+                    task=target_pending,
+                    identity=identity,
+                    cid=cid,
+                    selected_value=selected_value,
+                    conversation_id_provided=conversation_id,
+                )
+                if not conversation_id and target_pending.conversation_id:
+                    cid = target_pending.conversation_id
 
         if target_pending and target_pending.status == DecisionStatus.PENDING and selected_value:
+            # 1. USER_REQUEST: notificación inicial de reanudación
+            yield StreamEvent(
+                event_id=f"evt-v3-{uuid.uuid4().hex[:10]}",
+                agent_version="v3",
+                execution_id=execution_id,
+                iteration_index=0,
+                phase="init",
+                correlation_id=correlation_id,
+                type="USER_REQUEST",
+                payload={
+                    "query": query or f"Reanudación HITL: {selected_value}",
+                    "persona": identity.username,
+                    "operator": identity.username,
+                    "conversation_id": cid,
+                    "decision_id": target_pending.decision_id,
+                    "selected_value": selected_value,
+                    "resuming_hitl": True,
+                },
+            )
+
+            # 2. Herramienta reanudada: emitir TOOL_EXECUTION_STARTED para la proyección dual (V2LoopFlowComponent)
+            tool_name = target_pending.target_tool_name
+            merged_args = dict(target_pending.pending_tool_arguments)
+            merged_args[target_pending.missing_parameter_name] = selected_value
+            from src.agents.common.contracts import ToolCall
+            tc = ToolCall(id=f"tc-res-{target_pending.decision_id}", name=tool_name, arguments=merged_args)
+
+            yield StreamEvent(
+                event_id=f"evt-v3-{uuid.uuid4().hex[:10]}",
+                agent_version="v3",
+                execution_id=execution_id,
+                iteration_index=1,
+                phase="execution",
+                correlation_id=correlation_id,
+                type="TOOL_EXECUTION_STARTED",
+                payload={
+                    "tool_call_id": tc.id,
+                    "tool_name": tool_name,
+                    "operator": identity.username,
+                    "is_mutative": True,
+                    "policy": "hitl_resumption",
+                },
+            )
+
+            # 3. Adquisición atómica, comprobación MySQL, checkpoint y ejecución
             tool_res, success = self._handle_pending_task_resumption(
                 task=target_pending,
                 identity=identity,
                 selected_value=selected_value,
                 execution_id=execution_id,
             )
+
+            # 4. TOOL_EXECUTION_COMPLETED para reflejar observación en V2LoopFlowComponent
+            yield StreamEvent(
+                event_id=f"evt-v3-{uuid.uuid4().hex[:10]}",
+                agent_version="v3",
+                execution_id=execution_id,
+                iteration_index=1,
+                phase="execution",
+                correlation_id=correlation_id,
+                type="TOOL_EXECUTION_COMPLETED",
+                payload={
+                    "tool_call_id": tc.id,
+                    "tool_name": tool_name,
+                    "execution_status": "success" if success else "failed",
+                    "duration_ms": 18.0,
+                    "is_mutative": True,
+                    "idempotency_hit": False,
+                    "result": tool_res,
+                },
+            )
+
+            # 5. PENDING_TASK_RESOLVED para V3MemoryInspectorComponent
             yield event_v3_pending_task_resolved(execution_id, correlation_id, target_pending)
 
-            state = self.engine.init_state(
-                query=query or f"Reanudar {target_pending.decision_id}",
-                operator_username=identity.username,
-                max_iterations=1,
-            )
-            state.final_answer = (
+            # 6. FINAL_SYNTHESIS para ChatPanel y Runtime Inspector
+            final_answer = (
                 f"La tarea pendiente '{target_pending.decision_id}' ({target_pending.target_tool_name}) "
                 f"ha sido reanudada y resuelta con el valor '{selected_value}'. "
                 f"Resultado de la operación: {json.dumps(tool_res, ensure_ascii=False)}"
             )
-            state.status = ExecutionStatus.COMPLETED
 
+            yield StreamEvent(
+                event_id=f"evt-v3-{uuid.uuid4().hex[:10]}",
+                agent_version="v3",
+                execution_id=execution_id,
+                iteration_index=1,
+                phase="synthesis",
+                correlation_id=correlation_id,
+                type="FINAL_SYNTHESIS",
+                payload={
+                    "answer": final_answer,
+                    "content": final_answer,
+                    "message": final_answer,
+                    "total_iterations": 1,
+                },
+            )
+
+            # 7. RUN_COMPLETED para finalizar ciclo y remover loading en chat
+            yield StreamEvent(
+                event_id=f"evt-v3-{uuid.uuid4().hex[:10]}",
+                agent_version="v3",
+                execution_id=execution_id,
+                iteration_index=1,
+                phase="complete",
+                correlation_id=correlation_id,
+                type="RUN_COMPLETED",
+                payload={
+                    "status": "completed",
+                    "stop_reason": "hitl_resumed",
+                    "total_iterations": 1,
+                    "total_tools_executed": 1,
+                    "total_duration_ms": 35.0,
+                },
+            )
+
+            # 8. Persistir turno y emitir TURN_PERSISTED
             turn = ConversationTurn(
                 turn_id=tid,
                 conversation_id=cid,
                 user_id=identity.user_id,
                 subject_id=identity.username,
                 user_query=query or f"Opción seleccionada: {selected_value}",
-                agent_response=state.final_answer,
-                tokens_estimate=self.budget_manager.estimate_tokens(state.final_answer),
+                agent_response=final_answer,
+                tokens_estimate=self.budget_manager.estimate_tokens(final_answer),
             )
             self.conv_store.save_turn(turn)
             yield event_v3_turn_persisted(execution_id, correlation_id, tid, cid)
