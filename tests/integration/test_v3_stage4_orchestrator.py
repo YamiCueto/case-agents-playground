@@ -448,6 +448,12 @@ def test_v3_concurrent_pending_task_resumption_prevents_double_mutation(identity
         missing_parameter_name="priority",
     )
     orchestrator.decision_store.save_pending_task(pending_rec)
+    orchestrator.conv_store.create_or_get_conversation(
+        user_id=carlos.user_id,
+        subject_id=carlos.username,
+        conversation_id=conv_id,
+        title="Conversación Concurrente Test",
+    )
 
     def worker_resolve(worker_id: str):
         try:

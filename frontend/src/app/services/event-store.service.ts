@@ -35,7 +35,7 @@ export class EventStoreService {
       {
         id: 'step-1',
         hopNumber: 1,
-        title: 'HOP 1 - USER REQUEST',
+        title: 'HOP 1 - Consulta del usuario',
         shortName: 'Consulta',
         actor: 'Usuario / Cliente',
         actorType: 'user',
@@ -47,7 +47,7 @@ export class EventStoreService {
       {
         id: 'step-2',
         hopNumber: 2,
-        title: 'HOP 2 - MODEL INFERENCE 1',
+        title: 'HOP 2 - Inferencia inicial',
         shortName: 'Inferencia 1',
         actor: 'Qwen 3.5 4B (llama.cpp)',
         actorType: 'model',
@@ -59,7 +59,7 @@ export class EventStoreService {
       {
         id: 'step-3',
         hopNumber: 3,
-        title: 'HOP 3 - TOOL PROPOSAL',
+        title: 'HOP 3 - Propuesta de herramienta',
         shortName: 'Propuesta Tool',
         actor: 'Decisión del LLM',
         actorType: 'proposal',
@@ -71,7 +71,7 @@ export class EventStoreService {
       {
         id: 'step-4',
         hopNumber: 4,
-        title: 'HOP 4 - ARGUMENT VALIDATION',
+        title: 'HOP 4 - Validación Pydantic',
         shortName: 'Validación Pydantic',
         actor: 'Python Pydantic Validator',
         actorType: 'validator',
@@ -83,7 +83,7 @@ export class EventStoreService {
       {
         id: 'step-5',
         hopNumber: 5,
-        title: 'HOP 5 - CPU TOOL EXECUTION',
+        title: 'HOP 5 - Ejecución en CPU/DB',
         shortName: 'Ejecución MySQL',
         actor: 'TicketService (Python CPU + MySQL)',
         actorType: 'executor',
@@ -95,7 +95,7 @@ export class EventStoreService {
       {
         id: 'step-6',
         hopNumber: 6,
-        title: 'HOP 6 - TOOL RESULT INJECTION',
+        title: 'HOP 6 - Inyección en contexto',
         shortName: 'Inyección Contexto',
         actor: 'Runtime Context Injection',
         actorType: 'injector',
@@ -107,7 +107,7 @@ export class EventStoreService {
       {
         id: 'step-7',
         hopNumber: 7,
-        title: 'HOP 7 - FINAL SYNTHESIS',
+        title: 'HOP 7 - Síntesis final',
         shortName: 'Síntesis Final',
         actor: 'Qwen 3.5 4B (Síntesis)',
         actorType: 'synthesis',
@@ -230,7 +230,7 @@ export class EventStoreService {
         steps[2].timestamp = evt.timestamp;
       } else if (evt.type === 'DIRECT_ANSWER') {
         hasDirectAnswer = true;
-        steps[2].title = 'HOP 3 - DIRECT ANSWER';
+        steps[2].title = 'HOP 3 - Respuesta directa';
         steps[2].shortName = 'Respuesta Directa';
         steps[2].description = 'El modelo resolvió la consulta directamente sin requerir herramientas.';
         steps[2].pedagogicalInsight = 'Consulta conceptual: Qwen detectó que la pregunta no requería consultar la base de datos de tickets.';
@@ -607,21 +607,30 @@ export class EventStoreService {
           });
         }
 
-        const maxLimit = stats['max_context_budget'] || stats['total_context_limit'] || 4096;
+        const parseSafeMetric = (val: unknown, fallback: number = 0): number => {
+          if (typeof val === 'number') return isNaN(val) ? fallback : val;
+          if (typeof val === 'string') {
+            const num = Number(val);
+            return isNaN(num) ? fallback : num;
+          }
+          return fallback;
+        };
+
+        const maxLimit = parseSafeMetric(stats['max_context_budget'] ?? stats['total_context_limit'], 4096);
         hydration = {
           conversationId: confirmedConversationId || '',
-          hydratedTurnsCount: evt.payload['turns_count'] ?? stats['history_turns_count'] ?? 0,
-          decisionsCount: evt.payload['decisions_count'] ?? rawDecisions.length,
+          hydratedTurnsCount: parseSafeMetric(evt.payload['turns_count'] ?? stats['history_turns_count'], 0),
+          decisionsCount: parseSafeMetric(evt.payload['decisions_count'] ?? rawDecisions.length, 0),
           activeDecisions: Array.from(activeDecisionsMap.values()),
           budget: {
-            queryTokensEst: stats['query_tokens'] || 0,
-            systemPromptTokensEst: stats['system_prompt_tokens'] || 0,
-            decisionsTokensEst: stats['decisions_tokens'] || 0,
-            historyTokensEst: stats['history_tokens'] || 0,
-            totalInitialTokensEst: stats['total_initial_tokens'] || 0,
-            availableHistoryBudget: stats['available_history_budget'] || 0,
-            historyTurnsCount: stats['history_turns_count'] || 0,
-            decisionsCount: stats['decisions_count'] || rawDecisions.length,
+            queryTokensEst: parseSafeMetric(stats['query_tokens'], 0),
+            systemPromptTokensEst: parseSafeMetric(stats['system_prompt_tokens'], 0),
+            decisionsTokensEst: parseSafeMetric(stats['decisions_tokens'], 0),
+            historyTokensEst: parseSafeMetric(stats['history_tokens'], 0),
+            totalInitialTokensEst: parseSafeMetric(stats['total_initial_tokens'], 0),
+            availableHistoryBudget: parseSafeMetric(stats['available_history_budget'], 0),
+            historyTurnsCount: parseSafeMetric(stats['history_turns_count'], 0),
+            decisionsCount: parseSafeMetric(stats['decisions_count'] ?? rawDecisions.length, 0),
             maxContextLimit: maxLimit,
             isHeuristicEstimate: true
           },

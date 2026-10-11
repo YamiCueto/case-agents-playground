@@ -9,12 +9,16 @@
   font-family: var(--font-sans);
 }
 
+/* =========================================================================
+ * 1. NAVEGACIÓN MÓVIL (360px - 767px)
+ * ========================================================================= */
 .mobile-tabs-toggle {
   display: none;
   background: var(--bg-panel);
-  border-bottom: 1px solid var(--border-subtle);
-  padding: 0.4rem 0.85rem;
-  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-default);
+  padding: 0.35rem 0.65rem;
+  gap: 0.45rem;
+  z-index: 20;
 }
 
 .mobile-tab-btn {
@@ -22,15 +26,16 @@
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
-  padding: 0.45rem 0.65rem;
+  padding: 0.45rem 0.5rem;
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
+  min-height: 40px;
   transition: var(--transition-fast);
 }
 
@@ -46,13 +51,73 @@
   font-weight: 700;
 }
 
+/* =========================================================================
+ * 2. SUBBARRA PARA TABLETA (768px - 1199px)
+ * ========================================================================= */
+.tablet-v3-subnav {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.35rem 1rem;
+  z-index: 20;
+}
+
+.tablet-subnav-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.tablet-subnav-group {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.tablet-subnav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: var(--transition-fast);
+}
+
+.tablet-subnav-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+.tablet-subnav-btn.active {
+  background: var(--accent-cyan-bg);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+/* =========================================================================
+ * 3. CONTENEDOR PRINCIPAL Y PANELES (CSS Grid & Minmax Architecture)
+ * ========================================================================= */
 .playground-main {
   flex: 1 1 0;
   min-height: 0;
-  display: flex;
-  overflow: hidden;
   width: 100%;
+  overflow: hidden;
   position: relative;
+  box-sizing: border-box;
 }
 
 .main-pane {
@@ -62,71 +127,113 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  box-sizing: border-box;
 }
 
 .chat-pane {
-  flex: 0 0 auto;
-  min-width: 320px;
-}
-
-.layout-splitter {
-  width: 6px;
-  background: var(--border-subtle);
-  cursor: col-resize;
-  position: relative;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  transition: background 0.15s ease;
-  outline: none;
-}
-
-.layout-splitter:hover,
-.layout-splitter:active,
-.layout-splitter:focus-visible {
-  background: var(--accent-cyan);
-}
-
-.splitter-handle {
-  width: 2px;
-  height: 36px;
-  background: var(--border-default);
-  border-radius: 1px;
-  pointer-events: none;
-  transition: background 0.15s ease;
-}
-
-.layout-splitter:hover .splitter-handle,
-.layout-splitter:active .splitter-handle,
-.layout-splitter:focus-visible .splitter-handle {
-  background: #ffffff;
-  box-shadow: 0 0 6px var(--accent-cyan);
+  min-width: 0;
 }
 
 .inspector-pane {
-  flex: 1 1 0;
-  min-width: 340px;
+  min-width: 0;
 }
 
-@media (max-width: 900px) {
+.memory-pane {
+  min-width: 0;
+}
+
+/* =========================================================================
+ * 4. DISPOSICIÓN DESKTOP (>= 1200px)
+ * ========================================================================= */
+@media (min-width: 1200px) {
+  /* Agent v3: 3 Columnas independientes de primer nivel */
+  .playground-main.mode-v3 {
+    display: grid;
+    /* Configuración calibrada para garantizar legibilidad y evitar compresión a 1280px */
+    grid-template-columns: minmax(300px, 1fr) minmax(420px, 1.4fr) minmax(280px, 0.9fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    height: 100%;
+    width: 100%;
+  }
+
+  /* Agent v1 y v2: 2 Columnas amplias */
+  .playground-main.mode-v1-v2 {
+    display: grid;
+    grid-template-columns: minmax(340px, 1fr) minmax(580px, 2.2fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    height: 100%;
+    width: 100%;
+  }
+
+  .tablet-v3-subnav {
+    display: none !important;
+  }
+}
+
+/* =========================================================================
+ * 5. DISPOSICIÓN TABLETA (768px a 1199px)
+ * ========================================================================= */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .tablet-v3-subnav {
+    display: flex;
+  }
+
+  .playground-main.mode-v3 {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(420px, 1.5fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    height: calc(100% - 37px);
+    width: 100%;
+  }
+
+  .playground-main.mode-v1-v2 {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(420px, 1.5fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    height: 100%;
+    width: 100%;
+  }
+
+  .main-pane.tablet-hidden {
+    display: none !important;
+  }
+}
+
+/* =========================================================================
+ * 6. DISPOSICIÓN MÓVIL (<= 767px)
+ * ========================================================================= */
+@media (max-width: 767px) {
   .mobile-tabs-toggle {
     display: flex;
   }
 
-  .layout-splitter {
-    display: none;
+  .tablet-v3-subnav {
+    display: none !important;
   }
 
   .playground-main {
+    display: flex;
     flex-direction: column;
+    padding: 0;
+    gap: 0;
+    height: calc(100% - 48px);
   }
 
-  .chat-pane, .inspector-pane {
+  .chat-pane, .inspector-pane, .memory-pane {
     flex: 1 1 100% !important;
-    min-width: 0;
-    width: 100%;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
   }
 
   .main-pane.mobile-hidden {

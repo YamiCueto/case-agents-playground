@@ -1,35 +1,144 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-canvas: #020617;
-  --bg-surface: #0b1329;
-  --bg-panel: #0f172a;
-  --bg-card: #131c31;
-  --bg-card-hover: #19243c;
-  --bg-input: #172138;
-  --border-subtle: #1e293b;
-  --border-default: #334155;
+  /* =========================================================================
+   * 1. SUPERFICIES Y FONDOS ESTRATIFICADOS (Dark Premium Palette)
+   * Base midnight profunda inspirada en la referencia visual AEP
+   * ========================================================================= */
+  --bg-canvas: #070b14;
+  --bg-panel: #0d1527;
+  --bg-surface: #0f192e;
+  --bg-card: #131d35;
+  --bg-card-hover: #192644;
+  --bg-card-elevated: #1a2747;
+  --bg-card-active: #172440;
+  --bg-input: #0e162a;
+  --bg-input-focus: #111a33;
+  --bg-code: #0a0f1d;
+  --bg-code-header: #0d1424;
+
+  /* Aliases semánticos de superficies */
+  --surface-base: var(--bg-canvas);
+  --surface-panel: var(--bg-panel);
+  --surface-card: var(--bg-card);
+  --surface-card-hover: var(--bg-card-hover);
+  --surface-card-elevated: var(--bg-card-elevated);
+  --surface-overlay: rgba(7, 11, 20, 0.85);
+  --surface-glass: rgba(13, 21, 39, 0.75);
+
+  /* =========================================================================
+   * 2. SISTEMA DE BORDES Y SEPARADORES LUMINOSOS
+   * ========================================================================= */
+  --border-hairline: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(56, 189, 248, 0.08);
+  --border-default: rgba(56, 189, 248, 0.16);
+  --border-prominent: rgba(56, 189, 248, 0.28);
+  --border-active: rgba(56, 189, 248, 0.55);
   --border-focus: #38bdf8;
+  --border-glass: rgba(255, 255, 255, 0.08);
+
+  /* =========================================================================
+   * 3. PALETA DE ACENTOS SEMÁNTICOS (Fiel a la referencia AEP)
+   * ========================================================================= */
+  /* Cyan (Inferencia, Runtime, Activo) */
+  --accent-cyan: #38bdf8;
+  --accent-cyan-neon: #00f0ff;
+  --accent-cyan-bright: #7dd3fc;
+  --accent-cyan-hover: #0ea5e9;
+  --accent-cyan-bg: rgba(56, 189, 248, 0.12);
+  --accent-cyan-bg-subtle: rgba(56, 189, 248, 0.06);
+  --accent-cyan-border: rgba(56, 189, 248, 0.32);
+  --accent-cyan-glow: 0 0 16px rgba(56, 189, 248, 0.28);
+  --accent-cyan-glow-intense: 0 0 24px rgba(0, 240, 255, 0.45);
+
+  /* Emerald (Persistencia MySQL, Grounded, En Vivo, Éxito) */
+  --accent-emerald: #10b981;
+  --accent-emerald-bright: #34d399;
+  --accent-emerald-hover: #059669;
+  --accent-emerald-bg: rgba(16, 185, 129, 0.12);
+  --accent-emerald-bg-subtle: rgba(16, 185, 129, 0.06);
+  --accent-emerald-border: rgba(16, 185, 129, 0.32);
+  --accent-emerald-glow: 0 0 16px rgba(16, 185, 129, 0.28);
+
+  /* Amber (En Progreso, Tool Calling, Advertencias) */
+  --accent-amber: #f59e0b;
+  --accent-amber-bright: #fbbf24;
+  --accent-amber-hover: #d97706;
+  --accent-amber-bg: rgba(245, 158, 11, 0.12);
+  --accent-amber-bg-subtle: rgba(245, 158, 11, 0.06);
+  --accent-amber-border: rgba(245, 158, 11, 0.32);
+  --accent-amber-glow: 0 0 16px rgba(245, 158, 11, 0.28);
+
+  /* Violet (Sesión, Memoria, Replay, Hoja de Ruta) */
+  --accent-violet: #a855f7;
+  --accent-violet-bright: #c084fc;
+  --accent-violet-hover: #9333ea;
+  --accent-violet-bg: rgba(168, 85, 247, 0.12);
+  --accent-violet-bg-subtle: rgba(168, 85, 247, 0.06);
+  --accent-violet-border: rgba(168, 85, 247, 0.32);
+  --accent-violet-glow: 0 0 16px rgba(168, 85, 247, 0.28);
+
+  /* Crimson / Coral (Error, Rechazo, Consulta en Presupuesto) */
+  --accent-crimson: #ef4444;
+  --accent-coral: #f43f5e;
+  --accent-crimson-bright: #f87171;
+  --accent-crimson-hover: #dc2626;
+  --accent-crimson-bg: rgba(239, 68, 68, 0.12);
+  --accent-crimson-bg-subtle: rgba(239, 68, 68, 0.06);
+  --accent-crimson-border: rgba(239, 68, 68, 0.32);
+  --accent-crimson-glow: 0 0 16px rgba(239, 68, 68, 0.28);
+
+  /* =========================================================================
+   * 4. TIPOGRAFÍA Y JERARQUÍA DE TEXTO
+   * ========================================================================= */
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --accent-cyan: #38bdf8;
-  --accent-cyan-hover: #7dd3fc;
-  --accent-cyan-bg: rgba(56, 189, 248, 0.1);
-  --accent-emerald: #10b981;
-  --accent-emerald-hover: #34d399;
-  --accent-emerald-bg: rgba(16, 185, 129, 0.1);
-  --accent-amber: #f59e0b;
-  --accent-amber-bg: rgba(245, 158, 11, 0.1);
-  --accent-crimson: #ef4444;
-  --accent-crimson-bg: rgba(239, 68, 68, 0.1);
+  --text-subtle: #475569;
+  --text-inverse: #070b14;
+
+  /* Textos coloreados con ratio de contraste WCAG AA */
+  --text-cyan: #38bdf8;
+  --text-emerald: #34d399;
+  --text-amber: #fbbf24;
+  --text-violet: #c084fc;
+  --text-crimson: #f87171;
+
+  /* =========================================================================
+   * 5. ESPACIADO, RADIOS Y ELEVACIONES
+   * ========================================================================= */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+
+  /* =========================================================================
+   * 6. ESTADOS Y TRANSICIONES
+   * ========================================================================= */
   --transition-fast: all 0.15s ease;
   --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-glow: box-shadow 0.25s ease, border-color 0.25s ease;
+
+  --state-disabled-opacity: 0.45;
+  --state-disabled-cursor: not-allowed;
 }
 
 *, *::before, *::after {
@@ -49,11 +158,14 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Enfoque accesible (WCAG AA Focus Visible) */
 :focus-visible {
   outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
 }
 
+/* Scrollbars estilizadas acordes a la paleta dark */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -65,13 +177,14 @@ html, body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-default);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--border-prominent);
 }
 
+/* Reducción de movimiento para accesibilidad */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

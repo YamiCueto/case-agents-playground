@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './components/header/header.component';
 import { ChatPanelComponent } from './components/chat-panel/chat-panel.component';
 import { RuntimeInspectorComponent } from './components/runtime-inspector/runtime-inspector.component';
+import { V3MemoryInspectorComponent } from './components/runtime-inspector/v3-memory-inspector/v3-memory-inspector.component';
 import { TicketsDrawerComponent } from './components/tickets-drawer/tickets-drawer.component';
 import { AgentStreamService, ChatStreamPayload } from './services/agent-stream.service';
 import { TicketsService } from './services/tickets.service';
@@ -18,6 +19,7 @@ import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary, Health
     HeaderComponent,
     ChatPanelComponent,
     RuntimeInspectorComponent,
+    V3MemoryInspectorComponent,
     TicketsDrawerComponent,
   ],
   templateUrl: './app.html',
@@ -26,7 +28,7 @@ import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary, Health
 export class App implements OnInit {
   private readonly streamService = inject(AgentStreamService);
   private readonly ticketsService = inject(TicketsService);
-  private readonly eventStore = inject(EventStoreService);
+  readonly eventStore = inject(EventStoreService);
   readonly controller = inject(PresentationControllerService);
 
   readonly agents = signal<AgentMeta[]>([]);
@@ -34,7 +36,8 @@ export class App implements OnInit {
   readonly selectedAgentId = signal<string>('v1');
   readonly selectedPersona = signal<string>('usr_carlos');
   readonly isDbDrawerOpen = signal<boolean>(false);
-  readonly activeMobileTab = signal<'chat' | 'inspector'>('chat');
+  readonly activeMobileTab = signal<'chat' | 'inspector' | 'memory'>('chat');
+  readonly activeTabletRightTab = signal<'inspector' | 'memory'>('inspector');
   readonly health = signal<HealthStatus | null>(null);
 
   readonly chatRatio = signal<number>(50);

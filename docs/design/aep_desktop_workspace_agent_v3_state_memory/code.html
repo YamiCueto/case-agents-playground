@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#070B14] text-slate-200" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agent Engineering Playground (AEP)</title>
+<!-- Tailwind CSS CDN with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#070B14',
+              surface: '#0D1527',
+              card: '#111B33',
+              cardHover: '#162342',
+              border: '#1C2B4D',
+              borderSubtle: '#15213D',
+              cyan: '#00F0FF',
+              emerald: '#10B981',
+              amber: '#F59E0B',
+              purple: '#A855F7',
+              pink: '#EC4899',
+              blue: '#3B82F6'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="custom-scrollbars">
+    /* Subtle neon dark scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #080D18;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1C2D50;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #274074;
+    }
+  </style>
+<style data-purpose="glowing-effects">
+    .glow-cyan {
+      box-shadow: 0 0 20px -3px rgba(0, 240, 255, 0.25);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 15px -2px rgba(16, 185, 129, 0.3);
+    }
+    .glow-ring {
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.45);
+    }
+    .stepper-active-glow {
+      box-shadow: 0 0 15px #00F0FF, inset 0 0 8px #00F0FF;
+    }
+  </style>
+<!-- END: Custom Styles -->
+</head>
+<body class="h-full flex flex-col overflow-hidden text-xs md:text-sm selection:bg-cyan-500/30 selection:text-cyan-200">
+<!-- BEGIN: TopHeader -->
+<header class="h-14 border-b border-brand-border bg-[#090F1E]/95 backdrop-blur px-4 flex items-center justify-between shrink-0 select-none z-20">
+<!-- Left: Brand & Local System Status -->
+<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold tracking-wider text-xs shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+<i class="w-4 h-4 mr-0.5" data-lucide="layers"></i>
+          AEP
+        </div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<span class="font-semibold text-white tracking-tight text-sm">Agent Engineering Playground</span>
+<span class="px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-400 font-medium">Entorno Local</span>
+</div>
+<div class="flex items-center space-x-2 text-[10px] text-slate-400">
+<span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 inline-block"></span>FastAPI: 8000</span>
+<span class="text-slate-600">•</span>
+<span>Modelo: <span class="text-slate-300">Conectado</span></span>
+<span class="text-slate-600">•</span>
+<span>MySQL: <span class="text-slate-300">Conectado</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Center: Selectors & Configuration -->
+<div class="flex items-center space-x-3 text-xs">
+<!-- Persona Selector -->
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-400 font-medium px-1">Persona (Simulación)</span>
+<div class="flex items-center space-x-2 bg-brand-surface border border-brand-border px-2.5 py-1 rounded-md text-slate-200 cursor-pointer hover:border-slate-500 transition-colors">
+<span class="w-4 h-4 rounded-full bg-purple-600/40 text-purple-300 flex items-center justify-center text-[10px] font-bold">C</span>
+<span class="font-medium text-xs">Carlos Mario Restrepo • USER</span>
+<i class="w-3.5 h-3.5 text-slate-400" data-lucide="chevron-down"></i>
+</div>
+</div>
+<!-- Agent Version Dropdown -->
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-400 font-medium px-1">Versión Agéntica</span>
+<div class="flex items-center space-x-2 bg-brand-surface border border-brand-border px-2.5 py-1 rounded-md text-slate-200 cursor-pointer hover:border-slate-500 transition-colors">
+<i class="w-3.5 h-3.5 text-cyan-400" data-lucide="bot"></i>
+<span class="font-medium text-xs">Agent v3 — State &amp; Memory (L04)</span>
+<i class="w-3.5 h-3.5 text-slate-400" data-lucide="chevron-down"></i>
+</div>
+</div>
+</div>
+<!-- Right: Runtime Status Controls -->
+<div class="flex items-center space-x-2.5">
+<div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 text-xs font-semibold glow-emerald">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="tracking-wider">EN VIVO</span>
+</div>
+<button class="flex items-center space-x-1.5 px-3 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 text-xs font-medium transition-all">
+<i class="w-3.5 h-3.5" data-lucide="pause"></i>
+<span>Pausar</span>
+</button>
+<button class="flex items-center space-x-1.5 px-3 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 text-xs font-medium transition-all">
+<i class="w-3.5 h-3.5" data-lucide="rotate-ccw"></i>
+<span>Replay</span>
+</button>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: MainLayout -->
+<main class="flex-1 grid grid-cols-12 gap-3 p-3 overflow-hidden bg-brand-bg">
+<!-- BEGIN: LeftColumn (Conversación) -->
+<section class="col-span-12 lg:col-span-3 flex flex-col bg-brand-surface border border-brand-border rounded-xl overflow-hidden shadow-xl" data-purpose="chat-column">
+<!-- Conversation Header -->
+<div class="p-3 border-b border-brand-border flex items-center justify-between shrink-0 bg-[#0C1425]">
+<div class="flex items-center space-x-2">
+<i class="w-4 h-4 text-cyan-400" data-lucide="message-square-text"></i>
+<span class="font-semibold text-white text-xs">Conversación</span>
+<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">v3 • State &amp; Memory</span>
+</div>
+<button class="text-[11px] text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded px-2 py-0.5 flex items-center space-x-1 transition-all">
+<i class="w-3 h-3" data-lucide="plus"></i>
+<span>Nueva</span>
+</button>
+</div>
+<!-- Chat Messages Scroll Area -->
+<div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs leading-relaxed">
+<!-- User Bubble 1 -->
+<div class="flex flex-col items-end space-y-1">
+<div class="flex items-center space-x-1.5 text-[10px] text-slate-400 mr-1">
+<span class="font-medium text-slate-300">usr_carlos</span>
+<span>8:05 PM</span>
+</div>
+<div class="flex items-start space-x-2 justify-end">
+<div class="bg-[#1C2C54] text-slate-100 rounded-2xl rounded-tr-xs px-3.5 py-2 max-w-[90%] border border-blue-500/20 shadow-sm">
+              Consulta el ticket TICK-1001 y dime su estado
+            </div>
+<div class="w-6 h-6 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center shrink-0 border border-blue-400/30">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+</div>
+</div>
+</div>
+<!-- Agent Response 1 -->
+<div class="flex flex-col items-start space-y-1">
+<div class="flex items-center space-x-1.5 text-[10px] text-slate-400 ml-1">
+<div class="w-6 h-6 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
+<i class="w-3.5 h-3.5" data-lucide="bot"></i>
+</div>
+<span class="font-medium text-cyan-300">Agente de Soporte</span>
+<span>8:05 PM</span>
+</div>
+<div class="bg-brand-card text-slate-200 rounded-2xl rounded-tl-xs px-3.5 py-2.5 max-w-[95%] border border-brand-border space-y-1.5 shadow-sm">
+<p>El ticket <strong class="text-white">TICK-1001</strong> se encuentra en estado <span class="text-amber-400 font-semibold">OPEN (Abierto)</span>.</p>
+<p class="text-slate-300 text-[11px]">Este ticket corresponde al incidente <span class="text-slate-100 italic">"Bloqueo transaccional en módulo de captación"</span> con prioridad <span class="text-red-400 font-semibold">HIGH</span>, y actualmente no ha sido asignado a ningún usuario de soporte.</p>
+</div>
+</div>
+<!-- User Bubble 2 -->
+<div class="flex flex-col items-end space-y-1">
+<div class="flex items-center space-x-1.5 text-[10px] text-slate-400 mr-1">
+<span class="font-medium text-slate-300">usr_carlos</span>
+<span>8:06 PM</span>
+</div>
+<div class="flex items-start space-x-2 justify-end">
+<div class="bg-[#1C2C54] text-slate-100 rounded-2xl rounded-tr-xs px-3.5 py-2 max-w-[90%] border border-blue-500/20 shadow-sm">
+              ¿Puedes revisar los últimos comentarios?
+            </div>
+<div class="w-6 h-6 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center shrink-0 border border-blue-400/30">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+</div>
+</div>
+</div>
+<!-- Agent Response 2 (Streaming / In-Progress) -->
+<div class="flex flex-col items-start space-y-1">
+<div class="flex items-center space-x-1.5 text-[10px] text-slate-400 ml-1">
+<div class="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-400 text-cyan-300 flex items-center justify-center shrink-0 glow-cyan">
+<i class="w-3.5 h-3.5 animate-pulse" data-lucide="bot"></i>
+</div>
+<span class="font-medium text-cyan-300">Agente de Soporte</span>
+<span>8:06 PM</span>
+</div>
+<div class="bg-brand-card border border-cyan-500/30 rounded-2xl rounded-tl-xs px-3.5 py-2.5 max-w-[95%] shadow-md">
+<p class="text-slate-200">Estoy consultando el historial del ticket para mostrarte los últimos comentarios...</p>
+<div class="mt-2 flex items-center space-x-1.5">
+<span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+<span class="text-[10px] text-cyan-400 font-mono">tool_call_started: get_ticket</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Suggested Prompts Chips -->
+<div class="px-3 pt-2 pb-1 border-t border-brand-border bg-[#0A101E] flex flex-wrap gap-1.5">
+<button class="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300">TICK-1001</button>
+<button class="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300">Ver comentarios</button>
+<button class="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300">Asignar a técnico</button>
+<button class="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300">SLA y vencimiento</button>
+<button class="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300">Conceptual (Sin Tools)</button>
+</div>
+<!-- Bottom Chat Composer -->
+<div class="p-2.5 bg-[#090F1E] border-t border-brand-border flex items-center space-x-2">
+<button class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+<i class="w-4 h-4" data-lucide="paperclip"></i>
+</button>
+<input class="flex-1 bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" placeholder="Escribe tu consulta para el agente... (Enter para enviar)" type="text" value="¿Quién fue el último técnico asignado?"/>
+<button class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs flex items-center space-x-1 shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all">
+<span>Enviar</span>
+<i class="w-3.5 h-3.5" data-lucide="send"></i>
+</button>
+</div>
+</section>
+<!-- END: LeftColumn -->
+<!-- BEGIN: CenterColumn (Runtime Inspector) -->
+<section class="col-span-12 lg:col-span-5 flex flex-col bg-brand-surface border border-brand-border rounded-xl overflow-hidden shadow-xl" data-purpose="runtime-inspector">
+<!-- Top Inspector Header with Tabs -->
+<div class="p-3 border-b border-brand-border flex items-center justify-between shrink-0 bg-[#0C1425]">
+<div class="flex items-center space-x-2">
+<i class="w-4 h-4 text-cyan-400" data-lucide="activity"></i>
+<span class="font-semibold text-white text-xs">Runtime Inspector</span>
+<span class="px-1.5 py-0.2 rounded bg-cyan-950/70 text-cyan-400 border border-cyan-500/40 text-[10px] font-mono">v3</span>
+</div>
+<div class="flex items-center space-x-2">
+<!-- Views Switcher -->
+<div class="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-700/60 text-[11px]">
+<button class="px-2.5 py-0.5 rounded bg-brand-card text-white font-medium border border-slate-600/50 shadow-sm">Vista Dual</button>
+<button class="px-2 py-0.5 rounded text-slate-400 hover:text-slate-200">Solo Loop</button>
+<button class="px-2 py-0.5 rounded text-slate-400 hover:text-slate-200">Solo Memoria</button>
+</div>
+<span class="text-[10px] text-cyan-400 hover:underline cursor-pointer flex items-center space-x-1">
+<i class="w-3 h-3" data-lucide="file-code"></i>
+<span>Eventos Raw (18)</span>
+</span>
+</div>
+</div>
+<!-- Mascot & Current Execution Hero Area -->
+<div class="p-4 bg-gradient-to-b from-[#091124] to-[#0A1329] border-b border-brand-border relative overflow-hidden flex flex-col md:flex-row items-center gap-4">
+<!-- Background decorative ambient circles -->
+<div class="absolute -left-12 -top-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- 3D Mascot Stage Representation -->
+<div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
+<!-- Concentric Cyber Rings -->
+<div class="absolute inset-0 rounded-full border border-cyan-500/30 animate-pulse"></div>
+<div class="absolute inset-2 rounded-full border border-dashed border-cyan-400/40"></div>
+<div class="absolute inset-5 rounded-full bg-cyan-500/5 blur-md"></div>
+<!-- Robot Mascot SVG Avatar -->
+<div class="relative z-10 w-28 h-28 bg-[#0D1B36] rounded-full border-2 border-cyan-400/80 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(0,240,255,0.4)]">
+<!-- Robot Ears/Antennas -->
+<div class="absolute -top-1 w-3 h-3 bg-cyan-400 rounded-full shadow-[0_0_8px_#00F0FF]"></div>
+<!-- Visor Screen -->
+<div class="w-16 h-10 bg-slate-950 rounded-xl border border-cyan-400/50 flex items-center justify-center space-x-2 px-2 shadow-inner">
+<span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00F0FF]"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00F0FF]"></span>
+</div>
+<!-- Chest Logo AEP -->
+<div class="mt-2 px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[8px] font-bold text-cyan-300">
+              AEP
+            </div>
+</div>
+<!-- Base Pod Pedestal -->
+<div class="absolute -bottom-1 w-24 h-4 bg-cyan-500/20 rounded-[100%] blur-sm"></div>
+</div>
+<!-- Current Execution Meta Card -->
+<div class="flex-1 space-y-2 w-full">
+<div class="flex items-center justify-between">
+<span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Ejecución en Curso</span>
+<span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/40 text-amber-400 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+              EN PROGRESO
+            </span>
+</div>
+<h2 class="text-base font-bold text-white tracking-wide flex items-center space-x-1.5">
+<span>HOP 3 - PROPUESTA TOOL</span>
+</h2>
+<p class="text-xs text-slate-300">
+            El agente está analizando qué herramienta invocar para obtener el historial del ticket.
+          </p>
+<div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+<div class="flex items-center space-x-1 bg-slate-900/90 border border-slate-700/80 px-2 py-1 rounded">
+<i class="w-3 h-3 text-cyan-400" data-lucide="cpu"></i>
+<span class="text-slate-400">Componente Soberano:</span>
+<span class="text-white font-medium">Qwen 3.5 4B (llama.cpp)</span>
+</div>
+</div>
+<!-- Explanation box -->
+<div class="p-2 rounded bg-cyan-950/30 border border-cyan-500/20 text-[11px] text-cyan-200">
+<span class="font-semibold text-cyan-300">Qué está ocurriendo:</span> El LLM evalúa el contexto acumulado y decide invocar la herramienta <code class="font-mono text-white bg-slate-900/60 px-1 py-0.5 rounded">get_ticket</code> para recuperar los comentarios más recientes de TICK-1001.
+          </div>
+</div>
+</div>
+<!-- Hop Stepper / Pipeline Timeline -->
+<div class="p-3 border-b border-brand-border bg-[#0B1222] overflow-x-auto">
+<div class="flex items-center justify-between min-w-[480px] px-1">
+<!-- Step 1: Completed -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
+<i class="w-3 h-3" data-lucide="check"></i>
+</div>
+<span class="text-[9px] text-slate-400 font-medium">1. Consulta</span>
+</div>
+<div class="h-0.5 flex-1 bg-emerald-500/60 mx-1"></div>
+<!-- Step 2: Completed -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
+<i class="w-3 h-3" data-lucide="check"></i>
+</div>
+<span class="text-[9px] text-slate-400 font-medium">2. Inferencia 1</span>
+</div>
+<div class="h-0.5 flex-1 bg-cyan-500/60 mx-1"></div>
+<!-- Step 3: Active (Hop 3) -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-cyan-500/30 border-2 border-cyan-400 text-cyan-300 flex items-center justify-center text-[10px] font-bold stepper-active-glow">
+              3
+            </div>
+<span class="text-[9px] text-cyan-300 font-bold">3. Propuesta Tool</span>
+</div>
+<div class="h-0.5 flex-1 bg-slate-700 mx-1"></div>
+<!-- Step 4: Pending -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center text-[10px]">
+              4
+            </div>
+<span class="text-[9px] text-slate-500">4. Validación</span>
+</div>
+<div class="h-0.5 flex-1 bg-slate-700 mx-1"></div>
+<!-- Step 5: Pending -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center text-[10px]">
+              5
+            </div>
+<span class="text-[9px] text-slate-500">5. MySQL</span>
+</div>
+<div class="h-0.5 flex-1 bg-slate-700 mx-1"></div>
+<!-- Step 6: Pending -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center text-[10px]">
+              6
+            </div>
+<span class="text-[9px] text-slate-500">6. Inyección</span>
+</div>
+<div class="h-0.5 flex-1 bg-slate-700 mx-1"></div>
+<!-- Step 7: Pending -->
+<div class="flex flex-col items-center space-y-1">
+<div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center text-[10px]">
+              7
+            </div>
+<span class="text-[9px] text-slate-500">7. Síntesis</span>
+</div>
+</div>
+</div>
+<!-- Detalle de la Fase Actual & JSON Viewer -->
+<div class="flex-1 flex flex-col p-3 bg-brand-surface overflow-hidden">
+<div class="flex items-center justify-between pb-2 shrink-0">
+<div class="flex items-center space-x-2">
+<span class="font-semibold text-white text-xs">Detalle de la Fase Actual</span>
+<span class="px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/40 text-emerald-400 font-mono text-[9px]">TOOL_CALL_PROPOSED</span>
+</div>
+</div>
+<!-- Subtabs -->
+<div class="flex items-center space-x-1 border-b border-brand-border shrink-0 pb-1.5 text-[11px]">
+<button class="px-2.5 py-1 text-slate-400 hover:text-slate-200">Razonamiento</button>
+<button class="px-2.5 py-1 rounded bg-brand-card text-cyan-400 font-medium border border-cyan-500/30 flex items-center space-x-1.5">
+<i class="w-3 h-3" data-lucide="wrench"></i>
+<span>Llamada a Herramienta</span>
+</button>
+<button class="px-2.5 py-1 text-slate-400 hover:text-slate-200">Respuesta</button>
+<button class="px-2.5 py-1 text-slate-400 hover:text-slate-200">JSON Técnico</button>
+</div>
+<!-- JSON Code Block Editor Preview -->
+<div class="flex-1 mt-2 rounded-lg bg-[#070D1A] border border-brand-border p-2.5 font-mono text-[11px] overflow-auto select-text leading-relaxed">
+<pre class="text-slate-300"><code><span class="text-slate-600"> 1</span>  {
+<span class="text-slate-600"> 2</span>    <span class="text-cyan-400">"tool_name"</span>: <span class="text-amber-300">"get_ticket"</span>,
+<span class="text-slate-600"> 3</span>    <span class="text-cyan-400">"description"</span>: <span class="text-slate-300">"Obtener datos detallados de un ticket por su identificador"</span>,
+<span class="text-slate-600"> 4</span>    <span class="text-cyan-400">"parameters"</span>: {
+<span class="text-slate-600"> 5</span>      <span class="text-cyan-400">"ticket_id"</span>: <span class="text-emerald-400">"TICK-1001"</span>
+<span class="text-slate-600"> 6</span>    },
+<span class="text-slate-600"> 7</span>    <span class="text-cyan-400">"reasoning"</span>: <span class="text-slate-300">"El usuario solicita revisar los últimos comentarios del ticket, necesito obtener los detalles completos para mostrar el historial."</span>,
+<span class="text-slate-600"> 8</span>    <span class="text-cyan-400">"confidence"</span>: <span class="text-purple-400">0.92</span>
+<span class="text-slate-600"> 9</span>  }</code></pre>
+</div>
+</div>
+</section>
+<!-- END: CenterColumn -->
+<!-- BEGIN: RightColumn (State & Memory Inspector) -->
+<section class="col-span-12 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto" data-purpose="state-memory-inspector">
+<!-- Top Title -->
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center space-x-2">
+<i class="w-4 h-4 text-purple-400" data-lucide="database"></i>
+<h3 class="font-bold text-white text-xs tracking-wide">State &amp; Memory Inspector</h3>
+<span class="px-1.5 py-0.2 rounded bg-purple-950/70 text-purple-300 border border-purple-500/40 text-[10px] font-mono">v3</span>
+</div>
+<button class="text-slate-400 hover:text-white">
+<i class="w-3.5 h-3.5" data-lucide="maximize-2"></i>
+</button>
+</div>
+<!-- Card 1: Context Budget Token Usage -->
+<div class="bg-brand-surface border border-brand-border rounded-xl p-3 space-y-2.5 shadow-md">
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center space-x-1.5">
+<span class="font-semibold text-white">Context Budget</span>
+<span class="px-1.5 py-0.2 rounded bg-blue-950/60 text-blue-400 border border-blue-500/30 text-[9px] font-semibold">ESTIMADO</span>
+</div>
+<span class="text-slate-400 text-[11px]">Límite: <strong class="text-slate-200">4,096 tokens</strong></span>
+</div>
+<!-- Segmented Multi-Color Progress Bar -->
+<div class="w-full h-3 bg-slate-900 rounded-full flex overflow-hidden border border-slate-700/60 p-[1px]">
+<!-- Sistema (cyan) ~12% -->
+<div class="h-full bg-cyan-400 rounded-l" style="width: 12%;" title="Sistema: 482"></div>
+<!-- Decisiones (purple) ~8% -->
+<div class="h-full bg-purple-500" style="width: 8%;" title="Decisiones: 312"></div>
+<!-- Historial hidratado (blue) ~27% -->
+<div class="h-full bg-blue-500" style="width: 27%;" title="Historial: 1,120"></div>
+<!-- Consulta actual (pink) ~7% -->
+<div class="h-full bg-pink-500" style="width: 7%;" title="Consulta actual: 270"></div>
+<!-- Disponible (gray / empty space) remainder -->
+<div class="h-full bg-slate-800 flex-1" title="Disponible: 1,912"></div>
+</div>
+<div class="flex justify-between items-center text-[11px] pt-1 border-t border-brand-border/60">
+<span class="text-slate-400">Total utilizado</span>
+<span class="font-bold text-white font-mono">2,184 <span class="text-slate-400 font-normal">/ 4,096</span></span>
+</div>
+<!-- Legend breakdown -->
+<div class="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[10px] text-slate-300 pt-1">
+<div class="flex items-center justify-between">
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-cyan-400 mr-1.5"></span>Sistema</span>
+<span class="font-mono text-slate-400">482</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-purple-500 mr-1.5"></span>Decisiones</span>
+<span class="font-mono text-slate-400">312</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>Historial (hidratado)</span>
+<span class="font-mono text-slate-400">1,120</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-pink-500 mr-1.5"></span>Consulta actual</span>
+<span class="font-mono text-slate-400">270</span>
+</div>
+<div class="flex items-center justify-between col-span-2 pt-0.5 border-t border-slate-800/80">
+<span class="flex items-center text-slate-400"><span class="w-2 h-2 rounded-full bg-slate-600 mr-1.5"></span>Disponible</span>
+<span class="font-mono text-emerald-400 font-medium">1,912</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Decisiones Persistentes -->
+<div class="bg-brand-surface border border-brand-border rounded-xl p-3 space-y-2 shadow-md">
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center space-x-1.5">
+<i class="w-3.5 h-3.5 text-emerald-400" data-lucide="shield-check"></i>
+<span class="font-semibold text-white">Decisiones Persistentes (2)</span>
+</div>
+<span class="text-cyan-400 text-[10px] cursor-pointer hover:underline">+2 históricas</span>
+</div>
+<div class="space-y-2">
+<!-- Item 1 -->
+<div class="p-2 rounded-lg bg-brand-card border border-brand-border flex items-start justify-between">
+<div class="space-y-0.5">
+<div class="flex items-center space-x-1.5">
+<span class="font-mono font-medium text-emerald-400 text-xs">idioma_respuesta</span>
+<span class="px-1 rounded bg-emerald-950 text-emerald-300 text-[9px] border border-emerald-500/30">PERSISTENT</span>
+<span class="text-[9px] text-slate-500 font-mono">v1</span>
+</div>
+<p class="text-[11px] text-slate-300">Responder siempre en español (ES).</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="p-2 rounded-lg bg-brand-card border border-brand-border flex items-start justify-between">
+<div class="space-y-0.5">
+<div class="flex items-center space-x-1.5">
+<span class="font-mono font-medium text-purple-400 text-xs">nivel_detalle</span>
+<span class="px-1 rounded bg-purple-950 text-purple-300 text-[9px] border border-purple-500/30">SESSION</span>
+<span class="text-[9px] text-slate-500 font-mono">v1</span>
+</div>
+<p class="text-[11px] text-slate-300">Respuestas con detalle técnico para análisis.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: Memoria Conversacional Timeline -->
+<div class="bg-brand-surface border border-brand-border rounded-xl p-3 space-y-2.5 shadow-md">
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center space-x-1.5">
+<i class="w-3.5 h-3.5 text-cyan-400" data-lucide="git-commit"></i>
+<span class="font-semibold text-white">Memoria Conversacional</span>
+</div>
+<span class="text-slate-400 text-[10px]">4 turnos en contexto</span>
+</div>
+<div class="relative pl-4 space-y-3 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-700/60">
+<!-- Memory Event 1 -->
+<div class="relative flex flex-col space-y-0.5">
+<span class="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-brand-surface"></span>
+<div class="flex items-center justify-between text-[11px]">
+<span class="font-mono font-semibold text-blue-300">MEMORY_HYDRATED</span>
+<span class="text-[10px] text-slate-400">8:05:12 PM</span>
+</div>
+<p class="text-[10px] text-slate-400">Se recuperaron 3 turnos previos y 2 decisiones desde MySQL.</p>
+</div>
+<!-- Memory Event 2 -->
+<div class="relative flex flex-col space-y-0.5">
+<span class="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-brand-surface"></span>
+<div class="flex items-center justify-between text-[11px]">
+<span class="font-mono font-semibold text-emerald-300">TURN_PERSISTED • Turno #1</span>
+<span class="text-[10px] text-slate-400">8:05:15 PM</span>
+</div>
+<p class="text-[10px] text-slate-400">Consulta inicial del usuario guardada en base de datos.</p>
+</div>
+<!-- Memory Event 3 -->
+<div class="relative flex flex-col space-y-0.5">
+<span class="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-cyan-400 border-2 border-brand-surface glow-cyan"></span>
+<div class="flex items-center justify-between text-[11px]">
+<span class="font-mono font-semibold text-cyan-300">TURN_PERSISTED • Turno #2</span>
+<span class="text-[10px] text-slate-400">8:05:48 PM</span>
+</div>
+<p class="text-[10px] text-slate-400">Respuesta del agente con estado del ticket.</p>
+</div>
+</div>
+</div>
+<!-- Card 4: Tareas Pendientes -->
+<div class="bg-brand-surface border border-brand-border rounded-xl p-3 space-y-1.5 shadow-md">
+<div class="flex items-center justify-between text-xs">
+<div class="flex items-center space-x-1.5">
+<i class="w-3.5 h-3.5 text-purple-400" data-lucide="check-square"></i>
+<span class="font-semibold text-white">Tareas Pendientes (0)</span>
+</div>
+</div>
+<div class="py-2.5 flex items-center justify-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-lg">
+<i class="w-4 h-4 mr-1.5 text-slate-600" data-lucide="inbox"></i>
+<span>No hay tareas pendientes en este momento.</span>
+</div>
+</div>
+</section>
+<!-- END: RightColumn -->
+</main>
+<!-- END: MainLayout -->
+<!-- BEGIN: InteractiveScripts -->
+<script data-purpose="lucide-icons-init">
+    // Initialize Lucide icons
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+    });
+  </script>
+<!-- END: InteractiveScripts -->
+</body></html>

@@ -1,6 +1,11 @@
 import { Component, input, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+interface HighlightedLine {
+  num: number;
+  html: string;
+}
+
 @Component({
   selector: 'app-technical-viewer',
   standalone: true,
@@ -26,7 +31,7 @@ import { CommonModule } from '@angular/common';
               (click)="formatMode.set('wrapped')"
               title="Ajustar líneas al ancho disponible para evitar desplazamiento"
             >
-              Wrapped
+              Ajustado
             </button>
             <button
               type="button"
@@ -35,7 +40,7 @@ import { CommonModule } from '@angular/common';
               (click)="formatMode.set('raw')"
               title="Formato crudo con desplazamiento horizontal interno"
             >
-              Raw
+              Crudo
             </button>
           </div>
 
@@ -50,7 +55,7 @@ import { CommonModule } from '@angular/common';
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                <span>Copiado!</span>
+                <span>¡Copiado!</span>
               </span>
             } @else {
               <span class="copy-label">
@@ -66,7 +71,14 @@ import { CommonModule } from '@angular/common';
       </div>
 
       <div class="code-viewport" [ngClass]="formatMode()">
-        <pre class="json-pre"><code class="json-code">{{ formattedJson() }}</code></pre>
+        <div class="code-table" role="region" aria-label="Código JSON estructurado">
+          @for (line of highlightedLines(); track line.num) {
+            <div class="code-line">
+              <span class="line-number" aria-hidden="true">{{ line.num }}</span>
+              <span class="line-content" [innerHTML]="line.html"></span>
+            </div>
+          }
+        </div>
       </div>
     </div>
   `,
@@ -78,7 +90,7 @@ import { CommonModule } from '@angular/common';
       max-width: 100%;
     }
     .technical-viewer-card {
-      background: #070b14;
+      background: #070d1a;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       overflow: hidden;
@@ -86,13 +98,14 @@ import { CommonModule } from '@angular/common';
       min-width: 0;
       max-width: 100%;
       box-sizing: border-box;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
     }
     .viewer-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 0.75rem;
-      background: var(--bg-surface);
+      padding: 0.45rem 0.75rem;
+      background: rgba(13, 21, 39, 0.95);
       border-bottom: 1px solid var(--border-subtle);
       gap: 0.5rem;
       flex-wrap: wrap;
@@ -178,29 +191,75 @@ import { CommonModule } from '@angular/common';
       font-weight: 700;
     }
     .code-viewport {
-      padding: 0.75rem;
-      max-height: 240px;
+      padding: 0.6rem 0.5rem;
+      max-height: 280px;
       overflow-y: auto;
+      overflow-x: auto;
       font-family: var(--font-mono);
-      font-size: 0.76rem;
-      line-height: 1.45;
-      color: #93c5fd;
+      font-size: 0.74rem;
+      line-height: 1.5;
+      background: #060b16;
     }
     .code-viewport.wrapped {
       overflow-x: hidden;
-      word-break: break-all;
-      white-space: pre-wrap;
     }
-    .code-viewport.raw {
-      overflow-x: auto;
+    .code-table {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .code-line {
+      display: flex;
+      align-items: flex-start;
+      min-height: 1.35em;
+      border-radius: 2px;
+      transition: background 0.1s ease;
+    }
+    .code-line:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .line-number {
+      min-width: 28px;
+      width: 28px;
+      flex-shrink: 0;
+      text-align: right;
+      padding-right: 10px;
+      color: #475569;
+      user-select: none;
+      font-size: 0.68rem;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      margin-right: 8px;
+      line-height: 1.5;
+    }
+    .line-content {
+      flex: 1 1 auto;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .code-viewport.wrapped .line-content {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .code-viewport.raw .line-content {
       white-space: pre;
     }
-    .json-pre {
-      margin: 0;
-      font-family: inherit;
+    :host ::ng-deep .token-key {
+      color: #38bdf8;
+      font-weight: 500;
     }
-    .json-code {
-      font-family: inherit;
+    :host ::ng-deep .token-string {
+      color: #fde047;
+    }
+    :host ::ng-deep .token-number {
+      color: #c084fc;
+    }
+    :host ::ng-deep .token-boolean {
+      color: #f43f5e;
+      font-weight: 600;
+    }
+    :host ::ng-deep .token-null {
+      color: #64748b;
+      font-style: italic;
     }
   `]
 })
@@ -218,6 +277,42 @@ export class TechnicalViewerComponent {
       return String(data);
     }
   });
+
+  readonly highlightedLines = computed<HighlightedLine[]>(() => {
+    const rawJson = this.formattedJson();
+    const highlighted = this.highlightJsonToHtml(rawJson);
+    const rawLines = highlighted.split('\n');
+    return rawLines.map((lineHtml, idx) => ({
+      num: idx + 1,
+      html: lineHtml || '&nbsp;'
+    }));
+  });
+
+  private highlightJsonToHtml(json: string): string {
+    const escaped = json
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    return escaped.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      (match) => {
+        let cls = 'token-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'token-key';
+          } else {
+            cls = 'token-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'token-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'token-null';
+        }
+        return `<span class="${cls}">${match}</span>`;
+      }
+    );
+  }
 
   copyPayload(): void {
     const text = this.formattedJson();

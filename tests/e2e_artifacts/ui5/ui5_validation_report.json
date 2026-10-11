@@ -1,0 +1,104 @@
+{
+  "timestamp": "2026-10-10 22:49:31",
+  "viewports_checked": [
+    "desktop_1440",
+    "desktop_1280",
+    "tablet_768",
+    "mobile_390",
+    "mobile_360"
+  ],
+  "overflow_checks": [
+    {
+      "viewport": "desktop_1440",
+      "agent": "v3",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "desktop_1280",
+      "agent": "v3",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "tablet_768",
+      "agent": "v3",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "mobile_390",
+      "agent": "v3",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "mobile_360",
+      "agent": "v3",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 360,
+        "clientWidth": 360,
+        "delta": 0
+      }
+    }
+  ],
+  "console_errors": [],
+  "budget_checks": {
+    "has_budget": true,
+    "has_estimate_chip": false,
+    "has_limit_chip": false,
+    "segments_present": true,
+    "post_redacted": false,
+    "post_nan": false
+  },
+  "redacted_checks": {
+    "has_redacted_string": false,
+    "has_nan_string": false,
+    "passed": true
+  },
+  "pedagogy_triad_checks": {
+    "present": true,
+    "has_ram": true,
+    "has_conv": true,
+    "has_decisions": true
+  },
+  "decisions_checks": {
+    "count": 0,
+    "section_present": true
+  },
+  "timeline_checks": {
+    "hydration_count": 1,
+    "persisted_count": 1
+  },
+  "screenshots": [
+    "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui5\\ui5_state_memory_desktop_1440.png",
+    "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui5_state_memory_desktop_1440.png",
+    "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui5\\ui5_state_memory_desktop_1280.png",
+    "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui5_state_memory_desktop_1280.png",
+    "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui5\\ui5_state_memory_tablet_768.png",
+    "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui5_state_memory_tablet_768.png",
+    "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui5\\ui5_state_memory_mobile_390.png",
+    "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui5_state_memory_mobile_390.png",
+    "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui5\\ui5_state_memory_mobile_360.png",
+    "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui5_state_memory_mobile_360.png",
+    "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui5\\ui5_agent_v3_live_hydrated_memory.png",
+    "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui5_agent_v3_live_hydrated_memory.png"
+  ]
+}

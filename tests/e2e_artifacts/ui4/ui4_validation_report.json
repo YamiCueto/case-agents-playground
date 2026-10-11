@@ -1,0 +1,208 @@
+{
+  "timestamp": "2026-10-10 21:46:59",
+  "viewports_checked": [],
+  "overflow_checks": [
+    {
+      "viewport": "desktop_1440",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "desktop_1280",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "tablet_768",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "mobile_390",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "mobile_360",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 360,
+        "clientWidth": 360,
+        "delta": 0
+      }
+    }
+  ],
+  "avatar_3d_checks": {
+    "hasCanvas": true,
+    "hasFallback": false,
+    "canvasWidth": 133,
+    "canvasHeight": 148,
+    "hasHeroCard": true,
+    "hasAvatarCol": true,
+    "hasMetaCol": true,
+    "heroTitle": "ESPERANDO AGENT LOOP",
+    "heroActor": "AgentLoopEngine v2",
+    "heroHappening": "Esperando inicio de la consulta para observar el ciclo de razonamiento y ejecución en tiempo real.",
+    "heroInsight": "El bucle evalúa el contexto en cada iteración y determina dinámicamente si invoca herramientas o sintetiza la respuesta final.",
+    "heroStatus": "EN ESPERA"
+  },
+  "hero_card_checks": {},
+  "stepper_checks": {
+    "v1": {
+      "hasJourneyFlow": true,
+      "hopsCount": 7
+    },
+    "v2": {
+      "hasLoopFlow": true,
+      "hasJourneyFlow": false
+    },
+    "v3": {
+      "hasLoopFlow": true
+    }
+  },
+  "technical_tabs_checks": {
+    "lineCount": 1,
+    "tokensCount": 0,
+    "firstLine": "{}"
+  },
+  "reduced_motion_checks": {
+    "active": true
+  },
+  "measurements_1280": {
+    "mainWidth": 1280,
+    "chatWidth": 373.328125,
+    "inspectorWidth": 522.65625,
+    "memoryWidth": 336,
+    "hasChat": true,
+    "hasInspector": true,
+    "hasMemory": true
+  },
+  "screenshots": [
+    {
+      "name": "ui4_desktop_1440_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_desktop_1440_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_desktop_1440_v1.png"
+      ]
+    },
+    {
+      "name": "ui4_desktop_1440_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_desktop_1440_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_desktop_1440_v2.png"
+      ]
+    },
+    {
+      "name": "ui4_desktop_1440_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_desktop_1440_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_desktop_1440_v3.png"
+      ]
+    },
+    {
+      "name": "ui4_desktop_1280_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_desktop_1280_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_desktop_1280_v1.png"
+      ]
+    },
+    {
+      "name": "ui4_desktop_1280_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_desktop_1280_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_desktop_1280_v2.png"
+      ]
+    },
+    {
+      "name": "ui4_desktop_1280_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_desktop_1280_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_desktop_1280_v3.png"
+      ]
+    },
+    {
+      "name": "ui4_tablet_768_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_tablet_768_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_tablet_768_v1.png"
+      ]
+    },
+    {
+      "name": "ui4_tablet_768_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_tablet_768_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_tablet_768_v2.png"
+      ]
+    },
+    {
+      "name": "ui4_tablet_768_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_tablet_768_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_tablet_768_v3.png"
+      ]
+    },
+    {
+      "name": "ui4_mobile_390_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_mobile_390_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_mobile_390_v1.png"
+      ]
+    },
+    {
+      "name": "ui4_mobile_390_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_mobile_390_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_mobile_390_v2.png"
+      ]
+    },
+    {
+      "name": "ui4_mobile_390_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_mobile_390_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_mobile_390_v3.png"
+      ]
+    },
+    {
+      "name": "ui4_mobile_360_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_mobile_360_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_mobile_360_v1.png"
+      ]
+    },
+    {
+      "name": "ui4_mobile_360_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_mobile_360_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_mobile_360_v2.png"
+      ]
+    },
+    {
+      "name": "ui4_mobile_360_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui4\\ui4_mobile_360_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui4_mobile_360_v3.png"
+      ]
+    }
+  ]
+}

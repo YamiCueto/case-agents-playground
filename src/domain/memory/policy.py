@@ -36,14 +36,21 @@ SENSITIVE_FIELD_NAMES: Set[str] = {
 }
 
 SAFE_METRIC_FIELD_NAMES: Set[str] = {
+    # Snake case
     "query_tokens",
+    "query_tokens_est",
     "system_prompt_tokens",
+    "system_prompt_tokens_est",
     "decisions_tokens",
+    "decisions_tokens_est",
     "history_tokens",
+    "history_tokens_est",
     "total_initial_tokens",
+    "total_initial_tokens_est",
     "available_history_budget",
     "max_context_budget",
     "total_context_limit",
+    "max_context_limit",
     "max_context_tokens",
     "remaining_tokens",
     "tokens_estimate",
@@ -55,6 +62,28 @@ SAFE_METRIC_FIELD_NAMES: Set[str] = {
     "history_turns_count",
     "decisions_count",
     "turns_count",
+    "token_budget",
+    "tokens_budget",
+    "budget_tokens",
+    # Camel case (lowercased)
+    "querytokens",
+    "querytokensest",
+    "systemprompttokens",
+    "systemprompttokensest",
+    "decisionstokens",
+    "decisionstokensest",
+    "historytokens",
+    "historytokensest",
+    "totalinitialtokens",
+    "totalinitialtokensest",
+    "availablehistorybudget",
+    "maxcontextlimit",
+    "maxcontextbudget",
+    "totalcontextlimit",
+    "tokensestimate",
+    "tokenscount",
+    "historyturnscount",
+    "decisionscount",
 }
 
 EXPLICIT_PREFERENCE_PHRASES: List[str] = [
@@ -167,8 +196,29 @@ class MemoryPolicy:
         key_lower = str(key).lower()
         if key_lower in SAFE_METRIC_FIELD_NAMES:
             return False
-        if (key_lower.endswith("_tokens") or key_lower.endswith("_tokens_est") or key_lower.startswith("tokens_")) and not any(
-            auth in key_lower for auth in ("auth", "access", "session", "refresh", "secret", "api", "bearer", "jwt")
+        if (
+            key_lower.endswith("_tokens")
+            or key_lower.endswith("_tokens_est")
+            or key_lower.endswith("tokens")
+            or key_lower.endswith("tokensest")
+            or key_lower.startswith("tokens_")
+            or "token_budget" in key_lower
+            or "budget_tokens" in key_lower
+        ) and not any(
+            auth in key_lower
+            for auth in (
+                "auth",
+                "access",
+                "session",
+                "refresh",
+                "secret",
+                "api",
+                "bearer",
+                "jwt",
+                "password",
+                "credential",
+                "private_key",
+            )
         ):
             return False
 

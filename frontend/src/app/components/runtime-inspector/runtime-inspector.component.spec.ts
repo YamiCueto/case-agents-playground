@@ -29,7 +29,7 @@ describe('RuntimeInspectorComponent (Phase 6.3 Integration)', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.version-tag')?.textContent).toContain('V1');
-    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Execution Journey');
+    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Recorrido de ejecución');
     expect(compiled.querySelector('app-journey-flow')).not.toBeNull();
     expect(compiled.querySelector('app-v2-loop-flow')).toBeNull();
     expect(compiled.querySelector('app-v3-memory-inspector')).toBeNull();
@@ -42,7 +42,7 @@ describe('RuntimeInspectorComponent (Phase 6.3 Integration)', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.version-tag')?.textContent).toContain('V2');
-    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Agent Loop Journey');
+    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Recorrido del bucle v2');
     expect(compiled.querySelector('app-v2-loop-flow')).not.toBeNull();
     expect(compiled.querySelector('app-journey-flow')).toBeNull();
     expect(compiled.querySelector('app-v3-memory-inspector')).toBeNull();
@@ -55,7 +55,7 @@ describe('RuntimeInspectorComponent (Phase 6.3 Integration)', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.version-tag')?.textContent).toContain('V3');
-    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Agent v3 Loop & Memory');
+    expect(compiled.querySelector('.tabs-bar')?.textContent).toContain('Bucle y memoria v3');
 
     // Requirement 2: Reuses V2LoopFlowComponent
     expect(compiled.querySelector('app-v2-loop-flow')).not.toBeNull();

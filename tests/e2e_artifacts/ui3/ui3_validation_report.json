@@ -1,0 +1,178 @@
+{
+  "timestamp": "2026-10-10 21:24:37",
+  "viewports_checked": [],
+  "agent_checks": {},
+  "header_controls": {
+    "telemetry": "FastAPI :8000\n•\nModelo: Conectado\n•\nMySQL: Conectado",
+    "initial_state": "EN VIVO",
+    "paused_state": "PAUSA VISUAL"
+  },
+  "overflow_checks": [
+    {
+      "viewport": "desktop_1440",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "desktop_1280",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "tablet_768",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "mobile_390",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      }
+    },
+    {
+      "viewport": "mobile_360",
+      "agent": "v1-initial",
+      "overflow": {
+        "hasOverflow": false,
+        "scrollWidth": 360,
+        "clientWidth": 360,
+        "delta": 0
+      }
+    }
+  ],
+  "measurements_1280": {
+    "mainWidth": 1280,
+    "chatWidth": 373.328125,
+    "inspectorWidth": 522.65625,
+    "memoryWidth": 336,
+    "hasChat": true,
+    "hasInspector": true,
+    "hasMemory": true
+  },
+  "screenshots": [
+    {
+      "name": "ui3_desktop_1440_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_desktop_1440_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_desktop_1440_v1.png"
+      ]
+    },
+    {
+      "name": "ui3_desktop_1440_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_desktop_1440_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_desktop_1440_v2.png"
+      ]
+    },
+    {
+      "name": "ui3_desktop_1440_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_desktop_1440_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_desktop_1440_v3.png"
+      ]
+    },
+    {
+      "name": "ui3_desktop_1280_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_desktop_1280_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_desktop_1280_v1.png"
+      ]
+    },
+    {
+      "name": "ui3_desktop_1280_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_desktop_1280_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_desktop_1280_v2.png"
+      ]
+    },
+    {
+      "name": "ui3_desktop_1280_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_desktop_1280_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_desktop_1280_v3.png"
+      ]
+    },
+    {
+      "name": "ui3_tablet_768_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_tablet_768_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_tablet_768_v1.png"
+      ]
+    },
+    {
+      "name": "ui3_tablet_768_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_tablet_768_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_tablet_768_v2.png"
+      ]
+    },
+    {
+      "name": "ui3_tablet_768_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_tablet_768_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_tablet_768_v3.png"
+      ]
+    },
+    {
+      "name": "ui3_mobile_390_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_mobile_390_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_mobile_390_v1.png"
+      ]
+    },
+    {
+      "name": "ui3_mobile_390_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_mobile_390_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_mobile_390_v2.png"
+      ]
+    },
+    {
+      "name": "ui3_mobile_390_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_mobile_390_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_mobile_390_v3.png"
+      ]
+    },
+    {
+      "name": "ui3_mobile_360_v1",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_mobile_360_v1.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_mobile_360_v1.png"
+      ]
+    },
+    {
+      "name": "ui3_mobile_360_v2",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_mobile_360_v2.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_mobile_360_v2.png"
+      ]
+    },
+    {
+      "name": "ui3_mobile_360_v3",
+      "paths": [
+        "C:\\Users\\YAMI\\Documents\\clase cfa lab03\\tests\\e2e_artifacts\\ui3\\ui3_mobile_360_v3.png",
+        "C:\\Users\\YAMI\\.gemini\\antigravity-ide\\brain\\13345f9f-22c0-433e-a9c7-839d00e4334f\\ui3_mobile_360_v3.png"
+      ]
+    }
+  ]
+}

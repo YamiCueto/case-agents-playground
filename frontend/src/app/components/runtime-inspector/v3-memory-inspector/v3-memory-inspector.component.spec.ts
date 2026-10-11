@@ -124,7 +124,8 @@ describe('V3MemoryInspectorComponent (Phase 6.2)', () => {
 
     // Card 2: revoked session
     expect(cards[1].querySelector('.chip-key')?.textContent).toContain('theme_mode');
-    expect(cards[1].querySelector('.chip-scope')?.textContent).toContain('SESSION');
+    expect(cards[1].querySelector('.chip-scope')?.textContent).toContain('SESIÓN');
+    expect(cards[1].querySelector('.chip-scope')?.getAttribute('data-scope')).toBe('session');
     expect(cards[1].querySelector('.chip-status-revoked')?.textContent).toContain('REVOCADO');
     expect(cards[1].classList.contains('is-revoked')).toBe(true);
   });
@@ -307,5 +308,135 @@ describe('V3MemoryInspectorComponent (Phase 6.2)', () => {
     expect(turnNodes[0].querySelector('.node-details')?.textContent).toContain('turn-001');
     expect(turnNodes[1].querySelector('.node-title')?.textContent).toContain('Turno #2');
     expect(turnNodes[1].querySelector('.node-details')?.textContent).toContain('turn-002');
+  });
+
+  it('renders Stitch segmented multi-color progress bar with cyan, violet, blue, emerald and available surface', () => {
+    const mockState: AgentV3State = {
+      executionId: 'v3-exec-stitch',
+      confirmedConversationId: 'conv-carlos-stitch',
+      persona: 'usr_carlos',
+      hydration: {
+        conversationId: 'conv-carlos-stitch',
+        hydratedTurnsCount: 3,
+        decisionsCount: 2,
+        activeDecisions: [],
+        budget: {
+          queryTokensEst: 270,
+          systemPromptTokensEst: 482,
+          decisionsTokensEst: 312,
+          historyTokensEst: 1120,
+          totalInitialTokensEst: 2184,
+          availableHistoryBudget: 1912,
+          historyTurnsCount: 3,
+          decisionsCount: 2,
+          maxContextLimit: 4096,
+          isHeuristicEstimate: true
+        },
+        hydratedAt: '2026-10-10T12:00:00Z'
+      },
+      activeDecisions: [],
+      decisionsHistory: [],
+      revokedKeys: [],
+      pendingTask: null,
+      hitlStatus: 'none',
+      persistedTurns: [],
+      isRecoveryRequired: false,
+      recoveryAlert: null,
+      rawV3Events: []
+    };
+
+    fixture.componentRef.setInput('state', mockState);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.seg-system')).not.toBeNull();
+    expect(compiled.querySelector('.seg-decisions')).not.toBeNull();
+    expect(compiled.querySelector('.seg-history')).not.toBeNull();
+    expect(compiled.querySelector('.seg-query')).not.toBeNull();
+    expect(compiled.querySelector('.seg-available')).not.toBeNull();
+
+    // Verify percentages on segments
+    const sysSeg = compiled.querySelector<HTMLElement>('.seg-system');
+    const decSeg = compiled.querySelector<HTMLElement>('.seg-decisions');
+    const histSeg = compiled.querySelector<HTMLElement>('.seg-history');
+    const querySeg = compiled.querySelector<HTMLElement>('.seg-query');
+
+    expect(sysSeg?.style.width).toBeTruthy();
+    expect(decSeg?.style.width).toBeTruthy();
+    expect(histSeg?.style.width).toBeTruthy();
+    expect(querySeg?.style.width).toBeTruthy();
+
+    // Verify metric cards
+    expect(compiled.querySelector('.card-system .metric-val')?.textContent).toContain('~482');
+    expect(compiled.querySelector('.card-decisions .metric-val')?.textContent).toContain('~312');
+    expect(compiled.querySelector('.card-history .metric-val')?.textContent).toContain('~1120');
+    expect(compiled.querySelector('.card-query .metric-val')?.textContent).toContain('~270');
+  });
+
+  it('renders pedagogical triad distinguishing RAM execution, conversational history, and persistent decisions', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const triad = compiled.querySelector('.pedagogy-triad-card');
+    expect(triad).not.toBeNull();
+    expect(triad?.textContent).toContain('Tríada Pedagógica');
+    expect(triad?.textContent).toContain('Estado de Ejecución (RAM)');
+    expect(triad?.textContent).toContain('Memoria Conversacional');
+    expect(triad?.textContent).toContain('Memoria de Decisiones');
+
+    // Test collapse toggle
+    component.togglePedagogy();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.triad-grid')).toBeNull();
+
+    component.togglePedagogy();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.triad-grid')).not.toBeNull();
+  });
+
+  it('guarantees redaction defense: numeric budget metrics render valid numbers and never REDACTED or NaN', () => {
+    const mockState: AgentV3State = {
+      executionId: 'v3-exec-redact-defense',
+      confirmedConversationId: 'conv-carlos-clean',
+      persona: 'usr_carlos',
+      hydration: {
+        conversationId: 'conv-carlos-clean',
+        hydratedTurnsCount: 1,
+        decisionsCount: 1,
+        activeDecisions: [],
+        budget: {
+          queryTokensEst: 45,
+          systemPromptTokensEst: 400,
+          decisionsTokensEst: 60,
+          historyTokensEst: 200,
+          totalInitialTokensEst: 705,
+          availableHistoryBudget: 3391,
+          historyTurnsCount: 1,
+          decisionsCount: 1,
+          maxContextLimit: 4096,
+          isHeuristicEstimate: true
+        },
+        hydratedAt: '2026-10-10T12:00:00Z'
+      },
+      activeDecisions: [],
+      decisionsHistory: [],
+      revokedKeys: [],
+      pendingTask: null,
+      hitlStatus: 'none',
+      persistedTurns: [],
+      isRecoveryRequired: false,
+      recoveryAlert: null,
+      rawV3Events: []
+    };
+
+    fixture.componentRef.setInput('state', mockState);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const allText = compiled.textContent || '';
+    expect(allText).not.toContain('***REDACTED***');
+    expect(allText).not.toContain('NaN');
+
+    // Ensure legitimate numbers reach the UI
+    expect(compiled.querySelector('.budget-total-text')?.textContent).toContain('705');
+    expect(compiled.querySelector('.budget-available-text')?.textContent).toContain('3391');
   });
 });

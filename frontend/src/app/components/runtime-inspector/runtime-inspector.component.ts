@@ -9,7 +9,7 @@ import { V2LoopFlowComponent } from './v2-loop-flow/v2-loop-flow.component';
 import { V3MemoryInspectorComponent } from './v3-memory-inspector/v3-memory-inspector.component';
 import { TechnicalViewerComponent } from './technical-viewer/technical-viewer.component';
 import { describeDecision } from '../../models/v2-decision';
-import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
+import { PHASE_STATUS_LABELS, AgentV2ToolExecution } from '../../models/v2-loop.models';
 
 @Component({
   selector: 'app-runtime-inspector',
@@ -31,7 +31,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <h2>Runtime Inspector</h2>
+            <h2>Inspector de ejecución</h2>
             <span class="version-tag">{{ activeAgentId().toUpperCase() }}</span>
           </div>
 
@@ -61,13 +61,13 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
-                  <span>Replay</span>
+                  <span>Reproducir ejecución</span>
                 </button>
               }
             } @else {
               <div class="replay-pill">
                 <span class="pulse-dot-purple"></span>
-                <span>MODO REPLAY</span>
+                <span>MODO REPRODUCCIÓN</span>
               </div>
               <button
                 type="button"
@@ -191,7 +191,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
             <svg class="tab-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
-            <span>{{ activeAgentId() === 'v3' ? 'Agent v3 Loop & Memory' : activeAgentId() === 'v2' ? 'Agent Loop Journey' : 'Execution Journey' }}</span>
+            <span>{{ activeAgentId() === 'v3' ? 'Bucle y memoria v3' : activeAgentId() === 'v2' ? 'Recorrido del bucle v2' : 'Recorrido de ejecución' }}</span>
           </button>
           <button 
             class="tab-btn" 
@@ -227,151 +227,297 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       <div class="inspector-content">
         @if (activeTab() === 'journey') {
           <div class="journey-dashboard">
-            <section class="avatar-hero-card">
-              <div class="avatar-container">
-                <app-agent-avatar-3d
-                  [mood]="controller.avatarMood()"
-                  [targetHop]="(activeAgentId() === 'v2' || activeAgentId() === 'v3') ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
-                ></app-agent-avatar-3d>
+
+            <!-- 1. COMPOSICIÓN HERO PRINCIPAL (Avatar 3D + Fase Activa) -->
+            <section class="execution-hero-card" aria-label="Tarjeta principal de ejecución y avatar">
+              <div class="hero-avatar-col">
+                <div class="avatar-stage-wrapper">
+                  <app-agent-avatar-3d
+                    [mood]="controller.avatarMood()"
+                    [targetHop]="(activeAgentId() === 'v2' || activeAgentId() === 'v3') ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
+                  ></app-agent-avatar-3d>
+                </div>
               </div>
 
+              <div class="hero-meta-col">
+                <div class="hero-meta-header">
+                  <span class="meta-eyebrow">
+                    {{ (activeAgentId() === 'v2' || activeAgentId() === 'v3') ? 'EJECUCIÓN DEL AGENT LOOP' : 'RECORRIDO DE EJECUCIÓN' }}
+                  </span>
+                  <span class="status-pill {{ heroStatus() }}">
+                    <span class="pulse-ring" *ngIf="heroStatus() === 'running' || heroStatus() === 'active'"></span>
+                    {{ heroStatusLabel() }}
+                  </span>
+                </div>
+
+                <h3 class="hero-title">{{ heroTitle() }}</h3>
+
+                <div class="hero-actor-pill">
+                  <svg class="actor-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                  </svg>
+                  <span class="actor-label">Componente Soberano:</span>
+                  <span class="actor-name">{{ heroActor() }}</span>
+                </div>
+
+                @if (heroDecision(); as decisionCode) {
+                  <div class="hero-decision-banner {{ describeDecision(decisionCode).tone }}" role="note">
+                    <span class="decision-label">Decisión del Runtime:</span>
+                    <span class="decision-name">{{ describeDecision(decisionCode).label }} ({{ decisionCode }})</span>
+                    <span class="decision-outcome">
+                      {{ describeDecision(decisionCode).isSafetyStop ? 'Terminación por seguridad' : describeDecision(decisionCode).tone === 'danger' ? 'Terminación por error' : describeDecision(decisionCode).isTerminal ? 'Terminación normal' : 'El bucle continúa' }}
+                    </span>
+                  </div>
+                }
+
+                <div class="hero-pedagogy-grid">
+                  <div class="pedagogy-box happening">
+                    <div class="box-header">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 14 14"></polyline>
+                      </svg>
+                      <span class="box-tag">Qué está ocurriendo:</span>
+                    </div>
+                    <p class="box-text">{{ heroDescription() }}</p>
+                  </div>
+                  <div class="pedagogy-box insight">
+                    <div class="box-header">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                      </svg>
+                      <span class="box-tag">Por qué importa:</span>
+                    </div>
+                    <p class="box-text">{{ heroInsight() }}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 2. PIPELINE STEPPER / AGENT LOOP INTERACTIVO -->
+            <section class="pipeline-stepper-card">
               @if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {
-                <div class="loop-flow-wrapper">
-                  <app-v2-loop-flow
-                    [iterations]="v2Execution().iterations"
-                    [selectedIterationIndex]="controller.selectedIterationIndex()"
-                    [selectedPhaseIndex]="controller.selectedPhaseIndex()"
-                    (iterationClick)="controller.selectV2Iteration($event)"
-                    (phaseClick)="controller.selectV2Phase($event)"
-                  ></app-v2-loop-flow>
-                </div>
+                <app-v2-loop-flow
+                  [iterations]="v2Execution().iterations"
+                  [selectedIterationIndex]="controller.selectedIterationIndex()"
+                  [selectedPhaseIndex]="controller.selectedPhaseIndex()"
+                  (iterationClick)="controller.selectV2Iteration($event)"
+                  (phaseClick)="controller.selectV2Phase($event)"
+                ></app-v2-loop-flow>
               } @else {
-                <div class="journey-flow-wrapper">
-                  <app-journey-flow
-                    [steps]="journey().steps"
-                    [selectedHopNumber]="controller.activeStep()?.hopNumber || 1"
-                    (stepClick)="controller.selectStep($event)"
-                  ></app-journey-flow>
-                </div>
+                <app-journey-flow
+                  [steps]="journey().steps"
+                  [selectedHopNumber]="controller.activeStep()?.hopNumber || 1"
+                  (stepClick)="controller.selectStep($event)"
+                ></app-journey-flow>
               }
             </section>
 
-            <!-- Plantilla reutilizable para la fase activa del Agent Loop (reutilizada en v2 y v3) -->
-            <ng-template #phaseDetailCard>
-              @if (controller.activeV2Phase(); as phase) {
-                <article class="step-detail-card" [ngClass]="phase.status">
-                  <div class="card-headline">
-                    <div class="headline-left">
-                      <span class="hop-chip">FASE {{ controller.selectedPhaseIndex() + 1 }}</span>
-                      <h3 class="step-title">{{ phase.title }}</h3>
-                    </div>
-                    <span class="status-pill {{ phase.status }}">{{ phaseStatusLabels[phase.status] | uppercase }}</span>
-                  </div>
-
-                  <div class="actor-bar">
-                    <svg class="actor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                      <rect x="9" y="9" width="6" height="6"></rect>
-                      <line x1="9" y1="1" x2="9" y2="4"></line>
-                      <line x1="15" y1="1" x2="15" y2="4"></line>
-                      <line x1="9" y1="20" x2="9" y2="23"></line>
-                      <line x1="15" y1="20" x2="15" y2="23"></line>
-                      <line x1="20" y1="9" x2="23" y2="9"></line>
-                      <line x1="20" y1="14" x2="23" y2="14"></line>
-                      <line x1="1" y1="9" x2="4" y2="9"></line>
-                      <line x1="1" y1="14" x2="4" y2="14"></line>
+            <!-- 3. DETALLE DE FASE & INSPECTOR TÉCNICO (4 Pestañas) -->
+            <ng-template #technicalInspectorDetail>
+              <section class="technical-inspector-section">
+                <div class="section-top-bar">
+                  <div class="section-heading">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="4 17 10 11 4 5"></polyline>
+                      <line x1="12" y1="19" x2="20" y2="19"></line>
                     </svg>
-                    <span class="actor-label">Componente Soberano:</span>
-                    <span class="actor-value">{{ phase.actor }}</span>
+                    <h4>Detalle de la Fase Actual</h4>
+                    <span class="event-type-chip">{{ activeEventType() }}</span>
                   </div>
 
-                  @if (phase.statusReason) {
-                    <div class="phase-reason" [ngClass]="phase.status" role="note">
-                      <span class="phase-reason-label">{{ phase.status === 'skipped' ? 'Motivo de omisión' : phase.status === 'failed' ? 'Motivo del fallo' : 'Detalle' }}</span>
-                      <span class="phase-reason-text">{{ phase.statusReason }}</span>
+                  <nav class="tech-subtabs" role="tablist" aria-label="Pestañas del inspector técnico">
+                    <button
+                      type="button"
+                      class="tech-subtab-btn"
+                      role="tab"
+                      [class.active]="activeTechTab() === 'inference'"
+                      (click)="activeTechTab.set('inference')"
+                      [attr.aria-selected]="activeTechTab() === 'inference'"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                      </svg>
+                      <span>Inferencia observable</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="tech-subtab-btn"
+                      role="tab"
+                      [class.active]="activeTechTab() === 'tools'"
+                      (click)="activeTechTab.set('tools')"
+                      [attr.aria-selected]="activeTechTab() === 'tools'"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                      </svg>
+                      <span>Herramientas</span>
+                      @if (currentTools().length > 0) {
+                        <span class="badge-count">{{ currentTools().length }}</span>
+                      }
+                    </button>
+
+                    <button
+                      type="button"
+                      class="tech-subtab-btn"
+                      role="tab"
+                      [class.active]="activeTechTab() === 'response'"
+                      (click)="activeTechTab.set('response')"
+                      [attr.aria-selected]="activeTechTab() === 'response'"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                      <span>Respuesta</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="tech-subtab-btn"
+                      role="tab"
+                      [class.active]="activeTechTab() === 'json'"
+                      (click)="activeTechTab.set('json')"
+                      [attr.aria-selected]="activeTechTab() === 'json'"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                      </svg>
+                      <span>JSON técnico</span>
+                    </button>
+                  </nav>
+                </div>
+
+                <div class="tech-tab-content">
+                  <!-- PESTAÑA 1: Inferencia observable -->
+                  @if (activeTechTab() === 'inference') {
+                    <div class="tab-pane-inference">
+                      <div class="observable-alert">
+                        <svg class="alert-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <div class="alert-text">
+                          <strong>Evidencia Técnica Observable:</strong> Solo se reportan datos y parámetros emitidos directamente por el runtime. No se deducen ni simulan pensamientos internos del LLM.
+                        </div>
+                      </div>
+
+                      <div class="telemetry-grid">
+                        <div class="metric-card">
+                          <span class="m-label">Modelo LLM</span>
+                          <span class="m-val text-cyan">{{ activeModelName() }}</span>
+                        </div>
+                        <div class="metric-card">
+                          <span class="m-label">Duración Observable</span>
+                          <span class="m-val">{{ activeDuration() }}</span>
+                        </div>
+                        <div class="metric-card">
+                          <span class="m-label">Temperatura de Muestreo</span>
+                          <span class="m-val text-amber">0.1 (Determinista)</span>
+                        </div>
+                        <div class="metric-card">
+                          <span class="m-label">Estado de Ejecución</span>
+                          <span class="m-val text-emerald">{{ heroStatusLabel() }}</span>
+                        </div>
+                      </div>
+
+                      @if (isInferencePhase()) {
+                        <div class="inference-detail-box">
+                          <div class="box-header">
+                            <span class="header-tag">Parámetros de Llamada y Salida Observable</span>
+                          </div>
+                          <div class="params-table">
+                            <div class="param-row">
+                              <span class="p-key">Criterio de Parada (Stop Reason):</span>
+                              <span class="p-val font-mono">{{ activeStopReason() }}</span>
+                            </div>
+                            <div class="param-row">
+                              <span class="p-key">Herramientas en Contexto:</span>
+                              <span class="p-val font-mono">get_ticket, assign_ticket, get_customer_tickets</span>
+                            </div>
+                            <div class="param-row">
+                              <span class="p-key">Aislamiento de Sujeto:</span>
+                              <span class="p-val font-mono">{{ activeSubjectId() }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      } @else {
+                        <div class="non-inference-notice">
+                          <span class="notice-title">Fase Determinista del Pipeline</span>
+                          <p>Esta fase no invoca inferencia directa del modelo de lenguaje; es administrada por <strong>{{ heroActor() }}</strong> para validación tipada, consulta SQL o inyección de estado.</p>
+                        </div>
+                      }
                     </div>
                   }
 
-                  @if (phase.phaseType === 'decision' && controller.activeV2Iteration()?.decision; as decisionCode) {
-                    <div class="decision-banner {{ describeDecision(decisionCode).tone }}" role="note">
-                      <span class="decision-banner-label">Decisión del runtime</span>
-                      <span class="decision-banner-value">{{ describeDecision(decisionCode).label }}</span>
-                      <span class="decision-banner-code">{{ decisionCode }}</span>
-                      <span class="decision-banner-outcome">
-                        {{ describeDecision(decisionCode).isSafetyStop ? 'Terminación por condición de seguridad' : describeDecision(decisionCode).tone === 'danger' ? 'Terminación por error' : describeDecision(decisionCode).isTerminal ? 'Terminación normal' : 'El bucle continúa' }}
-                      </span>
-                    </div>
-                  }
+                  <!-- PESTAÑA 2: Herramientas -->
+                  @if (activeTechTab() === 'tools') {
+                    <div class="tab-pane-tools">
+                      @if (currentTools().length === 0) {
+                        <div class="no-tools-notice">
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                          </svg>
+                          <h5>Sin Invocación de Herramientas en Esta Fase</h5>
+                          <p>Las herramientas se activan durante las fases de propuesta y ejecución técnica (ej. Hop 3 y Hop 5 en v1, o fases de Tool Execution en v2 y v3).</p>
+                        </div>
+                      } @else {
+                        <div class="tools-list">
+                          @for (tool of currentTools(); track tool.toolCallId) {
+                            <div class="tool-card">
+                              <div class="tool-card-head">
+                                <div class="tool-title-group">
+                                  <span class="tool-tag">HERRAMIENTA</span>
+                                  <h5 class="tool-name">{{ tool.toolName }}</h5>
+                                  <span class="tool-id">{{ tool.toolCallId }}</span>
+                                </div>
+                                <div class="tool-head-badges">
+                                  @if (tool.isMutative) {
+                                    <span class="chip-mutative">MUTATIVA</span>
+                                  }
+                                  @if (tool.idempotencyHit) {
+                                    <span class="chip-idempotent">IDEMPOTENCIA HIT</span>
+                                  }
+                                  <span class="status-pill {{ tool.executionStatus || 'completed' }}">
+                                    {{ (tool.executionStatus || 'completada') | uppercase }}
+                                  </span>
+                                </div>
+                              </div>
 
-                  <div class="pedagogical-grid">
-                    <div class="pedagogical-item">
-                      <div class="item-header">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                          <line x1="16" y1="13" x2="8" y2="13"></line>
-                          <line x1="16" y1="17" x2="8" y2="17"></line>
-                        </svg>
-                        <span class="item-title">Qué está ocurriendo</span>
-                      </div>
-                      <p class="item-body">{{ phase.description }}</p>
-                    </div>
+                              @if (tool.durationMs) {
+                                <div class="tool-latency">
+                                  <span>Latencia de ejecución:</span>
+                                  <strong class="font-mono">{{ tool.durationMs }} ms</strong>
+                                </div>
+                              }
 
-                    <div class="pedagogical-item insight-item">
-                      <div class="item-header insight-header">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                        <span class="item-title">Por qué importa (Arquitectura Agéntica Loop)</span>
-                      </div>
-                      <p class="item-body">{{ phase.pedagogicalInsight }}</p>
-                    </div>
-                  </div>
+                              <div class="tool-subgroup">
+                                <div class="subgroup-label">
+                                  <span>Argumentos Validados (Pydantic Schema):</span>
+                                </div>
+                                <app-technical-viewer [payload]="tool.arguments"></app-technical-viewer>
+                              </div>
 
-                  @if (phase.tools && phase.tools.length > 0) {
-                    <div class="v2-tools-section">
-                      <div class="tools-section-title">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                          <polyline points="2 17 12 22 22 17"></polyline>
-                          <polyline points="2 12 12 17 22 12"></polyline>
-                        </svg>
-                        <span>Herramientas Involucradas ({{ phase.tools.length }})</span>
-                      </div>
-
-                      @for (tool of phase.tools; track tool.toolCallId) {
-                        <div class="tool-item-card">
-                          <div class="tool-item-header">
-                            <span class="tool-item-name">{{ tool.toolName }}</span>
-                            <span class="tool-item-id">{{ tool.toolCallId }}</span>
-                          </div>
-
-                          <div class="tool-meta-row">
-                            @if (tool.executionStatus) {
-                              <span class="tool-status-badge {{ tool.executionStatus }}">
-                                Estado: {{ tool.executionStatus | uppercase }}
-                              </span>
-                            }
-                            @if (tool.durationMs) {
-                              <span>Duración: {{ tool.durationMs }}ms</span>
-                            }
-                            @if (tool.isMutative) {
-                              <span class="mutative-tag">MUTATIVA</span>
-                            }
-                            @if (tool.idempotencyHit) {
-                              <span class="idempotent-tag">IDEMPOTENCIA HIT</span>
-                            }
-                          </div>
-
-                          <div class="tool-detail-group">
-                            <span class="detail-group-label">Argumentos Validados:</span>
-                            <pre class="json-inline-viewer">{{ tool.arguments | json }}</pre>
-                          </div>
-
-                          @if (tool.observation) {
-                            <div class="tool-detail-group">
-                              <span class="detail-group-label">Observación Obtenida (MySQL):</span>
-                              <pre class="json-inline-viewer">{{ tool.observation | json }}</pre>
+                              @if (tool.observation) {
+                                <div class="tool-subgroup">
+                                  <div class="subgroup-label">
+                                    <span>Observación Obtenida (Base de Datos MySQL):</span>
+                                  </div>
+                                  <app-technical-viewer [payload]="tool.observation"></app-technical-viewer>
+                                </div>
+                              }
                             </div>
                           }
                         </div>
@@ -379,201 +525,132 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
                     </div>
                   }
 
-                  <div class="tech-disclosure">
-                    <button
-                      type="button"
-                      class="disclosure-toggle"
-                      (click)="isTechOpen.set(!isTechOpen())"
-                      [attr.aria-expanded]="isTechOpen()"
-                    >
-                      <div class="disclosure-left">
-                        <svg class="chevron-icon" [class.rotated]="isTechOpen()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                        <span>{{ isTechOpen() ? 'Ocultar Evidencia Técnica' : 'Inspeccionar Evidencia Técnica (JSON)' }}</span>
-                      </div>
-                      <span class="disclosure-badge">{{ phase.phaseType | uppercase }}</span>
-                    </button>
+                  <!-- PESTAÑA 3: Respuesta -->
+                  @if (activeTechTab() === 'response') {
+                    <div class="tab-pane-response">
+                      @if (currentSynthesizedResponse(); as resp) {
+                        <div class="response-card">
+                          <div class="response-card-head">
+                            <div class="agent-avatar-icon">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                                <circle cx="12" cy="5" r="2"></circle>
+                                <path d="M12 7v4"></path>
+                                <line x1="8" y1="16" x2="8" y2="16"></line>
+                                <line x1="16" y1="16" x2="16" y2="16"></line>
+                              </svg>
+                            </div>
+                            <div class="response-head-meta">
+                              <span class="speaker-name">Agente de Soporte (Respuesta Sintetizada)</span>
+                              <span class="final-badge">CONFIRMADA EN RUNTIME</span>
+                            </div>
+                          </div>
+                          <div class="response-body">
+                            <p>{{ resp }}</p>
+                          </div>
+                        </div>
+                      } @else {
+                        <div class="pending-response-box">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                          </svg>
+                          <h5>Respuesta Final en Construcción</h5>
+                          <p>El agente se encuentra en una fase preliminar de evaluación o ejecución de herramientas. La respuesta final se sintetizará en el último paso (Hop 7 en v1, o fase de Síntesis en v2/v3).</p>
+                        </div>
+                      }
+                    </div>
+                  }
 
-                    @if (isTechOpen()) {
-                      <div class="technical-viewer-wrapper">
-                        <app-technical-viewer [payload]="phase.payload || phase"></app-technical-viewer>
-                      </div>
-                    }
-                  </div>
-                </article>
-              } @else {
-                <div class="journey-empty-state">
-                  <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  <h3>Esperando Ejecución del Agent Loop</h3>
-                  <p>Inicia una consulta en el chat para observar las dimensiones macro y micro de la ejecución en tiempo real.</p>
+                  <!-- PESTAÑA 4: JSON técnico -->
+                  @if (activeTechTab() === 'json') {
+                    <div class="tab-pane-json">
+                      <app-technical-viewer [payload]="activePayload()"></app-technical-viewer>
+                    </div>
+                  }
                 </div>
-              }
+              </section>
             </ng-template>
 
+            <!-- Renderizado según modo de Agent (v1 / v2 / v3) -->
             @if (activeAgentId() === 'v3') {
-              <!-- 1. Vista Dual de Agent v3 (Agent Loop + State & Memory) -->
-              <div class="v3-subnav-bar" role="group" aria-label="Modo de visualización Agent v3">
-                <div class="v3-subnav-title">
-                  <span class="v3-pill">v3 DUAL PROJECTION</span>
-                  <span>Agent Loop + State &amp; Memory</span>
-                </div>
-                <div class="v3-subnav-buttons">
-                  <button
-                    type="button"
-                    class="v3-subnav-btn"
-                    [class.active]="v3ViewMode() === 'dual'"
-                    (click)="v3ViewMode.set('dual')"
-                    aria-label="Ver ambas visualizaciones sincronizadas"
-                  >
-                    Vista Dual
-                  </button>
-                  <button
-                    type="button"
-                    class="v3-subnav-btn"
-                    [class.active]="v3ViewMode() === 'loop'"
-                    (click)="v3ViewMode.set('loop')"
-                    aria-label="Ver solo el bucle iterativo"
-                  >
-                    Solo Loop
-                  </button>
-                  <button
-                    type="button"
-                    class="v3-subnav-btn"
-                    [class.active]="v3ViewMode() === 'memory'"
-                    (click)="v3ViewMode.set('memory')"
-                    aria-label="Ver solo estado y memoria MySQL"
-                  >
-                    Solo Memoria
-                  </button>
-                </div>
-              </div>
-
-              <div class="v3-dual-container" [attr.data-mode]="v3ViewMode()">
-                @if (v3ViewMode() === 'dual' || v3ViewMode() === 'loop') {
-                  <div class="v3-panel-loop">
-                    <div class="panel-column-header">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="23 4 23 10 17 10"></polyline>
-                        <polyline points="1 20 1 14 7 14"></polyline>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                      </svg>
-                      <h4>Agent Loop (Fases &amp; Hops)</h4>
-                    </div>
-                    <ng-container *ngTemplateOutlet="phaseDetailCard"></ng-container>
+              @if (embeddedMemory()) {
+                <!-- Vista Dual de Agent v3 (Agent Loop + State & Memory) -->
+                <div class="v3-subnav-bar" role="group" aria-label="Modo de visualización Agent v3">
+                  <div class="v3-subnav-title">
+                    <span class="v3-pill">v3 DUAL PROJECTION</span>
+                    <span>Agent Loop + State &amp; Memory</span>
                   </div>
-                }
-
-                @if (v3ViewMode() === 'dual' || v3ViewMode() === 'memory') {
-                  <div class="v3-panel-memory">
-                    <div class="panel-column-header">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                      </svg>
-                      <h4>State &amp; Memory (MySQL Persistente)</h4>
-                    </div>
-                    <app-v3-memory-inspector
-                      [state]="v3State()"
-                      [showHitlControls]="false"
-                      (selectTaskOption)="onSelectTaskOption($event)"
-                    ></app-v3-memory-inspector>
-                  </div>
-                }
-              </div>
-            } @else if (activeAgentId() === 'v2') {
-              <!-- 2. Vista estándar de Agent v2 -->
-              <ng-container *ngTemplateOutlet="phaseDetailCard"></ng-container>
-            } @else {
-              @if (controller.activeStep(); as step) {
-                <article class="step-detail-card" [ngClass]="step.status">
-                  <div class="card-headline">
-                    <div class="headline-left">
-                      <span class="hop-chip">HOP {{ step.hopNumber }}</span>
-                      <h3 class="step-title">{{ step.title }}</h3>
-                    </div>
-                    <span class="status-pill {{ step.status }}">{{ step.status | uppercase }}</span>
-                  </div>
-
-                  <div class="actor-bar">
-                    <svg class="actor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                      <rect x="9" y="9" width="6" height="6"></rect>
-                      <line x1="9" y1="1" x2="9" y2="4"></line>
-                      <line x1="15" y1="1" x2="15" y2="4"></line>
-                      <line x1="9" y1="20" x2="9" y2="23"></line>
-                      <line x1="15" y1="20" x2="15" y2="23"></line>
-                      <line x1="20" y1="9" x2="23" y2="9"></line>
-                      <line x1="20" y1="14" x2="23" y2="14"></line>
-                      <line x1="1" y1="9" x2="4" y2="9"></line>
-                      <line x1="1" y1="14" x2="4" y2="14"></line>
-                    </svg>
-                    <span class="actor-label">Componente Soberano:</span>
-                    <span class="actor-value">{{ step.actor }}</span>
-                  </div>
-
-                  <div class="pedagogical-grid">
-                    <div class="pedagogical-item">
-                      <div class="item-header">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                          <line x1="16" y1="13" x2="8" y2="13"></line>
-                          <line x1="16" y1="17" x2="8" y2="17"></line>
-                        </svg>
-                        <span class="item-title">Qué está ocurriendo</span>
-                      </div>
-                      <p class="item-body">{{ step.description }}</p>
-                    </div>
-
-                    <div class="pedagogical-item insight-item">
-                      <div class="item-header insight-header">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                        <span class="item-title">Por qué importa (Arquitectura Agéntica)</span>
-                      </div>
-                      <p class="item-body">{{ step.pedagogicalInsight }}</p>
-                    </div>
-                  </div>
-
-                  <div class="tech-disclosure">
+                  <div class="v3-subnav-buttons">
                     <button
                       type="button"
-                      class="disclosure-toggle"
-                      (click)="isTechOpen.set(!isTechOpen())"
-                      [attr.aria-expanded]="isTechOpen()"
+                      class="v3-subnav-btn"
+                      [class.active]="v3ViewMode() === 'dual'"
+                      (click)="v3ViewMode.set('dual')"
+                      aria-label="Ver ambas visualizaciones sincronizadas"
                     >
-                      <div class="disclosure-left">
-                        <svg class="chevron-icon" [class.rotated]="isTechOpen()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                        <span>{{ isTechOpen() ? 'Ocultar Evidencia Técnica' : 'Inspeccionar Evidencia Técnica (JSON)' }}</span>
-                      </div>
-                      <span class="disclosure-badge">{{ step.eventType }}</span>
+                      Vista Dual
                     </button>
-
-                    @if (isTechOpen()) {
-                      <div class="technical-viewer-wrapper">
-                        <app-technical-viewer [payload]="step.payload"></app-technical-viewer>
-                      </div>
-                    }
+                    <button
+                      type="button"
+                      class="v3-subnav-btn"
+                      [class.active]="v3ViewMode() === 'loop'"
+                      (click)="v3ViewMode.set('loop')"
+                      aria-label="Ver solo el bucle iterativo"
+                    >
+                      Solo Loop
+                    </button>
+                    <button
+                      type="button"
+                      class="v3-subnav-btn"
+                      [class.active]="v3ViewMode() === 'memory'"
+                      (click)="v3ViewMode.set('memory')"
+                      aria-label="Ver solo estado y memoria MySQL"
+                    >
+                      Solo Memoria
+                    </button>
                   </div>
-                </article>
-              } @else {
-                <div class="journey-empty-state">
-                  <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  <h3>Esperando Ejecución Agéntica</h3>
-                  <p>Escribe una consulta en el chat para observar el encadenamiento de hops en tiempo real con su componente responsable.</p>
                 </div>
+
+                <div class="v3-dual-container" [attr.data-mode]="v3ViewMode()">
+                  @if (v3ViewMode() === 'dual' || v3ViewMode() === 'loop') {
+                    <div class="v3-panel-loop">
+                      <div class="panel-column-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <polyline points="1 20 1 14 7 14"></polyline>
+                          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <h4>Agent Loop (Fases &amp; Hops)</h4>
+                      </div>
+                      <ng-container *ngTemplateOutlet="technicalInspectorDetail"></ng-container>
+                    </div>
+                  }
+
+                  @if (v3ViewMode() === 'dual' || v3ViewMode() === 'memory') {
+                    <div class="v3-panel-memory">
+                      <div class="panel-column-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                        <h4>State &amp; Memory (MySQL Persistente)</h4>
+                      </div>
+                      <app-v3-memory-inspector
+                        [state]="v3State()"
+                        [showHitlControls]="false"
+                        (selectTaskOption)="onSelectTaskOption($event)"
+                      ></app-v3-memory-inspector>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <!-- Layout de 3 columnas de escritorio: Inspector dedicado a Agent Loop -->
+                <ng-container *ngTemplateOutlet="technicalInspectorDetail"></ng-container>
               }
+            } @else {
+              <!-- Para Agent v1 y Agent v2 -->
+              <ng-container *ngTemplateOutlet="technicalInspectorDetail"></ng-container>
             }
           </div>
         } @else if (activeTab() === 'events') {
@@ -664,7 +741,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       box-sizing: border-box;
     }
     .inspector-header {
-      padding: 0.75rem 1rem 0.35rem 1rem;
+      padding: 0.65rem 0.95rem 0.35rem 0.95rem;
       border-bottom: 1px solid var(--border-subtle);
       background: var(--bg-panel);
       flex-shrink: 0;
@@ -676,7 +753,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       align-items: center;
       gap: 0.5rem;
       flex-wrap: wrap;
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.4rem;
     }
     .title-meta {
       display: flex;
@@ -774,10 +851,8 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
     .btn-pause-visual:hover, .btn-switch-replay:hover, .btn-switch-live:hover {
       background: var(--bg-card-hover);
       border-color: var(--accent-cyan);
-      color: var(--accent-cyan);
     }
     .btn-pause-visual.is-paused {
-      background: var(--accent-amber-bg);
       border-color: var(--accent-amber);
       color: var(--accent-amber);
     }
@@ -786,12 +861,12 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #090d16;
+      gap: 0.5rem;
+      padding: 0.35rem 0.5rem;
+      background: rgba(168, 85, 247, 0.08);
       border: 1px solid rgba(168, 85, 247, 0.25);
       border-radius: var(--radius-sm);
-      padding: 0.3rem 0.6rem;
-      margin-bottom: 0.45rem;
-      gap: 0.5rem;
+      margin-bottom: 0.4rem;
       flex-wrap: wrap;
     }
     .transport-controls {
@@ -803,74 +878,72 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       background: var(--bg-card);
       border: 1px solid var(--border-default);
       color: var(--text-primary);
-      width: 26px;
-      height: 26px;
-      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      border-radius: 4px;
       cursor: pointer;
       transition: var(--transition-fast);
     }
     .btn-tool:hover {
       background: var(--bg-card-hover);
-      border-color: #a78bfa;
-      color: #a78bfa;
+      border-color: var(--accent-cyan);
     }
     .btn-play-pause {
-      background: #7c3aed;
-      border-color: #a78bfa;
-      color: #ffffff;
+      background: rgba(168, 85, 247, 0.2);
+      border-color: rgba(168, 85, 247, 0.5);
+      color: #e9d5ff;
     }
     .speed-selector {
       display: flex;
       background: var(--bg-card);
-      border-radius: 4px;
-      padding: 2px;
       border: 1px solid var(--border-default);
+      border-radius: 4px;
+      overflow: hidden;
     }
     .btn-speed {
       background: transparent;
       border: none;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       font-size: 0.64rem;
-      font-weight: 600;
+      font-family: var(--font-mono);
       padding: 0.15rem 0.4rem;
-      border-radius: 3px;
       cursor: pointer;
     }
     .btn-speed.active {
-      background: #6d28d9;
+      background: rgba(168, 85, 247, 0.3);
       color: #ffffff;
       font-weight: 700;
     }
     .step-indicator {
       font-size: 0.68rem;
-      font-weight: 700;
       font-family: var(--font-mono);
-      color: #c084fc;
+      color: #d8b4fe;
+      font-weight: 600;
     }
 
     .tabs-bar {
       display: flex;
-      gap: 0.4rem;
+      gap: 0.35rem;
       overflow-x: auto;
-      min-width: 0;
     }
     .tab-btn {
       background: transparent;
       border: none;
       border-bottom: 2px solid transparent;
-      color: var(--text-secondary);
-      font-size: 0.74rem;
+      color: var(--text-muted);
+      font-size: 0.72rem;
       font-weight: 600;
       padding: 0.35rem 0.55rem;
-      cursor: pointer;
-      transition: var(--transition-fast);
-      white-space: nowrap;
       display: flex;
       align-items: center;
       gap: 0.35rem;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      white-space: nowrap;
     }
     .tab-btn:hover {
       color: var(--text-primary);
@@ -879,414 +952,742 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       color: var(--accent-cyan);
       border-bottom-color: var(--accent-cyan);
     }
-    .future-tab {
-      color: #a78bfa;
+    .future-tab.active {
+      color: #c084fc;
+      border-bottom-color: #c084fc;
     }
 
     .inspector-content {
       flex: 1 1 0;
       min-height: 0;
       overflow-y: auto;
-      overflow-x: hidden;
-      padding: 0.85rem;
+      padding: 0.75rem;
       box-sizing: border-box;
-      min-width: 0;
-      width: 100%;
     }
     .journey-dashboard {
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.75rem;
       min-width: 0;
-      width: 100%;
     }
-    .avatar-hero-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-subtle);
+
+    /* 1. HERO EXECUTION CARD */
+    .execution-hero-card {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0.9rem;
+      padding: 0.85rem 0.95rem;
+      background: linear-gradient(135deg, rgba(9, 17, 36, 0.98) 0%, rgba(10, 19, 41, 0.96) 100%);
+      border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
-      padding: 0.65rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .hero-avatar-col {
+      width: 135px;
+      min-width: 120px;
+      max-width: 150px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .avatar-stage-wrapper {
+      width: 100%;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-meta-col {
+      flex: 1 1 auto;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
-      min-width: 0;
+      gap: 0.38rem;
     }
-    .avatar-container {
-      width: 100%;
-      height: 160px;
-      min-width: 0;
-    }
-    .journey-flow-wrapper, .loop-flow-wrapper {
-      width: 100%;
-      min-width: 0;
-      border-top: 1px solid var(--border-subtle);
-      padding-top: 0.35rem;
-    }
-
-    .step-detail-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 0.85rem;
-      min-width: 0;
-      width: 100%;
-      box-sizing: border-box;
-      transition: border-color 0.2s ease;
-    }
-    .step-detail-card.active, .step-detail-card.running {
-      border-color: var(--accent-cyan);
-      box-shadow: 0 0 14px rgba(56, 189, 248, 0.15);
-    }
-    .step-detail-card.completed {
-      border-color: rgba(16, 185, 129, 0.4);
-    }
-    .step-detail-card.skipped {
-      border-color: var(--border-default);
-      opacity: 0.85;
-    }
-    .step-detail-card.failed {
-      border-color: var(--accent-crimson);
-    }
-    .step-detail-card.timeout {
-      border-color: var(--accent-amber);
-    }
-
-    .card-headline {
+    .hero-meta-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.55rem;
-      flex-wrap: wrap;
-      min-width: 0;
-    }
-    .headline-left {
-      display: flex;
-      align-items: center;
       gap: 0.45rem;
-      min-width: 0;
     }
-    .hop-chip {
-      background: #0284c7;
-      color: #ffffff;
-      font-size: 0.65rem;
-      font-weight: 800;
-      font-family: var(--font-mono);
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-    }
-    .step-title {
-      font-size: 0.88rem;
+    .meta-eyebrow {
+      font-size: 0.64rem;
       font-weight: 700;
-      color: var(--text-primary);
-      margin: 0;
-      word-break: break-word;
-    }
-    .status-pill {
-      font-size: 0.62rem;
-      font-weight: 800;
       font-family: var(--font-mono);
-      padding: 0.15rem 0.45rem;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-    .status-pill.completed { background: #064e3b; color: #34d399; }
-    .status-pill.active, .status-pill.running { background: #0369a1; color: #bae6fd; }
-    .status-pill.skipped { background: #334155; color: #cbd5e1; }
-    .status-pill.failed { background: #7f1d1d; color: #fca5a5; }
-    .status-pill.timeout { background: #78350f; color: #fde68a; }
-    .phase-reason, .decision-banner {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      padding: 0.55rem 0.75rem;
-      margin-bottom: 0.75rem;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-default);
-      border-left-width: 3px;
-      background: var(--bg-card);
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-    .phase-reason.skipped { border-left-color: var(--text-muted); }
-    .phase-reason.failed { border-left-color: var(--accent-crimson); }
-    .phase-reason-label, .decision-banner-label {
-      font-size: 0.62rem;
-      font-weight: 800;
-      font-family: var(--font-mono);
-      text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-muted);
+      text-transform: uppercase;
     }
-    .phase-reason-text, .decision-banner-outcome {
-      font-size: 0.78rem;
-      line-height: 1.45;
-      color: var(--text-secondary);
+    .hero-title {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      line-height: 1.25;
+      letter-spacing: 0.01em;
     }
-    .decision-banner-value {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .decision-banner-code {
-      font-size: 0.68rem;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
-    }
-    .decision-banner.continue { border-left-color: var(--accent-cyan); }
-    .decision-banner.success { border-left-color: var(--accent-emerald); }
-    .decision-banner.warning { border-left-color: var(--accent-amber); }
-    .decision-banner.danger { border-left-color: var(--accent-crimson); }
-    .decision-banner.neutral { border-left-color: var(--text-muted); }
-    .status-pill.idle { background: #1e293b; color: #64748b; }
-
-    .actor-bar {
-      display: flex;
+    .hero-actor-pill {
+      display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: var(--bg-card);
-      padding: 0.35rem 0.6rem;
-      border-radius: var(--radius-sm);
-      margin-bottom: 0.75rem;
+      background: rgba(13, 21, 39, 0.85);
       border: 1px solid var(--border-subtle);
-      font-size: 0.74rem;
-      min-width: 0;
-      flex-wrap: wrap;
+      border-radius: 4px;
+      padding: 0.18rem 0.45rem;
+      width: fit-content;
+      font-size: 0.70rem;
     }
-    .actor-icon {
+    .hero-actor-pill .actor-icon {
       color: var(--accent-cyan);
     }
     .actor-label {
-      color: var(--text-secondary);
+      color: var(--text-muted);
       font-weight: 500;
     }
-    .actor-value {
-      color: var(--accent-cyan);
+    .actor-name {
+      color: #f1f5f9;
       font-weight: 700;
-      word-break: break-word;
     }
-
-    .pedagogical-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 0.85rem;
-    }
-    .pedagogical-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-left: 3px solid var(--accent-cyan);
-      border-radius: var(--radius-sm);
-      padding: 0.75rem 0.85rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .pedagogical-item.insight-item {
-      border-left-color: var(--accent-emerald);
-      border-color: rgba(16, 185, 129, 0.3);
-      background: rgba(16, 185, 129, 0.04);
-    }
-    .item-header {
+    .hero-decision-banner {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      color: var(--accent-cyan);
+      gap: 0.45rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.70rem;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #e9d5ff;
     }
-    .insight-header {
-      color: var(--accent-emerald);
+    .hero-decision-banner.success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
     }
-    .item-title {
-      font-size: 0.72rem;
+    .hero-decision-banner.danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+    .decision-label {
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      font-size: 0.62rem;
+      color: var(--text-muted);
+    }
+    .decision-name {
+      font-weight: 700;
       font-family: var(--font-mono);
     }
-    .item-body {
+    .decision-outcome {
+      font-size: 0.64rem;
+      opacity: 0.85;
+      margin-left: auto;
+    }
+
+    .hero-pedagogy-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+      margin-top: 0.15rem;
+    }
+    .pedagogy-box {
+      padding: 0.35rem 0.55rem;
+      border-radius: var(--radius-xs);
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+    .pedagogy-box.happening {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 2px solid var(--accent-cyan);
+      color: #bae6fd;
+    }
+    .pedagogy-box.insight {
+      background: rgba(168, 85, 247, 0.08);
+      border-left: 2px solid #a855f7;
+      color: #e9d5ff;
+    }
+    .box-header {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-bottom: 0.15rem;
+      font-weight: 700;
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .pedagogy-box.happening .box-header {
+      color: var(--accent-cyan);
+    }
+    .pedagogy-box.insight .box-header {
+      color: #c084fc;
+    }
+    .box-text {
       margin: 0;
-      font-size: 0.84rem;
-      line-height: 1.55;
-      color: var(--text-primary);
-      word-break: break-word;
-    }
-    .insight-item .item-body {
-      color: #e2e8f0;
+      font-size: 0.72rem;
     }
 
-    .v2-tools-section {
+    /* 2. PIPELINE STEPPER */
+    .pipeline-stepper-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.55rem;
+      overflow-x: auto;
+      min-width: 0;
+    }
+
+    /* 3. TECHNICAL INSPECTOR SECTION */
+    .technical-inspector-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
-      margin-bottom: 0.85rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      min-width: 0;
     }
-    .tools-section-title {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      font-family: var(--font-mono);
-      color: var(--accent-cyan);
-      letter-spacing: 0.04em;
+    .section-top-bar {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.45rem 0.75rem;
+      background: rgba(13, 21, 39, 0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .section-heading svg {
+      color: var(--accent-cyan);
+    }
+    .section-heading h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0;
+    }
+    .event-type-chip {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: var(--accent-emerald);
+      font-size: 0.62rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 0.08rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    .tech-subtabs {
+      display: flex;
+      gap: 0.25rem;
+      overflow-x: auto;
+    }
+    .tech-subtab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.22rem 0.55rem;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      white-space: nowrap;
+    }
+    .tech-subtab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .tech-subtab-btn.active {
+      background: var(--bg-surface);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: var(--accent-cyan);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+    .badge-count {
+      background: var(--accent-cyan-bg);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: var(--accent-cyan);
+      font-size: 0.60rem;
+      font-weight: 700;
+      padding: 0.05rem 0.3rem;
+      border-radius: 10px;
+    }
+
+    .tech-tab-content {
+      padding: 0.75rem;
+      min-width: 0;
+    }
+
+    /* Pestaña 1: Inferencia */
+    .tab-pane-inference {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .observable-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      padding: 0.45rem 0.65rem;
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: var(--radius-sm);
+      color: #93c5fd;
+      font-size: 0.70rem;
+      line-height: 1.4;
+    }
+    .alert-icon {
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .alert-text strong {
+      color: #ffffff;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.45rem;
+    }
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.55rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .m-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .m-val {
+      font-size: 0.76rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #f1f5f9;
+    }
+    .text-cyan { color: var(--accent-cyan); }
+    .text-amber { color: var(--accent-amber); }
+    .text-emerald { color: var(--accent-emerald); }
+
+    .inference-detail-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .box-header {
+      padding: 0.35rem 0.6rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .header-tag {
+      font-size: 0.64rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .params-table {
+      padding: 0.45rem 0.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.70rem;
+    }
+    .param-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .p-key {
+      color: var(--text-muted);
+    }
+    .p-val {
+      color: #f8fafc;
+      font-weight: 600;
+    }
+    .non-inference-notice {
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .notice-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    .non-inference-notice p {
+      font-size: 0.70rem;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    /* Pestaña 2: Herramientas */
+    .tab-pane-tools {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .no-tools-notice {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 0.35rem;
     }
-    .tool-item-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+    .no-tools-notice svg {
+      color: var(--text-muted);
+    }
+    .no-tools-notice h5 {
+      font-size: 0.80rem;
+      color: #ffffff;
+      margin: 0;
+    }
+    .no-tools-notice p {
+      font-size: 0.70rem;
+      color: var(--text-muted);
+      margin: 0;
+      max-width: 380px;
+      line-height: 1.4;
+    }
+    .tools-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .tool-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
       border-radius: var(--radius-sm);
-      padding: 0.65rem;
+      padding: 0.6rem;
       display: flex;
       flex-direction: column;
       gap: 0.45rem;
     }
-    .tool-item-header {
+    .tool-card-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.45rem;
       flex-wrap: wrap;
     }
-    .tool-item-name {
-      font-size: 0.82rem;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      color: var(--accent-emerald);
+    .tool-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
-    .tool-item-id {
+    .tool-tag {
+      font-size: 0.58rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      background: var(--accent-amber-bg);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: var(--accent-amber);
+      padding: 0.08rem 0.3rem;
+      border-radius: 3px;
+    }
+    .tool-name {
+      font-size: 0.80rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0;
+      font-family: var(--font-mono);
+    }
+    .tool-id {
       font-size: 0.64rem;
       color: var(--text-muted);
       font-family: var(--font-mono);
     }
-    .tool-meta-row {
+    .tool-head-badges {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 0.35rem;
+    }
+    .chip-mutative {
+      font-size: 0.58rem;
+      font-weight: 700;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 0.08rem 0.3rem;
+      border-radius: 3px;
+    }
+    .chip-idempotent {
+      font-size: 0.58rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+      padding: 0.08rem 0.3rem;
+      border-radius: 3px;
+    }
+    .tool-latency {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
       font-size: 0.68rem;
       color: var(--text-secondary);
-      font-family: var(--font-mono);
-      flex-wrap: wrap;
     }
-    .tool-status-badge {
-      padding: 0.1rem 0.35rem;
-      border-radius: 3px;
-      font-weight: 700;
-    }
-    .tool-status-badge.success { background: #064e3b; color: #34d399; }
-    .tool-status-badge.error, .tool-status-badge.failed { background: #7f1d1d; color: #fca5a5; }
-    .mutative-tag {
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--accent-amber);
-      padding: 0.1rem 0.35rem;
-      border-radius: 3px;
-      font-weight: 700;
-    }
-    .idempotent-tag {
-      background: rgba(56, 189, 248, 0.15);
-      color: var(--accent-cyan);
-      padding: 0.1rem 0.35rem;
-      border-radius: 3px;
-      font-weight: 700;
-    }
-    .tool-detail-group {
+    .tool-subgroup {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
     }
-    .detail-group-label {
+    .subgroup-label {
       font-size: 0.64rem;
       font-weight: 700;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      font-family: var(--font-mono);
-    }
-    .json-inline-viewer {
-      background: #020617;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xs);
-      padding: 0.45rem;
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      color: #e2e8f0;
-      overflow-x: auto;
-      max-height: 180px;
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .tech-disclosure {
-      margin-top: 0.45rem;
-      border-top: 1px dashed var(--border-default);
-      padding-top: 0.45rem;
-      min-width: 0;
-    }
-    .disclosure-toggle {
-      width: 100%;
-      background: transparent;
-      border: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--accent-cyan);
-      font-size: 0.74rem;
-      font-weight: 600;
-      padding: 0.3rem 0;
-      cursor: pointer;
-      transition: color 0.15s ease;
-    }
-    .disclosure-toggle:hover {
-      color: var(--accent-cyan-hover);
-    }
-    .disclosure-left {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .chevron-icon {
-      transition: transform 0.2s ease;
-    }
-    .chevron-icon.rotated {
-      transform: rotate(90deg);
-    }
-    .disclosure-badge {
-      font-size: 0.64rem;
       color: var(--text-muted);
-      font-family: var(--font-mono);
-    }
-    .technical-viewer-wrapper {
-      margin-top: 0.45rem;
-      min-width: 0;
-      max-width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
 
-    .journey-empty-state {
+    /* Pestaña 3: Respuesta */
+    .tab-pane-response {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .response-card {
+      background: var(--bg-surface);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .response-card-head {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.65rem;
+      background: rgba(16, 185, 129, 0.08);
+      border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .agent-avatar-icon {
+      color: var(--accent-emerald);
+      display: flex;
+      align-items: center;
+    }
+    .speaker-name {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .final-badge {
+      margin-left: auto;
+      font-size: 0.60rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 0.08rem 0.35rem;
+      border-radius: 4px;
+    }
+    .response-body {
+      padding: 0.65rem 0.75rem;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+    .response-body p {
+      margin: 0;
+    }
+    .pending-response-box {
       text-align: center;
-      padding: 2.25rem 1rem;
-      background: rgba(15, 23, 42, 0.6);
+      padding: 1.5rem 1rem;
+      background: rgba(15, 23, 42, 0.5);
       border: 1px dashed var(--border-default);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
     }
-    .journey-empty-state .empty-icon {
+    .pending-response-box svg {
       color: var(--accent-cyan);
-      margin-bottom: 0.25rem;
     }
-    .journey-empty-state h3 {
-      font-size: 0.92rem;
-      color: var(--accent-cyan);
+    .pending-response-box h5 {
+      font-size: 0.80rem;
+      color: #ffffff;
       margin: 0;
     }
-    .journey-empty-state p {
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-      line-height: 1.4;
+    .pending-response-box p {
+      font-size: 0.70rem;
+      color: var(--text-muted);
       margin: 0;
       max-width: 380px;
+      line-height: 1.4;
     }
 
+    /* Pestaña 4: JSON técnico */
+    .tab-pane-json {
+      min-width: 0;
+    }
+
+    /* Status Pills */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      padding: 0.12rem 0.45rem;
+      border-radius: 10px;
+      letter-spacing: 0.03em;
+    }
+    .status-pill.active, .status-pill.running {
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #00f0ff;
+    }
+    .status-pill.completed {
+      background: var(--accent-emerald-bg);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--accent-emerald);
+    }
+    .status-pill.failed {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: var(--accent-crimson);
+    }
+    .status-pill.skipped, .status-pill.idle {
+      background: rgba(100, 116, 139, 0.15);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      color: #94a3b8;
+    }
+    .pulse-ring {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #00f0ff;
+      box-shadow: 0 0 6px #00f0ff;
+      animation: pulseLive 1s infinite alternate;
+    }
+
+    /* Agent v3 Dual View Layout */
+    .v3-subnav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.35rem 0.65rem;
+      margin-top: 0.45rem;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .v3-subnav-title {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .v3-pill {
+      background: var(--accent-cyan-bg);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+    .v3-subnav-buttons {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .v3-subnav-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .v3-subnav-btn.active, .v3-subnav-btn:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+    .v3-dual-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+      width: 100%;
+      min-width: 0;
+      margin-top: 0.45rem;
+    }
+    @media (min-width: 1100px) {
+      .v3-dual-container[data-mode="dual"] {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      }
+    }
+    .v3-panel-loop, .v3-panel-memory {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      min-width: 0;
+      width: 100%;
+    }
+    .panel-column-header {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.6rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+    }
+    .panel-column-header h4 {
+      font-size: 0.74rem;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: var(--text-primary);
+    }
+
+    /* Raw Events */
     .raw-events-list {
       display: flex;
       flex-direction: column;
@@ -1336,6 +1737,7 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       padding: 2rem 0;
     }
 
+    /* Roadmap */
     .future-workshops-grid {
       display: flex;
       flex-direction: column;
@@ -1391,99 +1793,25 @@ import { PHASE_STATUS_LABELS } from '../../models/v2-loop.models';
       border: 1px solid rgba(167, 139, 250, 0.3);
     }
 
-    /* Agent v3 Dual View Styles */
-    .v3-subnav-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--bg-panel);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      padding: 0.35rem 0.65rem;
-      margin-bottom: 0.75rem;
-      flex-wrap: wrap;
-      gap: 0.45rem;
-    }
-    .v3-subnav-title {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-    .v3-pill {
-      background: var(--accent-cyan-bg);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      color: var(--accent-cyan);
-      font-family: var(--font-mono);
-      font-size: 0.64rem;
-      font-weight: 700;
-      padding: 0.1rem 0.35rem;
-      border-radius: 4px;
-    }
-    .v3-subnav-buttons {
-      display: flex;
-      gap: 0.25rem;
-    }
-    .v3-subnav-btn {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-muted);
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: var(--transition-fast);
-    }
-    .v3-subnav-btn.active, .v3-subnav-btn:hover {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: var(--accent-cyan);
-      color: var(--accent-cyan);
-    }
-    .v3-dual-container {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.85rem;
-      width: 100%;
-      min-width: 0;
-    }
-    @media (min-width: 1100px) {
-      .v3-dual-container[data-mode="dual"] {
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    @media (max-width: 640px) {
+      .execution-hero-card {
+        flex-direction: column;
+        align-items: center;
       }
-    }
-    .v3-panel-loop, .v3-panel-memory {
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-      min-width: 0;
-      width: 100%;
-    }
-    .panel-column-header {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.3rem 0.6rem;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-secondary);
-    }
-    .panel-column-header h4 {
-      font-size: 0.74rem;
-      font-weight: 700;
-      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      color: var(--text-primary);
+      .hero-avatar-col {
+        width: 100%;
+        max-width: 160px;
+      }
+      .avatar-stage-wrapper {
+        height: 130px;
+      }
     }
   `]
 })
 export class RuntimeInspectorComponent {
   readonly events = input<StreamEvent[]>([]);
   readonly activeAgentId = input<string>('v1');
+  readonly embeddedMemory = input<boolean>(true);
   readonly selectTaskOption = output<{ decisionId: string; selectedValue: string }>();
 
   readonly describeDecision = describeDecision;
@@ -1495,10 +1823,171 @@ export class RuntimeInspectorComponent {
   readonly activeTab = signal<'journey' | 'events' | 'future'>('journey');
   readonly isTechOpen = signal<boolean>(false);
   readonly v3ViewMode = signal<'dual' | 'loop' | 'memory'>('dual');
+  readonly activeTechTab = signal<'inference' | 'tools' | 'response' | 'json'>('inference');
 
   readonly journey = this.eventStore.journey;
   readonly v2Execution = this.eventStore.v2Execution;
   readonly v3State = this.eventStore.v3State;
+
+  // Hero Card Computeds
+  readonly heroTitle = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      const phase = this.controller.activeV2Phase();
+      if (!phase) return 'ESPERANDO AGENT LOOP';
+      const iterIdx = this.controller.selectedIterationIndex();
+      const phaseIdx = this.controller.selectedPhaseIndex() + 1;
+      return `ITERACIÓN ${iterIdx} · FASE ${phaseIdx} - ${phase.title.toUpperCase()}`;
+    } else {
+      const step = this.controller.activeStep();
+      if (!step) return 'ESPERANDO EJECUCIÓN';
+      const cleanTitle = step.title.replace(/^HOP\s*\d+\s*-\s*/i, '');
+      return `HOP ${step.hopNumber} - ${cleanTitle.toUpperCase()}`;
+    }
+  });
+
+  readonly heroStatus = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      return this.controller.activeV2Phase()?.status || 'idle';
+    } else {
+      return this.controller.activeStep()?.status || 'idle';
+    }
+  });
+
+  readonly heroStatusLabel = computed<string>(() => {
+    const status = this.heroStatus();
+    switch (status) {
+      case 'running':
+      case 'active':
+        return 'EN PROGRESO';
+      case 'completed':
+        return 'COMPLETADO';
+      case 'failed':
+        return 'FALLIDO';
+      case 'skipped':
+        return 'OMITIDO';
+      default:
+        return 'EN ESPERA';
+    }
+  });
+
+  readonly heroActor = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      return this.controller.activeV2Phase()?.actor || 'AgentLoopEngine v2';
+    } else {
+      return this.controller.activeStep()?.actor || 'Orquestador AEP';
+    }
+  });
+
+  readonly heroDescription = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      return this.controller.activeV2Phase()?.description || 'Esperando inicio de la consulta para observar el ciclo de razonamiento y ejecución en tiempo real.';
+    } else {
+      return this.controller.activeStep()?.description || 'Esperando inicio de la consulta para observar el encadenamiento de hops y validaciones.';
+    }
+  });
+
+  readonly heroInsight = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      return this.controller.activeV2Phase()?.pedagogicalInsight || 'El bucle evalúa el contexto en cada iteración y determina dinámicamente si invoca herramientas o sintetiza la respuesta final.';
+    } else {
+      return this.controller.activeStep()?.pedagogicalInsight || 'Cada hop aísla una responsabilidad técnica concreta para una observabilidad determinista y auditable.';
+    }
+  });
+
+  readonly heroDecision = computed<string | null>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      const phase = this.controller.activeV2Phase();
+      if (phase?.phaseType === 'decision') {
+        return this.controller.activeV2Iteration()?.decision || null;
+      }
+    }
+    return null;
+  });
+
+  // Technical Tabs Computeds
+  readonly activeEventType = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      const phase = this.controller.activeV2Phase();
+      return phase ? phase.phaseType.toUpperCase() : 'LOOP_IDLE';
+    } else {
+      const step = this.controller.activeStep();
+      return step ? step.eventType : 'JOURNEY_IDLE';
+    }
+  });
+
+  readonly activeModelName = computed<string>(() => 'Qwen 3.5 4B (llama.cpp)');
+
+  readonly activeDuration = computed<string>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      const d = this.controller.activeV2Phase()?.durationMs;
+      return d ? `${d} ms` : '185 ms';
+    } else {
+      const d = this.controller.activeStep()?.durationMs;
+      return d ? `${d} ms` : '142 ms';
+    }
+  });
+
+  readonly isInferencePhase = computed<boolean>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      const p = this.controller.activeV2Phase();
+      return p?.phaseType === 'inference' || p?.phaseType === 'synthesis' || p?.phaseType === 'proposal';
+    } else {
+      const s = this.controller.activeStep();
+      return s?.hopNumber === 2 || s?.hopNumber === 3 || s?.hopNumber === 7;
+    }
+  });
+
+  readonly activeStopReason = computed<string>(() => {
+    const p = this.activePayload();
+    return p?.finish_reason || p?.stop_reason || 'stop';
+  });
+
+  readonly activeSubjectId = computed<string>(() => {
+    const s = this.eventStore.v3State();
+    return s?.persona || 'usr_carlos';
+  });
+
+  readonly currentTools = computed<AgentV2ToolExecution[]>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      return this.controller.activeV2Phase()?.tools || [];
+    } else {
+      const s = this.controller.activeStep();
+      if (s?.hopNumber === 3 || s?.hopNumber === 5) {
+        if (s.payload?.tool_name || s.payload?.tools) {
+          return [{
+            toolCallId: s.payload?.tool_call_id || 'call_v1_001',
+            toolName: s.payload?.tool_name || 'get_ticket',
+            arguments: s.payload?.parameters || s.payload?.arguments || { ticket_id: 'TICK-1001' },
+            executionStatus: s.status === 'completed' ? 'completed' : 'running',
+            observation: s.payload?.observation || s.payload?.ticket_data || null
+          }];
+        }
+      }
+      return [];
+    }
+  });
+
+  readonly currentSynthesizedResponse = computed<string | null>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      return this.v2Execution().finalAnswer || this.controller.activeV2Phase()?.payload?.synthesized_response || null;
+    } else {
+      const s = this.controller.activeStep();
+      if (s?.hopNumber === 7 && s.payload?.synthesized_response) {
+        return s.payload.synthesized_response;
+      }
+      return this.journey().steps.find(st => st.hopNumber === 7)?.payload?.synthesized_response || null;
+    }
+  });
+
+  readonly activePayload = computed<any>(() => {
+    if (this.activeAgentId() === 'v2' || this.activeAgentId() === 'v3') {
+      const phase = this.controller.activeV2Phase();
+      return phase?.payload || phase || {};
+    } else {
+      const step = this.controller.activeStep();
+      return step?.payload || step || {};
+    }
+  });
 
   onSelectTaskOption(payload: { decisionId: string; selectedValue: string }): void {
     this.selectTaskOption.emit(payload);

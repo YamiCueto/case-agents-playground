@@ -11,6 +11,7 @@
     (toggleDbDrawer)="toggleDbDrawer()"
   ></app-header>
 
+  <!-- Navegación móvil segmentada (360px - 767px) -->
   <nav class="mobile-tabs-toggle" aria-label="Navegación de paneles para dispositivos móviles">
     <button 
       type="button"
@@ -29,21 +30,79 @@
       class="mobile-tab-btn" 
       [class.active]="activeMobileTab() === 'inspector'"
       (click)="activeMobileTab.set('inspector')"
-      aria-label="Ver panel de inspector de runtime"
+      aria-label="Ver panel de inspector de ejecución"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <span>Inspector de Runtime ({{ currentRunEvents().length }})</span>
+      <span>Ejecución</span>
     </button>
+    @if (selectedAgentId() === 'v3') {
+      <button 
+        type="button"
+        class="mobile-tab-btn" 
+        [class.active]="activeMobileTab() === 'memory'"
+        (click)="activeMobileTab.set('memory')"
+        aria-label="Ver panel de estado y memoria"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+        <span>Memoria</span>
+      </button>
+    }
   </nav>
 
-  <main class="playground-main">
+  <!-- Barra de alternancia secundaria en tableta (768px - 1199px) para Agent v3 -->
+  @if (selectedAgentId() === 'v3') {
+    <nav class="tablet-v3-subnav" aria-label="Selector de panel secundario en tableta">
+      <span class="tablet-subnav-label">Vista secundaria:</span>
+      <div class="tablet-subnav-group">
+        <button
+          type="button"
+          class="tablet-subnav-btn"
+          [class.active]="activeTabletRightTab() === 'inspector'"
+          (click)="activeTabletRightTab.set('inspector')"
+          aria-label="Mostrar inspector de ejecución"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Inspector de ejecución</span>
+        </button>
+        <button
+          type="button"
+          class="tablet-subnav-btn"
+          [class.active]="activeTabletRightTab() === 'memory'"
+          (click)="activeTabletRightTab.set('memory')"
+          aria-label="Mostrar estado y memoria"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          <span>Estado y memoria</span>
+        </button>
+      </div>
+    </nav>
+  }
+
+  <!-- Cuadrícula principal de observabilidad (Grid responsivo) -->
+  <main 
+    class="playground-main"
+    [class.mode-v3]="selectedAgentId() === 'v3'"
+    [class.mode-v1-v2]="selectedAgentId() !== 'v3'"
+  >
+    <!-- Columna 1: Conversación -->
     <section 
       class="main-pane chat-pane"
       [class.mobile-hidden]="activeMobileTab() !== 'chat'"
-      [style.flex-basis.%]="chatRatio()"
+      data-purpose="chat-column"
     >
       <app-chat-panel
         [messages]="messages()"
@@ -54,32 +113,36 @@
       ></app-chat-panel>
     </section>
 
-    <div
-      class="layout-splitter"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Ajustar proporción entre Chat e Inspector"
-      tabindex="0"
-      (mousedown)="onSplitterMouseDown($event)"
-      (touchstart)="onSplitterTouchStart($event)"
-      (dblclick)="resetSplitter()"
-      (keydown)="onSplitterKeyDown($event)"
-      title="Arrastra para ajustar tamaño. Doble clic para 50/50. Flechas del teclado para ajustar."
-    >
-      <div class="splitter-handle"></div>
-    </div>
-
+    <!-- Columna 2: Inspector de Ejecución -->
     <section 
       class="main-pane inspector-pane"
       [class.mobile-hidden]="activeMobileTab() !== 'inspector'"
-      [style.flex-basis.%]="100 - chatRatio()"
+      [class.tablet-hidden]="selectedAgentId() === 'v3' && activeTabletRightTab() !== 'inspector'"
+      data-purpose="runtime-inspector"
     >
       <app-runtime-inspector
         [events]="currentRunEvents()"
         [activeAgentId]="selectedAgentId()"
+        [embeddedMemory]="false"
         (selectTaskOption)="onSelectTaskOption($event)"
       ></app-runtime-inspector>
     </section>
+
+    <!-- Columna 3: Estado y Memoria (exclusivo para Agent v3) -->
+    @if (selectedAgentId() === 'v3') {
+      <section 
+        class="main-pane memory-pane"
+        [class.mobile-hidden]="activeMobileTab() !== 'memory'"
+        [class.tablet-hidden]="activeTabletRightTab() !== 'memory'"
+        data-purpose="state-memory-inspector"
+      >
+        <app-v3-memory-inspector
+          [state]="eventStore.v3State()"
+          [showHitlControls]="false"
+          (selectTaskOption)="onSelectTaskOption($event)"
+        ></app-v3-memory-inspector>
+      </section>
+    }
   </main>
 
   @if (isDbDrawerOpen()) {
@@ -90,3 +153,4 @@
     ></app-tickets-drawer>
   }
 </div>
+

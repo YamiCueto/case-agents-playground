@@ -249,6 +249,12 @@ def test_memory_policy_preserves_token_budget_metrics_while_sanitizing_secrets()
         "history_turns_count": 3,
         "decisions_count": 1,
         "max_context_budget": 4096,
+        "queryTokensEst": 55,
+        "systemPromptTokensEst": 190,
+        "decisionsTokensEst": 40,
+        "historyTokensEst": 160,
+        "totalInitialTokensEst": 445,
+        "maxContextLimit": 4096,
         "password": "db_super_password_123",
         "auth_token": "secret_oauth_token",
         "access_token": "sk-proj-super-secret-token",
@@ -274,6 +280,12 @@ def test_memory_policy_preserves_token_budget_metrics_while_sanitizing_secrets()
     assert sanitized["history_turns_count"] == 3
     assert sanitized["decisions_count"] == 1
     assert sanitized["max_context_budget"] == 4096
+    assert sanitized["queryTokensEst"] == 55
+    assert sanitized["systemPromptTokensEst"] == 190
+    assert sanitized["decisionsTokensEst"] == 40
+    assert sanitized["historyTokensEst"] == 160
+    assert sanitized["totalInitialTokensEst"] == 445
+    assert sanitized["maxContextLimit"] == 4096
     assert sanitized["nested"]["query_tokens"] == 10
 
     # Secretos rigurosamente redactados
