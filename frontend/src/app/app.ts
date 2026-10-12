@@ -5,6 +5,7 @@ import { ChatPanelComponent } from './components/chat-panel/chat-panel.component
 import { RuntimeInspectorComponent } from './components/runtime-inspector/runtime-inspector.component';
 import { V3MemoryInspectorComponent } from './components/runtime-inspector/v3-memory-inspector/v3-memory-inspector.component';
 import { TicketsDrawerComponent } from './components/tickets-drawer/tickets-drawer.component';
+import { LearnerGuideDrawerComponent } from './components/learner-guide-drawer/learner-guide-drawer.component';
 import { AgentStreamService, ChatStreamPayload } from './services/agent-stream.service';
 import { TicketsService } from './services/tickets.service';
 import { EventStoreService } from './services/event-store.service';
@@ -21,6 +22,7 @@ import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary, Health
     RuntimeInspectorComponent,
     V3MemoryInspectorComponent,
     TicketsDrawerComponent,
+    LearnerGuideDrawerComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -36,6 +38,7 @@ export class App implements OnInit {
   readonly selectedAgentId = signal<string>('v1');
   readonly selectedPersona = signal<string>('usr_carlos');
   readonly isDbDrawerOpen = signal<boolean>(false);
+  readonly isGuideDrawerOpen = signal<boolean>(false);
   readonly activeMobileTab = signal<'chat' | 'inspector' | 'memory'>('chat');
   readonly activeTabletRightTab = signal<'inspector' | 'memory'>('inspector');
   readonly health = signal<HealthStatus | null>(null);
@@ -230,6 +233,10 @@ export class App implements OnInit {
     if (this.isDbDrawerOpen()) {
       this.refreshTickets();
     }
+  }
+
+  toggleGuideDrawer(): void {
+    this.isGuideDrawerOpen.update((open) => !open);
   }
 
   onSplitterMouseDown(e: MouseEvent): void {

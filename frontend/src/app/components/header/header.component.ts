@@ -172,6 +172,22 @@ import { PresentationControllerService } from '../../services/presentation-contr
           }
         </div>
 
+        <!-- Acceso a la Guía del Aprendiz -->
+        <button 
+          type="button"
+          class="btn-guide-toggle" 
+          [class.active]="isGuideDrawerOpen()"
+          (click)="toggleGuideDrawer.emit()"
+          title="Abrir Guía del Aprendiz para la versión seleccionada"
+          aria-label="Abrir Guía del Aprendiz"
+        >
+          <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span class="label">Guía del aprendiz</span>
+        </button>
+
         <!-- Acceso al Inspector de Base de Datos MySQL -->
         <button 
           type="button"
@@ -461,6 +477,31 @@ import { PresentationControllerService } from '../../services/presentation-contr
       color: var(--accent-violet-bright);
     }
 
+    .btn-guide-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-cyan);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .btn-guide-toggle:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent-cyan);
+    }
+    .btn-guide-toggle.active {
+      background: var(--accent-cyan);
+      color: #020617;
+      border-color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
     .btn-db-toggle {
       display: flex;
       align-items: center;
@@ -527,11 +568,13 @@ export class HeaderComponent {
   readonly selectedAgentId = input<string>('v1');
   readonly selectedPersona = input<string>('usr_carlos');
   readonly isDbDrawerOpen = input<boolean>(false);
+  readonly isGuideDrawerOpen = input<boolean>(false);
   readonly health = input<HealthStatus | null>(null);
 
   readonly selectAgent = output<string>();
   readonly selectPersona = output<string>();
   readonly toggleDbDrawer = output<void>();
+  readonly toggleGuideDrawer = output<void>();
 
   readonly controller = inject(PresentationControllerService);
 

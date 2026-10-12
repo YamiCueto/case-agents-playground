@@ -5,10 +5,12 @@
     [selectedAgentId]="selectedAgentId()"
     [selectedPersona]="selectedPersona()"
     [isDbDrawerOpen]="isDbDrawerOpen()"
+    [isGuideDrawerOpen]="isGuideDrawerOpen()"
     [health]="health()"
     (selectAgent)="onSelectAgent($event)"
     (selectPersona)="onSelectPersona($event)"
     (toggleDbDrawer)="toggleDbDrawer()"
+    (toggleGuideDrawer)="toggleGuideDrawer()"
   ></app-header>
 
   <!-- Navegación móvil segmentada (360px - 767px) -->
@@ -151,6 +153,14 @@
       (close)="toggleDbDrawer()"
       (refresh)="refreshTickets()"
     ></app-tickets-drawer>
+  }
+
+  @if (isGuideDrawerOpen()) {
+    <app-learner-guide-drawer
+      [selectedAgentId]="selectedAgentId()"
+      (close)="toggleGuideDrawer()"
+      (selectAgent)="onSelectAgent($event)"
+    ></app-learner-guide-drawer>
   }
 </div>
 
