@@ -6,11 +6,14 @@
     [selectedPersona]="selectedPersona()"
     [isDbDrawerOpen]="isDbDrawerOpen()"
     [isGuideDrawerOpen]="isGuideDrawerOpen()"
+    [isSimulatorOpen]="simulator.isOpen()"
     [health]="health()"
     (selectAgent)="onSelectAgent($event)"
     (selectPersona)="onSelectPersona($event)"
     (toggleDbDrawer)="toggleDbDrawer()"
     (toggleGuideDrawer)="toggleGuideDrawer()"
+    (startWalkthrough)="startWalkthrough()"
+    (toggleSimulator)="toggleSimulator()"
   ></app-header>
 
   <!-- Navegación móvil segmentada (360px - 767px) -->
@@ -137,6 +140,7 @@
         [class.mobile-hidden]="activeMobileTab() !== 'memory'"
         [class.tablet-hidden]="activeTabletRightTab() !== 'memory'"
         data-purpose="state-memory-inspector"
+        data-tour="tour-memory-panel"
       >
         <app-v3-memory-inspector
           [state]="eventStore.v3State()"
@@ -162,5 +166,13 @@
       (selectAgent)="onSelectAgent($event)"
     ></app-learner-guide-drawer>
   }
+
+  <!-- Modal del Simulador 3D del Runtime -->
+  <app-runtime-simulator-modal
+    (openFullGuide)="toggleGuideDrawer()"
+  ></app-runtime-simulator-modal>
+
+  <!-- Walkthrough Interactivo Flotante -->
+  <app-walkthrough-overlay></app-walkthrough-overlay>
 </div>
 

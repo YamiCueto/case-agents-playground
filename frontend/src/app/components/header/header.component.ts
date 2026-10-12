@@ -29,6 +29,7 @@ import { PresentationControllerService } from '../../services/presentation-contr
           @if (health()) {
             <div 
               class="env-status-pill" 
+              data-tour="tour-connection"
               [class.healthy]="health()?.status === 'healthy'" 
               [class.degraded]="health()?.status !== 'healthy'"
               aria-label="Estado de los servicios de backend"
@@ -54,6 +55,7 @@ import { PresentationControllerService } from '../../services/presentation-contr
             </span>
             <select 
               id="persona-select" 
+              data-tour="tour-persona-select"
               class="styled-select"
               [value]="selectedPersona()"
               (change)="onPersonaChange($event)"
@@ -83,6 +85,7 @@ import { PresentationControllerService } from '../../services/presentation-contr
             </svg>
             <select 
               id="agent-select" 
+              data-tour="tour-agent-select"
               class="styled-select agent-select"
               [value]="selectedAgentId()"
               (change)="onAgentChange($event)"
@@ -104,7 +107,7 @@ import { PresentationControllerService } from '../../services/presentation-contr
       <!-- Derecha: Controles de Reproducción Unificados y Panel MySQL -->
       <div class="header-actions">
         <!-- Controles de Reproducción y Estado del Runtime (Fase UI-3) -->
-        <div class="runtime-controls" role="group" aria-label="Controles de ejecución en vivo y reproducción">
+        <div class="runtime-controls" data-tour="tour-live-controls" role="group" aria-label="Controles de ejecución en vivo y reproducción">
           @if (controller.mode() === 'live') {
             <div 
               class="header-status-pill" 
@@ -172,10 +175,45 @@ import { PresentationControllerService } from '../../services/presentation-contr
           }
         </div>
 
+        <!-- Botón Explorar Playground (Walkthrough Interactivo) -->
+        <button
+          type="button"
+          class="btn-tour-toggle"
+          data-tour="tour-walkthrough-btn"
+          (click)="startWalkthrough.emit()"
+          title="Iniciar recorrido guiado por la interfaz y arquitectura de AEP"
+          aria-label="Explorar Playground"
+        >
+          <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="12 8 8 12 12 16 12 13 16 13 16 11 12 11 12 8"></polygon>
+          </svg>
+          <span class="label">Explorar Playground</span>
+        </button>
+
+        <!-- Botón Abrir Simulador del Runtime (Three.js Graph) -->
+        <button
+          type="button"
+          class="btn-simulator-toggle"
+          data-tour="tour-simulator-btn"
+          [class.active]="isSimulatorOpen()"
+          (click)="toggleSimulator.emit()"
+          title="Abrir simulador visual interactivo Three.js de hops y flujo agéntico"
+          aria-label="Abrir simulador del runtime"
+        >
+          <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <span class="label">Abrir simulador</span>
+        </button>
+
         <!-- Acceso a la Guía del Aprendiz -->
         <button 
           type="button"
           class="btn-guide-toggle" 
+          data-tour="tour-guide-btn"
           [class.active]="isGuideDrawerOpen()"
           (click)="toggleGuideDrawer.emit()"
           title="Abrir Guía del Aprendiz para la versión seleccionada"
@@ -192,6 +230,7 @@ import { PresentationControllerService } from '../../services/presentation-contr
         <button 
           type="button"
           class="btn-db-toggle" 
+          data-tour="tour-db-btn"
           [class.active]="isDbDrawerOpen()"
           (click)="toggleDbDrawer.emit()"
           title="Inspeccionar tickets en base de datos MySQL"
@@ -477,6 +516,50 @@ import { PresentationControllerService } from '../../services/presentation-contr
       color: var(--accent-violet-bright);
     }
 
+    .btn-tour-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .btn-tour-toggle:hover {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: #fbbf24;
+    }
+
+    .btn-simulator-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #c084fc;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .btn-simulator-toggle:hover {
+      background: rgba(168, 85, 247, 0.22);
+      border-color: #c084fc;
+    }
+    .btn-simulator-toggle.active {
+      background: #a855f7;
+      color: #020617;
+      border-color: #a855f7;
+      font-weight: 700;
+    }
+
     .btn-guide-toggle {
       display: flex;
       align-items: center;
@@ -569,12 +652,15 @@ export class HeaderComponent {
   readonly selectedPersona = input<string>('usr_carlos');
   readonly isDbDrawerOpen = input<boolean>(false);
   readonly isGuideDrawerOpen = input<boolean>(false);
+  readonly isSimulatorOpen = input<boolean>(false);
   readonly health = input<HealthStatus | null>(null);
 
   readonly selectAgent = output<string>();
   readonly selectPersona = output<string>();
   readonly toggleDbDrawer = output<void>();
   readonly toggleGuideDrawer = output<void>();
+  readonly startWalkthrough = output<void>();
+  readonly toggleSimulator = output<void>();
 
   readonly controller = inject(PresentationControllerService);
 
@@ -588,4 +674,5 @@ export class HeaderComponent {
     this.selectPersona.emit(target.value);
   }
 }
+
 

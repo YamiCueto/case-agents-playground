@@ -6,10 +6,14 @@ import { RuntimeInspectorComponent } from './components/runtime-inspector/runtim
 import { V3MemoryInspectorComponent } from './components/runtime-inspector/v3-memory-inspector/v3-memory-inspector.component';
 import { TicketsDrawerComponent } from './components/tickets-drawer/tickets-drawer.component';
 import { LearnerGuideDrawerComponent } from './components/learner-guide-drawer/learner-guide-drawer.component';
+import { WalkthroughOverlayComponent } from './components/walkthrough-overlay/walkthrough-overlay.component';
+import { RuntimeSimulatorModalComponent } from './components/runtime-simulator/runtime-simulator-modal.component';
 import { AgentStreamService, ChatStreamPayload } from './services/agent-stream.service';
 import { TicketsService } from './services/tickets.service';
 import { EventStoreService } from './services/event-store.service';
 import { PresentationControllerService } from './services/presentation-controller.service';
+import { WalkthroughService } from './services/walkthrough.service';
+import { SimulatorProjectionService } from './services/simulator-projection.service';
 import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary, HealthStatus } from './models/agent.models';
 
 @Component({
@@ -23,6 +27,8 @@ import { AgentMeta, PersonaInfo, StreamEvent, ChatMessage, TicketSummary, Health
     V3MemoryInspectorComponent,
     TicketsDrawerComponent,
     LearnerGuideDrawerComponent,
+    WalkthroughOverlayComponent,
+    RuntimeSimulatorModalComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -32,6 +38,8 @@ export class App implements OnInit {
   private readonly ticketsService = inject(TicketsService);
   readonly eventStore = inject(EventStoreService);
   readonly controller = inject(PresentationControllerService);
+  readonly walkthrough = inject(WalkthroughService);
+  readonly simulator = inject(SimulatorProjectionService);
 
   readonly agents = signal<AgentMeta[]>([]);
   readonly personas = signal<PersonaInfo[]>([]);
@@ -101,6 +109,7 @@ export class App implements OnInit {
       this.streamService.abortCurrentStream();
     }
     this.selectedAgentId.set(agentId);
+    this.walkthrough.activeAgentId.set(agentId);
     this.eventStore.resetAll();
     this.eventStore.activeAgentId.set(agentId);
     this.controller.resetPlayback();
@@ -237,6 +246,14 @@ export class App implements OnInit {
 
   toggleGuideDrawer(): void {
     this.isGuideDrawerOpen.update((open) => !open);
+  }
+
+  startWalkthrough(): void {
+    this.walkthrough.startTour(this.selectedAgentId());
+  }
+
+  toggleSimulator(): void {
+    this.simulator.toggleSimulator();
   }
 
   onSplitterMouseDown(e: MouseEvent): void {

@@ -29,7 +29,7 @@ import { TraceViewMode } from '../../models/decision-trace.models';
   ],
   template: `
     <aside class="inspector-card">
-      <header class="inspector-header">
+      <header class="inspector-header" data-tour="tour-inspector-header">
         <div class="title-row">
           <div class="title-meta">
             <svg class="title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -91,6 +91,7 @@ import { TraceViewMode } from '../../models/decision-trace.models';
             <button
               type="button"
               class="btn-toggle-trace"
+              data-tour="tour-decision-trace"
               [class.is-active]="isTraceVisible()"
               (click)="toggleTraceVisibility()"
               [title]="isTraceVisible() ? 'Ocultar traza de decisiones observable' : 'Mostrar traza de decisiones observable'"
@@ -252,7 +253,7 @@ import { TraceViewMode } from '../../models/decision-trace.models';
             <!-- 1. COMPOSICIÓN HERO PRINCIPAL (Avatar 3D + Fase Activa) -->
             <section class="execution-hero-card" aria-label="Tarjeta principal de ejecución y avatar">
               <div class="hero-avatar-col">
-                <div class="avatar-stage-wrapper">
+                <div class="avatar-stage-wrapper" data-tour="tour-avatar-3d">
                   <app-agent-avatar-3d
                     [mood]="controller.avatarMood()"
                     [targetHop]="activeAgentId() === 'v4' ? (v4PlanningState().currentPlan?.steps?.length || 1) : (activeAgentId() === 'v2' || activeAgentId() === 'v3') ? (controller.selectedPhaseIndex() + 1) : (controller.activeStep()?.hopNumber || 1)"
@@ -325,7 +326,7 @@ import { TraceViewMode } from '../../models/decision-trace.models';
             </section>
 
             <!-- 2. PIPELINE STEPPER / AGENT LOOP / PLAN DAG VIEWER INTERACTIVO -->
-            <section class="pipeline-stepper-card">
+            <section class="pipeline-stepper-card" data-tour="tour-pipeline-stepper">
               @if (activeAgentId() === 'v4') {
                 <app-plan-dag-viewer [state]="v4PlanningState()"></app-plan-dag-viewer>
               } @else if (activeAgentId() === 'v2' || activeAgentId() === 'v3') {

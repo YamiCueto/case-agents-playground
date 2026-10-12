@@ -17,7 +17,7 @@ interface QuickPromptCard {
   standalone: true,
   imports: [CommonModule, FormsModule, MarkdownPipe],
   template: `
-    <section class="chat-container">
+    <section class="chat-container" data-tour="tour-chat-panel">
       <div
         class="chat-messages"
         #scrollContainer
@@ -40,7 +40,7 @@ interface QuickPromptCard {
               Laboratorio de observabilidad para inspección determinista de flujos agénticos, llamadas a herramientas e inferencia local paso a paso.
             </p>
 
-            <div class="prompt-cards-grid">
+            <div class="prompt-cards-grid" data-tour="tour-chat-suggestions">
               @for (card of promptCards; track card.query) {
                 <button 
                   type="button" 
