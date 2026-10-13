@@ -25,14 +25,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    settings = get_settings()
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:4200",
-            "http://127.0.0.1:4200",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-        ],
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -44,7 +41,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health", response_model=HealthResponse)
     async def health_check() -> HealthResponse:
-        settings = get_settings()
+        current_settings = get_settings()
 
         db_status = "error"
         try:
@@ -52,19 +49,19 @@ def create_app() -> FastAPI:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             db_status = "connected"
-        except Exception as exc:
-            db_status = f"unreachable: {str(exc)}"
+        except Exception:
+            db_status = "unreachable"
 
         llm_status = "error"
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
-                res = await client.get(f"{settings.llm_base_url}/models")
+                res = await client.get(f"{current_settings.llm_base_url}/models")
                 if res.status_code == 200:
                     llm_status = "connected"
                 else:
                     llm_status = f"http_{res.status_code}"
-        except Exception as exc:
-            llm_status = f"unreachable: {str(exc)}"
+        except Exception:
+            llm_status = "unreachable"
 
         overall_status = "healthy" if db_status == "connected" and llm_status == "connected" else "degraded"
 

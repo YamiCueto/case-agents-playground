@@ -565,15 +565,42 @@ erDiagram
 
 ## 11. Guía de Instalación Reproducible
 
-Sigue las siguientes fases secuenciales para desplegar el entorno completo de forma local:
+> 💡 **¿Solo deseas explorar la plataforma de inmediato?**
+> Puedes acceder directamente al **Modo Demo en GitHub Pages** sin instalar nada localmente:
+> 👉 **[https://yamicueto.github.io/case-agents-playground/](https://yamicueto.github.io/case-agents-playground/)**
 
-### Fase 1: Requisitos Previos
-* **Python:** 3.12 o superior (compatible con 3.14).
-* **Node.js:** Versión 20.x LTS o superior con `npm` 10+.
-* **MySQL:** Servidor 8.0+ o MariaDB 10.4+ en ejecución en el puerto `3306` (ej. vía XAMPP).
+Para ejecutar el laboratorio en **Modo Live** en tu máquina (con inferencia local y base de datos relacional activa), consulta la guía detallada:
+📖 **[Guía de Instalación y Configuración del Entorno Local (`docs/SETUP_LOCAL.md`)](docs/SETUP_LOCAL.md)**
+
+### Arranque Rápido Asistido
+
+- **Windows (PowerShell):**
+  ```powershell
+  .\scripts\setup_local.ps1
+  ```
+- **Linux / macOS (Bash):**
+  ```bash
+  chmod +x scripts/setup_local.sh
+  ./scripts/setup_local.sh
+  ```
+
+### Diagnóstico de Salud del Entorno
+En cualquier momento puedes verificar el estado de tus dependencias, base de datos y LLM ejecutando:
+```bash
+python scripts/doctor.py
+```
+
+---
+
+### Instalación Manual Paso a Paso
+
+#### Fase 1: Requisitos Previos
+* **Python:** 3.10 o superior (compatible con 3.11, 3.12 y 3.14).
+* **Node.js:** Versión 22.x LTS o superior con `npm` 10+.
+* **MySQL:** Servidor 8.0+ o MariaDB 10.4+ en ejecución en el puerto `3306` (ej. vía XAMPP o Homebrew).
 * **llama.cpp:** Servidor local ejecutándose con el modelo Qwen 3.5 4B en el puerto `8080`.
 
-### Fase 2: Clonar el Repositorio
+#### Fase 2: Clonar el Repositorio
 ```bash
 git clone https://github.com/YamiCueto/case-agents-playground.git
 cd case-agents-playground

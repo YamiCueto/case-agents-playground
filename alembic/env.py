@@ -33,7 +33,23 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def ensure_database_exists() -> None:
+    """Garantiza que la base de datos objetivo exista antes de ejecutar migraciones."""
+    from sqlalchemy import create_engine, text
+    try:
+        server_engine = create_engine(settings.server_admin_url, poolclass=pool.NullPool)
+        with server_engine.connect() as s_conn:
+            s_conn.execute(
+                text(f"CREATE DATABASE IF NOT EXISTS `{settings.db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+            )
+            s_conn.commit()
+    except Exception:
+        # Continuar si no se tienen permisos a nivel de servidor o si la BD ya existe
+        pass
+
+
 def run_migrations_online() -> None:
+    ensure_database_exists()
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

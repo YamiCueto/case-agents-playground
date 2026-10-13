@@ -40,24 +40,64 @@ class MockModelProvider(ModelProvider):
 
 
 class OpenAICompatibleProvider(ModelProvider):
+    """Proveedor de inferencia para APIs compatibles con OpenAI (llama.cpp, Ollama, vLLM, LM Studio).
+
+    Resuelve automáticamente la configuración desde Settings (variables de entorno)
+    si no se suministran explícitamente. Permite descubrimiento dinámico de modelos
+    vía /v1/models y consulta no bloqueante de límites de contexto.
+
+    Nota de compatibilidad pedagógica:
+    Para que los agentes v1–v4 ejecuten herramientas ('tool calling'), el modelo debe
+    soportar function calling en su plantilla de chat (ej: Qwen 2.5 / Qwen 3.5 Instruct,
+    Llama 3.1+ Instruct). Modelos base sin soporte de herramientas generarán texto directo.
+    """
+
     def __init__(
         self,
-        api_key: str = "local-llama-cpp",
-        base_url: str = "http://127.0.0.1:8080/v1",
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         model: Optional[str] = None,
         temperature: float = 0.0,
     ) -> None:
         from openai import OpenAI
+        from src.infrastructure.config import get_settings
 
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        settings = get_settings()
+        resolved_key = api_key if api_key is not None else settings.llm_api_key
+        resolved_base_url = base_url if base_url is not None else settings.llm_base_url
+        resolved_model = model if model is not None else settings.llm_model
+
+        self.client = OpenAI(api_key=resolved_key, base_url=resolved_base_url)
         self.temperature = temperature
-        self._model = model
-        self.base_url = base_url
+        self._model = resolved_model
+        self.base_url = resolved_base_url
         self._cached_context_meta: Optional[Dict[str, Optional[int]]] = None
 
-    def get_context_metadata(self, force_refresh: bool = False, timeout: float = 1.5) -> Dict[str, Optional[int]]:
+    def check_connection(self, timeout: float = 2.0) -> tuple[bool, str]:
+        """Verifica de forma proactiva la disponibilidad del servidor LLM.
+
+        Devuelve (True, 'Modelo: <nombre>') o (False, mensaje_de_error).
         """
-        Consulta de forma dinámica y no bloqueante los límites de contexto de llama-server (/props y /models).
+        import urllib.request
+
+        try:
+            url = f"{self.base_url.rstrip('/')}/models"
+            req = urllib.request.Request(url, headers={"User-Agent": "AEP-Provider-Check"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status == 200:
+                    name = self.display_model_name
+                    return True, f"Servidor LLM conectado exitosamente (Modelo: {name})"
+                return False, f"Servidor LLM respondió con código HTTP {resp.status}"
+        except Exception as exc:
+            return False, (
+                f"No fue posible conectar con el servidor LLM en '{self.base_url}'. "
+                f"Verifica que llama-server esté en ejecución (ej: llama-server -m <modelo.gguf> --port 8080). "
+                f"Detalle técnico: {type(exc).__name__}"
+            )
+
+    def get_context_metadata(self, force_refresh: bool = False, timeout: float = 1.5) -> Dict[str, Optional[int]]:
+        """Consulta de forma dinámica y no bloqueante los límites de contexto de llama-server (/props y /models).
+
         Devuelve server_context_limit y model_context_capacity, o None si el servidor no está disponible.
         """
         if self._cached_context_meta is not None and not force_refresh:
@@ -76,7 +116,7 @@ class OpenAICompatibleProvider(ModelProvider):
             if root_url.endswith("/v1"):
                 root_url = root_url[:-3]
 
-            # 1. Consultar /props para n_ctx efectivo del servidor
+            # 1. Consultar /props para n_ctx efectivo del servidor (opcional, no todos los proveedores lo implementan)
             try:
                 req = urllib.request.Request(f"{root_url}/props", headers={"User-Agent": "AEP-Provider"})
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -144,6 +184,17 @@ class OpenAICompatibleProvider(ModelProvider):
             pass
         return "Qwen3.5-4B-UD-Q5_K_XL"
 
+    @property
+    def display_model_name(self) -> str:
+        """Nombre limpio del modelo para presentación y logs, eliminando rutas locales y extensiones."""
+        import os
+        name = self.model_name
+        base = os.path.basename(name)
+        for ext in (".gguf", ".bin", ".safetensors"):
+            if base.lower().endswith(ext):
+                base = base[:-len(ext)]
+        return base or name
+
     def generate(
         self,
         messages: List[Dict[str, Any]],
@@ -155,14 +206,24 @@ class OpenAICompatibleProvider(ModelProvider):
             [{"type": "function", "function": tool} for tool in tools] if tools else None
         )
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            tools=formatted_tools,
-            temperature=self.temperature,
-            max_tokens=max_tokens or 1024,
-            timeout=timeout,
-        )
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                tools=formatted_tools,
+                temperature=self.temperature,
+                max_tokens=max_tokens or 1024,
+                timeout=timeout,
+            )
+        except Exception as exc:
+            exc_name = type(exc).__name__
+            if "APIConnectionError" in exc_name or "ConnectError" in exc_name or "Timeout" in exc_name:
+                raise RuntimeError(
+                    f"Error de comunicación con el servidor LLM en '{self.base_url}'. "
+                    f"Asegúrate de que llama-server o el proveedor OpenAI-compatible esté en ejecución. "
+                    f"Detalle técnico: {exc_name} - {exc}"
+                ) from exc
+            raise
 
         choice = response.choices[0]
         message = choice.message
