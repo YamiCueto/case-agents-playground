@@ -157,6 +157,27 @@ export class App implements OnInit {
       return;
     }
 
+    if (this.demoMode.isDemoMode()) {
+      const userMsgId = `user-hitl-demo-${Date.now()}`;
+      const agentMsgId = `agent-hitl-demo-${Date.now()}`;
+      const userMsg: ChatMessage = {
+        id: userMsgId,
+        sender: 'user',
+        persona: this.selectedPersona(),
+        text: `[Decisión HITL]: Selección -> "${payload.selectedValue}"`,
+        timestamp: new Date().toISOString()
+      };
+      const agentMsg: ChatMessage = {
+        id: agentMsgId,
+        sender: 'agent',
+        text: `> **Modo Demo &bull; Simulación Estática**\n\nEn este modo estático, las decisiones Human-in-the-Loop son de observación pedagógica y no mutan el estado en un servidor backend. Para experimentar el ciclo completo HITL con reanudación en vivo, ejecuta AEP en modo local con FastAPI.`,
+        timestamp: new Date().toISOString(),
+        isLoading: false
+      };
+      this.messages.update((msgs) => [...msgs, userMsg, agentMsg]);
+      return;
+    }
+
     const persona = this.selectedPersona();
     const currentCid =
       this.activeConversationsByPersona()[persona] ||
@@ -368,7 +389,7 @@ export class App implements OnInit {
 
       const explanation = `> **Modo Demo &bull; Sin Servidor Backend Activo**\n\n` +
         `Has enviado: *"${query}"*\n\n` +
-        `En este modo estático para GitHub Pages, no hay conexión de red con el modelo de inferencia local (\`http://localhost:8000\` / Qwen 2.5) para evitar inventar respuestas sintéticas o alucinaciones fuera de las trazas verificadas.\n\n` +
+        `En este modo estático para GitHub Pages, no hay conexión de red con el runtime local (\`http://localhost:8000\`) para evitar inventar respuestas sintéticas o alucinaciones fuera de las trazas verificadas.\n\n` +
         `Para explorar el comportamiento determinista del runtime de **${this.selectedAgentId().toUpperCase()}**, selecciona uno de los **escenarios pedagógicos verificados** disponibles en el catálogo superior o en los botones inferiores.`;
 
       const agentMsg: ChatMessage = {

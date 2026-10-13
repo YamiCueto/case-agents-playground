@@ -262,18 +262,29 @@ import { DemoModeService } from '../../services/demo-mode.service';
           <span class="label">{{ demoMode.isDemoMode() ? 'Tickets (Demo)' : 'Tickets MySQL' }}</span>
         </button>
 
-        <!-- Selector Rápido de Modo Demo / Live -->
-        <button
-          type="button"
-          class="btn-mode-toggle"
-          [class.active-demo]="demoMode.isDemoMode()"
-          (click)="demoMode.toggleDemoMode()"
-          [title]="demoMode.isDemoMode() ? 'Modo Demo activo (offline). Clic para cambiar a Live local.' : 'Modo Live local activo. Clic para activar Modo Demo estático.'"
-          aria-label="Alternar entre Modo Demo y Live local"
-        >
-          <span class="mode-indicator-dot" [class.dot-demo]="demoMode.isDemoMode()"></span>
-          <span class="mode-label">{{ demoMode.isDemoMode() ? 'Modo Demo' : 'Local Live' }}</span>
-        </button>
+        <!-- Selector de Modo: Conmutable en Local, Protegido/Estático en GitHub Pages -->
+        @if (demoMode.canToggleMode()) {
+          <button
+            type="button"
+            class="btn-mode-toggle"
+            [class.active-demo]="demoMode.isDemoMode()"
+            (click)="demoMode.toggleDemoMode()"
+            [title]="demoMode.isDemoMode() ? 'Modo Demo activo (offline). Clic para cambiar a Live local.' : 'Modo Live local activo. Clic para activar Modo Demo estático.'"
+            aria-label="Alternar entre Modo Demo y Live local"
+          >
+            <span class="mode-indicator-dot" [class.dot-demo]="demoMode.isDemoMode()"></span>
+            <span class="mode-label">{{ demoMode.isDemoMode() ? 'Modo Demo' : 'Local Live' }}</span>
+          </button>
+        } @else {
+          <div
+            class="btn-mode-toggle mode-toggle-static active-demo"
+            title="Modo Demo estático obligatorio para GitHub Pages (sin servidor backend)"
+            aria-label="Modo Demo estático obligatorio"
+          >
+            <span class="mode-indicator-dot dot-demo"></span>
+            <span class="mode-label">Modo Demo &bull; Estático</span>
+          </div>
+        }
       </div>
     </header>
   `,
@@ -714,6 +725,17 @@ import { DemoModeService } from '../../services/demo-mode.service';
     }
 
     .btn-mode-toggle.active-demo {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.45);
+      color: #e9d5ff;
+    }
+
+    .btn-mode-toggle.mode-toggle-static {
+      cursor: default;
+      user-select: none;
+    }
+
+    .btn-mode-toggle.mode-toggle-static:hover {
       background: rgba(168, 85, 247, 0.15);
       border-color: rgba(168, 85, 247, 0.45);
       color: #e9d5ff;

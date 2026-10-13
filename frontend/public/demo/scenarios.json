@@ -19,7 +19,7 @@
         "Grounding determinista de la respuesta final sin alucinaciones"
       ],
       "isSynthetic": false,
-      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "sourceNote": "Traza real capturada de una ejecución local del agente (modelo verificado en payload: Qwen 3.5 4B / Qwen3.5-4B-UD-Q5_K_XL + FastAPI).",
       "eventsCount": 8,
       "events": [
         {
@@ -52,7 +52,7 @@
           "type": "MODEL_INFERENCE_1",
           "payload": {
             "provider_type": "OpenAICompatibleProvider",
-            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "model_name": "Qwen3.5-4B-UD-Q5_K_XL",
             "tools_registered_count": 4,
             "tools_schemas": [
               "get_ticket_by_id",
@@ -268,7 +268,7 @@
         "Minimización de latencia y costo computacional en un solo paso"
       ],
       "isSynthetic": false,
-      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "sourceNote": "Traza real capturada de una ejecución local del agente (modelo verificado en payload: Qwen 3.5 4B / Qwen3.5-4B-UD-Q5_K_XL + FastAPI).",
       "eventsCount": 5,
       "events": [
         {
@@ -301,7 +301,7 @@
           "type": "MODEL_INFERENCE_1",
           "payload": {
             "provider_type": "OpenAICompatibleProvider",
-            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "model_name": "Qwen3.5-4B-UD-Q5_K_XL",
             "tools_registered_count": 4,
             "tools_schemas": [
               "get_ticket_by_id",
@@ -388,7 +388,7 @@
         "Síntesis final combinando múltiples observaciones de herramientas"
       ],
       "isSynthetic": false,
-      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "sourceNote": "Traza real capturada de una ejecución local del agente (modelo verificado en payload: Qwen 3.5 4B / Qwen3.5-4B-UD-Q5_K_XL + FastAPI).",
       "eventsCount": 21,
       "events": [
         {
@@ -443,7 +443,7 @@
           "type": "MODEL_INFERENCE_STARTED",
           "payload": {
             "provider_type": "OpenAICompatibleProvider",
-            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "model_name": "Qwen3.5-4B-UD-Q5_K_XL",
             "messages_count": 2,
             "tools_registered_count": 4,
             "tools_schemas": [
@@ -867,7 +867,7 @@
           "type": "MODEL_INFERENCE_STARTED",
           "payload": {
             "provider_type": "OpenAICompatibleProvider",
-            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "model_name": "Qwen3.5-4B-UD-Q5_K_XL",
             "messages_count": 5,
             "tools_registered_count": 4,
             "tools_schemas": [
@@ -977,7 +977,7 @@
         "Aislamiento estricto de contexto entre diferentes identidades"
       ],
       "isSynthetic": false,
-      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "sourceNote": "Traza real capturada de una ejecución local del agente (modelo verificado en payload: Qwen 3.5 4B / Qwen3.5-4B-UD-Q5_K_XL + FastAPI).",
       "eventsCount": 18,
       "events": [
         {
@@ -1067,7 +1067,7 @@
           "type": "MODEL_INFERENCE_STARTED",
           "payload": {
             "provider_type": "OpenAICompatibleProvider",
-            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "model_name": "Qwen3.5-4B-UD-Q5_K_XL",
             "messages_count": 2,
             "tools_registered_count": 4,
             "tools_schemas": [
@@ -1322,7 +1322,7 @@
           "type": "MODEL_INFERENCE_STARTED",
           "payload": {
             "provider_type": "OpenAICompatibleProvider",
-            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "model_name": "Qwen3.5-4B-UD-Q5_K_XL",
             "messages_count": 4,
             "tools_registered_count": 4,
             "tools_schemas": [
@@ -1450,7 +1450,7 @@
         "Síntesis jerárquica a partir del estado final de las subtareas"
       ],
       "isSynthetic": false,
-      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "sourceNote": "Traza real capturada de una ejecución local del agente (Agent v4 DAG Orchestrator + FastAPI).",
       "eventsCount": 14,
       "events": [
         {
@@ -1908,7 +1908,7 @@
         "Explicabilidad diagnóstica en grafos de tareas agénticas"
       ],
       "isSynthetic": false,
-      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "sourceNote": "Traza real capturada de una ejecución local del agente (Agent v4 DAG Orchestrator + FastAPI).",
       "eventsCount": 10,
       "events": [
         {

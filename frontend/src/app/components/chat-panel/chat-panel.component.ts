@@ -46,7 +46,7 @@ interface QuickPromptCard {
               </p>
 
               <div class="demo-scenarios-grid" data-tour="tour-demo-scenarios">
-                @for (scenario of getAvailableScenarios(); track scenario.id) {
+                @for (scenario of getAllDemoScenarios(); track scenario.id) {
                   <div class="demo-scenario-card" [class.highlight-agent]="scenario.version === selectedAgentId()">
                     <div class="scenario-card-header">
                       <div class="badge-title-group">
@@ -945,6 +945,10 @@ export class ChatPanelComponent {
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     this.stickToBottom = distanceFromBottom <= ChatPanelComponent.NEAR_BOTTOM_PX;
+  }
+
+  getAllDemoScenarios(): DemoScenario[] {
+    return this.demoAdapter.getAllScenarios();
   }
 
   getAvailableScenarios(): DemoScenario[] {

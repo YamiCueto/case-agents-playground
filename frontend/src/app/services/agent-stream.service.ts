@@ -33,6 +33,13 @@ export class AgentStreamService {
     callbacks: StreamCallbacks,
     apiBaseUrl: string = 'http://localhost:8000'
   ): Promise<void> {
+    if (this.demoMode.isDemoMode()) {
+      const err = new Error('Modo Demo estático activo: las consultas se resuelven mediante el catálogo de escenarios verificados.');
+      this.currentStreamError.set(err.message);
+      callbacks.onError(err);
+      return;
+    }
+
     this.abortCurrentStream();
 
     this.activeAbortController = new AbortController();

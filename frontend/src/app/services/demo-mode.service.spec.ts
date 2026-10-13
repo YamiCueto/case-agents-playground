@@ -35,4 +35,9 @@ describe('DemoModeService', () => {
     expect(service.isDemoMode()).toBe(false);
     expect(sessionStorage.getItem('aep_demo_mode')).toBe('false');
   });
+
+  it('should expose canToggleMode and isEnforcedDemoMode', () => {
+    expect(typeof service.canToggleMode()).toBe('boolean');
+    expect(typeof service.isEnforcedDemoMode()).toBe('boolean');
+  });
 });

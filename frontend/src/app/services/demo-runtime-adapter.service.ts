@@ -97,9 +97,9 @@ export class DemoRuntimeAdapterService {
 
   getStaticHealth(): HealthStatus {
     return {
-      status: 'healthy',
-      database: 'connected',
-      llm_server: 'connected',
+      status: 'demo',
+      database: 'static_in_memory',
+      llm_server: 'verified_traces',
       timestamp: new Date().toISOString()
     };
   }

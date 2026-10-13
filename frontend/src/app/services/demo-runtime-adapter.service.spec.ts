@@ -65,7 +65,7 @@ describe('DemoRuntimeAdapterService', () => {
     expect(tickets.length).toBeGreaterThanOrEqual(3);
 
     const health = service.getStaticHealth();
-    expect(health.status).toBe('healthy');
+    expect(health.status).toBe('demo');
   });
 
   it('should stream scenario events and trigger onEvent and onComplete callbacks', async () => {

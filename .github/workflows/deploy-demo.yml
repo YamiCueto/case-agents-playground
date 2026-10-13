@@ -22,7 +22,7 @@ permissions:
 # Permite una sola ejecución concurrente de despliegue
 concurrency:
   group: 'pages'
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
