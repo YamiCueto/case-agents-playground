@@ -2,6 +2,7 @@ import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AgentMeta, PersonaInfo, HealthStatus } from '../../models/agent.models';
 import { PresentationControllerService } from '../../services/presentation-controller.service';
+import { DemoModeService } from '../../services/demo-mode.service';
 
 @Component({
   selector: 'app-header',
@@ -23,10 +24,27 @@ import { PresentationControllerService } from '../../services/presentation-contr
         <div class="brand-info">
           <div class="brand-title-row">
             <h1>Agent Engineering Playground</h1>
-            <span class="lab-pill">Entorno Local</span>
+            @if (demoMode.isDemoMode()) {
+              <span class="lab-pill demo-pill">Modo Demo &bull; Sin backend</span>
+            } @else {
+              <span class="lab-pill">Entorno Local</span>
+            }
           </div>
 
-          @if (health()) {
+          @if (demoMode.isDemoMode()) {
+            <div 
+              class="env-status-pill demo-status-pill" 
+              data-tour="tour-connection"
+              aria-label="Modo Demo estático para GitHub Pages"
+            >
+              <span class="status-dot demo-dot"></span>
+              <span class="env-item">Static Demo</span>
+              <span class="dot-sep">&bull;</span>
+              <span class="env-item">Trazas Reales</span>
+              <span class="dot-sep">&bull;</span>
+              <span class="env-item">Sin servidor backend</span>
+            </div>
+          } @else if (health()) {
             <div 
               class="env-status-pill" 
               data-tour="tour-connection"
@@ -226,22 +244,35 @@ import { PresentationControllerService } from '../../services/presentation-contr
           <span class="label">Guía del aprendiz</span>
         </button>
 
-        <!-- Acceso al Inspector de Base de Datos MySQL -->
+        <!-- Acceso al Inspector de Base de Datos / Tickets -->
         <button 
           type="button"
           class="btn-db-toggle" 
           data-tour="tour-db-btn"
           [class.active]="isDbDrawerOpen()"
           (click)="toggleDbDrawer.emit()"
-          title="Inspeccionar tickets en base de datos MySQL"
-          aria-label="Abrir panel de tickets MySQL"
+          [title]="demoMode.isDemoMode() ? 'Ver catálogo de tickets simulado en modo Demo' : 'Inspeccionar tickets en base de datos MySQL'"
+          aria-label="Abrir panel de tickets"
         >
           <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
           </svg>
-          <span class="label">Tickets MySQL</span>
+          <span class="label">{{ demoMode.isDemoMode() ? 'Tickets (Demo)' : 'Tickets MySQL' }}</span>
+        </button>
+
+        <!-- Selector Rápido de Modo Demo / Live -->
+        <button
+          type="button"
+          class="btn-mode-toggle"
+          [class.active-demo]="demoMode.isDemoMode()"
+          (click)="demoMode.toggleDemoMode()"
+          [title]="demoMode.isDemoMode() ? 'Modo Demo activo (offline). Clic para cambiar a Live local.' : 'Modo Live local activo. Clic para activar Modo Demo estático.'"
+          aria-label="Alternar entre Modo Demo y Live local"
+        >
+          <span class="mode-indicator-dot" [class.dot-demo]="demoMode.isDemoMode()"></span>
+          <span class="mode-label">{{ demoMode.isDemoMode() ? 'Modo Demo' : 'Local Live' }}</span>
         </button>
       </div>
     </header>
@@ -643,6 +674,63 @@ import { PresentationControllerService } from '../../services/presentation-contr
         justify-content: space-between;
       }
     }
+
+    .demo-pill {
+      background: rgba(168, 85, 247, 0.16) !important;
+      color: #d8b4fe !important;
+      border: 1px solid rgba(168, 85, 247, 0.35) !important;
+      font-weight: 600;
+    }
+
+    .demo-status-pill {
+      background: rgba(147, 51, 234, 0.08) !important;
+      border: 1px solid rgba(168, 85, 247, 0.3) !important;
+    }
+
+    .demo-dot {
+      background: #c084fc !important;
+      box-shadow: 0 0 8px rgba(192, 132, 252, 0.8) !important;
+    }
+
+    .btn-mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-default);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-mode-toggle:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-mode-toggle.active-demo {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.45);
+      color: #e9d5ff;
+    }
+
+    .mode-indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+    }
+
+    .mode-indicator-dot.dot-demo {
+      background: #a855f7;
+      box-shadow: 0 0 6px rgba(168, 85, 247, 0.9);
+    }
   `]
 })
 export class HeaderComponent {
@@ -663,6 +751,7 @@ export class HeaderComponent {
   readonly toggleSimulator = output<void>();
 
   readonly controller = inject(PresentationControllerService);
+  readonly demoMode = inject(DemoModeService);
 
   onAgentChange(event: Event): void {
     const target = event.target as HTMLSelectElement;

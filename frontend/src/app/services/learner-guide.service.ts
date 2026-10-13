@@ -27,14 +27,21 @@ export class LearnerGuideService {
 
     try {
       const data = await firstValueFrom(
-        this.http.get<GuidesManifest>('/docs/aprendices/guides_manifest.json')
+        this.http.get<GuidesManifest>('docs/aprendices/guides_manifest.json')
       );
       this.manifest.set(data);
     } catch (err: unknown) {
-      console.warn('No se pudo cargar guides_manifest.json, intentando fallback:', err);
-      this.loadError.set(
-        'No se pudo cargar el manifiesto de guías. Verifica que public/docs/aprendices/ esté disponible.'
-      );
+      try {
+        const fallbackData = await firstValueFrom(
+          this.http.get<GuidesManifest>('/docs/aprendices/guides_manifest.json')
+        );
+        this.manifest.set(fallbackData);
+      } catch (fallbackErr: unknown) {
+        console.warn('No se pudo cargar guides_manifest.json, intentando fallback:', fallbackErr);
+        this.loadError.set(
+          'No se pudo cargar el manifiesto de guías. Verifica que public/docs/aprendices/ esté disponible.'
+        );
+      }
     } finally {
       this.isLoading.set(false);
     }

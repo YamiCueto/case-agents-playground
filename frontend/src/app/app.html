@@ -113,8 +113,12 @@
         [messages]="messages()"
         [isStreaming]="isStreaming()"
         [activeStep]="controller.activeStep()"
+        [selectedAgentId]="selectedAgentId()"
         (sendMessage)="onSendMessage($event)"
+        (runScenario)="onRunDemoScenario($event)"
         (stopStream)="onStopStream()"
+        (open3DSimulator)="onOpen3DSimulatorFromCompanion($event)"
+        (openDocumentation)="onOpenDocumentationFromCompanion($event)"
       ></app-chat-panel>
     </section>
 
@@ -162,6 +166,7 @@
   @if (isGuideDrawerOpen()) {
     <app-learner-guide-drawer
       [selectedAgentId]="selectedAgentId()"
+      [initialDocName]="selectedGuideDoc()"
       (close)="toggleGuideDrawer()"
       (selectAgent)="onSelectAgent($event)"
     ></app-learner-guide-drawer>

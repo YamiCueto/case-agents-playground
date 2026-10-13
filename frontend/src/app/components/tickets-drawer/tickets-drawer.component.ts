@@ -1,13 +1,14 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TicketSummary } from '../../models/agent.models';
+import { DemoModeService } from '../../services/demo-mode.service';
 
 @Component({
   selector: 'app-tickets-drawer',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="drawer-overlay" (click)="close.emit()" role="dialog" aria-modal="true" aria-label="Base de datos de tickets MySQL">
+    <div class="drawer-overlay" (click)="close.emit()" role="dialog" aria-modal="true" aria-label="Base de datos de tickets">
       <div class="drawer-card" (click)="$event.stopPropagation()">
         <div class="drawer-header">
           <div class="header-info">
@@ -17,18 +18,26 @@ import { TicketSummary } from '../../models/agent.models';
                 <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
                 <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
               </svg>
-              <h3>Estado en Vivo &bull; MySQL <code>cfa_tickets</code></h3>
+              @if (demoMode.isDemoMode()) {
+                <h3>Catálogo de Tickets &bull; Modo Demo Estático</h3>
+              } @else {
+                <h3>Estado en Vivo &bull; MySQL <code>cfa_tickets</code></h3>
+              }
             </div>
-            <span class="drawer-desc">Snapshots reales leídos mediante <code>TicketService</code></span>
+            <span class="drawer-desc">
+              {{ demoMode.isDemoMode() 
+                  ? 'Fixtures locales deterministas (cfa_tickets) para demostración pedagógica sin servidor MySQL'
+                  : 'Snapshots reales leídos mediante TicketService y base de datos' }}
+            </span>
           </div>
           <div class="header-actions">
-            <button class="btn-refresh" (click)="refresh.emit()" title="Recargar tickets desde la base de datos" aria-label="Actualizar tickets">
+            <button class="btn-refresh" (click)="refresh.emit()" [title]="demoMode.isDemoMode() ? 'Recargar fixtures estáticos en memoria' : 'Recargar tickets desde la base de datos'" aria-label="Actualizar tickets">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10"></polyline>
                 <polyline points="1 20 1 14 7 14"></polyline>
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
               </svg>
-              <span>Actualizar</span>
+              <span>{{ demoMode.isDemoMode() ? 'Recargar' : 'Actualizar' }}</span>
             </button>
             <button class="btn-close" (click)="close.emit()" title="Cerrar panel de tickets" aria-label="Cerrar panel">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -304,4 +313,5 @@ export class TicketsDrawerComponent {
   readonly tickets = input<TicketSummary[]>([]);
   readonly close = output<void>();
   readonly refresh = output<void>();
+  readonly demoMode = inject(DemoModeService);
 }

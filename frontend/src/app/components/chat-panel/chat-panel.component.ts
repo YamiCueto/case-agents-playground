@@ -1,9 +1,14 @@
-import { Component, ElementRef, ViewChild, effect, input, output, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, effect, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatMessage } from '../../models/agent.models';
 import { AgentJourneyStep } from '../../models/journey.models';
 import { MarkdownPipe } from '../../pipes/markdown.pipe';
+import { RuntimeCompanionComponent } from '../runtime-companion/runtime-companion.component';
+import { RuntimeCompanionService } from '../../services/runtime-companion.service';
+import { DemoModeService } from '../../services/demo-mode.service';
+import { DemoRuntimeAdapterService } from '../../services/demo-runtime-adapter.service';
+import { DemoScenario } from '../../models/demo.models';
 
 interface QuickPromptCard {
   query: string;
@@ -15,7 +20,7 @@ interface QuickPromptCard {
 @Component({
   selector: 'app-chat-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MarkdownPipe],
+  imports: [CommonModule, FormsModule, MarkdownPipe, RuntimeCompanionComponent],
   template: `
     <section class="chat-container" data-tour="tour-chat-panel">
       <div
@@ -27,39 +32,96 @@ interface QuickPromptCard {
         (scroll)="onScroll()"
       >
         @if (messages().length === 0) {
-          <div class="welcome-hero">
-            <div class="hero-badge">
-              <svg class="hero-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
-                <path d="M4.93 4.93l2.12 2.12m9.9 9.9l2.12 2.12M4.93 19.07l2.12-2.12m9.9-9.9l2.12-2.12"></path>
-              </svg>
-            </div>
-            <h2 class="hero-title">Agent Engineering Playground</h2>
-            <p class="hero-subtitle">
-              Laboratorio de observabilidad para inspección determinista de flujos agénticos, llamadas a herramientas e inferencia local paso a paso.
-            </p>
+          @if (demoMode.isDemoMode()) {
+            <div class="welcome-hero demo-hero">
+              <div class="hero-badge demo-badge">
+                <svg class="hero-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </div>
+              <div class="demo-tag-pill">Modo Demo &bull; Sin Backend &bull; Trazas Reales Verificadas</div>
+              <h2 class="hero-title">Catálogo de Escenarios Pedagógicos</h2>
+              <p class="hero-subtitle">
+                Demostraciones deterministas basadas en trazas reales de inferencia local. Selecciona un escenario para reproducir eventos paso a paso, Runtime Companion e inspección 3D.
+              </p>
 
-            <div class="prompt-cards-grid" data-tour="tour-chat-suggestions">
-              @for (card of promptCards; track card.query) {
-                <button 
-                  type="button" 
-                  class="prompt-card" 
-                  (click)="selectQuickPrompt(card.query)"
-                  [attr.aria-label]="card.badge + ': ' + card.query"
-                >
-                  <div class="card-header">
-                    <span class="card-badge" [class.tool-badge]="card.typeBadge === 'tool'" [class.conceptual-badge]="card.typeBadge === 'conceptual'">
-                      {{ card.badge }}
-                    </span>
-                    <span class="card-arrow">&rarr;</span>
+              <div class="demo-scenarios-grid" data-tour="tour-demo-scenarios">
+                @for (scenario of getAvailableScenarios(); track scenario.id) {
+                  <div class="demo-scenario-card" [class.highlight-agent]="scenario.version === selectedAgentId()">
+                    <div class="scenario-card-header">
+                      <div class="badge-title-group">
+                        <span class="scenario-ver-badge">{{ scenario.version.toUpperCase() }}</span>
+                        <span class="scenario-badge-title">{{ scenario.title }}</span>
+                      </div>
+                      <span class="scenario-events-count">{{ scenario.eventsCount }} eventos</span>
+                    </div>
+
+                    <p class="scenario-desc">{{ scenario.description }}</p>
+
+                    <div class="scenario-prompt-box">
+                      <span class="prompt-label">Prompt verificado:</span>
+                      <code class="prompt-text">"{{ scenario.suggestedPrompt }}"</code>
+                    </div>
+
+                    <div class="scenario-concepts">
+                      @for (concept of scenario.pedagogicalConcepts; track concept) {
+                        <span class="concept-tag">{{ concept }}</span>
+                      }
+                    </div>
+
+                    <div class="scenario-card-footer">
+                      <button 
+                        type="button" 
+                        class="btn-run-scenario"
+                        (click)="onExecuteScenario(scenario.id)"
+                        [disabled]="isStreaming()"
+                        [attr.aria-label]="'Reproducir demostración: ' + scenario.title"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <span>Reproducir Demostración</span>
+                      </button>
+                    </div>
                   </div>
-                  <h3 class="card-query">{{ card.query }}</h3>
-                  <p class="card-desc">{{ card.description }}</p>
-                </button>
-              }
+                }
+              </div>
             </div>
-          </div>
+          } @else {
+            <div class="welcome-hero">
+              <div class="hero-badge">
+                <svg class="hero-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+                  <path d="M4.93 4.93l2.12 2.12m9.9 9.9l2.12 2.12M4.93 19.07l2.12-2.12m9.9-9.9l2.12-2.12"></path>
+                </svg>
+              </div>
+              <h2 class="hero-title">Agent Engineering Playground</h2>
+              <p class="hero-subtitle">
+                Laboratorio de observabilidad para inspección determinista de flujos agénticos, llamadas a herramientas e inferencia local paso a paso.
+              </p>
+
+              <div class="prompt-cards-grid" data-tour="tour-chat-suggestions">
+                @for (card of promptCards; track card.query) {
+                  <button 
+                    type="button" 
+                    class="prompt-card" 
+                    (click)="selectQuickPrompt(card.query)"
+                    [attr.aria-label]="card.badge + ': ' + card.query"
+                  >
+                    <div class="card-header">
+                      <span class="card-badge" [class.tool-badge]="card.typeBadge === 'tool'" [class.conceptual-badge]="card.typeBadge === 'conceptual'">
+                        {{ card.badge }}
+                      </span>
+                      <span class="card-arrow">&rarr;</span>
+                    </div>
+                    <h3 class="card-query">{{ card.query }}</h3>
+                    <p class="card-desc">{{ card.description }}</p>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         } @else {
           @for (msg of messages(); track msg.id) {
             <div class="message-row" [class.user-row]="msg.sender === 'user'" [class.agent-row]="msg.sender === 'agent'" [class.system-row]="msg.sender === 'system'">
@@ -96,14 +158,21 @@ interface QuickPromptCard {
                   @if (msg.sender === 'user') {
                     <p class="user-text">{{ msg.text }}</p>
                   } @else {
+                    @if (msg.runId && companionService.getRun(msg.runId); as companionState) {
+                      <app-runtime-companion
+                        [state]="companionState"
+                        (expandTo3D)="open3DSimulator.emit($event)"
+                        (openDocumentation)="openDocumentation.emit($event)"
+                      ></app-runtime-companion>
+                    }
                     <div class="markdown-body" [innerHTML]="msg.text | markdown"></div>
-                  }
 
-                  @if (msg.isLoading) {
-                    <div class="runtime-progress-badge" role="status" aria-live="polite">
-                      <span class="pulse-indicator"></span>
-                      <span class="phase-label">{{ getPhaseLabel(activeStep()) }}</span>
-                    </div>
+                    @if (msg.isLoading && !msg.runId) {
+                      <div class="runtime-progress-badge" role="status" aria-live="polite">
+                        <span class="pulse-indicator"></span>
+                        <span class="phase-label">{{ getPhaseLabel(activeStep()) }}</span>
+                      </div>
+                    }
                   }
                 </div>
               </div>
@@ -127,32 +196,48 @@ interface QuickPromptCard {
           ></textarea>
 
           <div class="actions-row">
-            <div class="chips-row">
-              <button 
-                type="button" 
-                class="mini-chip" 
-                (click)="selectQuickPrompt('Consulta el ticket TICK-1001 y dime su estado')"
-                title="Consulta directa con Tool Calling get_ticket"
-              >
-                TICK-1001
-              </button>
-              <button 
-                type="button" 
-                class="mini-chip" 
-                (click)="selectQuickPrompt('Identifica los tickets vencidos según SLA')"
-                title="Filtro determinista de tickets con SLA vencido"
-              >
-                SLA Vencidos
-              </button>
-              <button 
-                type="button" 
-                class="mini-chip" 
-                (click)="selectQuickPrompt('¿Cuál es el procedimiento general para atender un incidente?')"
-                title="Consulta conceptual sin llamada a base de datos"
-              >
-                Conceptual (Sin Tools)
-              </button>
-            </div>
+            @if (demoMode.isDemoMode()) {
+              <div class="chips-row demo-chips-row">
+                <span class="demo-chips-label">Escenarios {{ selectedAgentId().toUpperCase() }}:</span>
+                @for (sc of getAvailableScenarios(); track sc.id) {
+                  <button 
+                    type="button" 
+                    class="mini-chip demo-chip" 
+                    (click)="onExecuteScenario(sc.id)"
+                    [title]="sc.description"
+                  >
+                    ▶ {{ sc.title }}
+                  </button>
+                }
+              </div>
+            } @else {
+              <div class="chips-row">
+                <button 
+                  type="button" 
+                  class="mini-chip" 
+                  (click)="selectQuickPrompt('Consulta el ticket TICK-1001 y dime su estado')"
+                  title="Consulta directa con Tool Calling get_ticket"
+                >
+                  TICK-1001
+                </button>
+                <button 
+                  type="button" 
+                  class="mini-chip" 
+                  (click)="selectQuickPrompt('Identifica los tickets vencidos según SLA')"
+                  title="Filtro determinista de tickets con SLA vencido"
+                >
+                  SLA Vencidos
+                </button>
+                <button 
+                  type="button" 
+                  class="mini-chip" 
+                  (click)="selectQuickPrompt('¿Cuál es el procedimiento general para atender un incidente?')"
+                  title="Consulta conceptual sin llamada a base de datos"
+                >
+                  Conceptual (Sin Tools)
+                </button>
+              </div>
+            }
 
             <div class="button-group">
               @if (isStreaming()) {
@@ -333,6 +418,8 @@ interface QuickPromptCard {
     }
     .agent-row {
       align-self: flex-start;
+      width: 100%;
+      max-width: 95%;
     }
     .system-row {
       align-self: center;
@@ -376,6 +463,7 @@ interface QuickPromptCard {
       background: var(--bg-panel);
       border-color: var(--border-default);
       border-bottom-left-radius: 2px;
+      width: 100%;
     }
     .system-row .message-bubble {
       background: var(--accent-amber-bg);
@@ -620,15 +708,192 @@ interface QuickPromptCard {
     .btn-stop:hover {
       background: #dc2626;
     }
+
+    .demo-hero {
+      max-width: 680px;
+    }
+    .demo-badge {
+      background: rgba(168, 85, 247, 0.15) !important;
+      border-color: rgba(168, 85, 247, 0.4) !important;
+      color: #c084fc !important;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.2) !important;
+    }
+    .demo-tag-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #d8b4fe;
+      margin-bottom: 0.25rem;
+    }
+    .demo-scenarios-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      width: 100%;
+      text-align: left;
+    }
+    .demo-scenario-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: var(--transition-smooth);
+    }
+    .demo-scenario-card:hover {
+      border-color: rgba(168, 85, 247, 0.5);
+      background: var(--bg-card-hover);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    .demo-scenario-card.highlight-agent {
+      border-left: 3px solid #a855f7;
+    }
+    .scenario-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .scenario-ver-badge {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(168, 85, 247, 0.25);
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    .scenario-badge-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .scenario-events-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+    .scenario-desc {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin: 0;
+    }
+    .scenario-prompt-box {
+      font-size: 0.76rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 0.35rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+    .prompt-label {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+    }
+    .prompt-text {
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+    }
+    .scenario-concepts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.1rem;
+    }
+    .concept-tag {
+      font-size: 0.66rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    .scenario-card-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.25rem;
+    }
+    .btn-run-scenario {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: #e9d5ff;
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .btn-run-scenario:hover:not(:disabled) {
+      background: #a855f7;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+      transform: translateY(-1px);
+    }
+    .demo-chips-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+    .demo-chips-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #c084fc;
+      white-space: nowrap;
+      margin-right: 0.2rem;
+    }
+    .demo-chip {
+      background: rgba(168, 85, 247, 0.12) !important;
+      border-color: rgba(168, 85, 247, 0.35) !important;
+      color: #e9d5ff !important;
+      white-space: nowrap;
+    }
+    .demo-chip:hover {
+      background: rgba(168, 85, 247, 0.25) !important;
+      border-color: rgba(168, 85, 247, 0.6) !important;
+    }
   `]
 })
 export class ChatPanelComponent {
   readonly messages = input<ChatMessage[]>([]);
   readonly isStreaming = input<boolean>(false);
   readonly activeStep = input<AgentJourneyStep | null>(null);
+  readonly selectedAgentId = input<string>('v1');
 
   readonly sendMessage = output<string>();
+  readonly runScenario = output<string>();
   readonly stopStream = output<void>();
+  readonly open3DSimulator = output<string>();
+  readonly openDocumentation = output<string>();
+
+  readonly companionService = inject(RuntimeCompanionService);
+  readonly demoMode = inject(DemoModeService);
+  readonly demoAdapter = inject(DemoRuntimeAdapterService);
 
   private static readonly NEAR_BOTTOM_PX = 80;
 
@@ -682,6 +947,17 @@ export class ChatPanelComponent {
     this.stickToBottom = distanceFromBottom <= ChatPanelComponent.NEAR_BOTTOM_PX;
   }
 
+  getAvailableScenarios(): DemoScenario[] {
+    const list = this.demoAdapter.getScenariosForVersion(this.selectedAgentId());
+    if (list.length > 0) return list;
+    return this.demoAdapter.getAllScenarios();
+  }
+
+  onExecuteScenario(scenarioId: string): void {
+    if (this.isStreaming()) return;
+    this.runScenario.emit(scenarioId);
+  }
+
   getPhaseLabel(step: AgentJourneyStep | null): string {
     if (!step) return 'Procesando flujo agéntico...';
     switch (step.hopNumber) {
@@ -700,6 +976,20 @@ export class ChatPanelComponent {
     const text = this.currentInput().trim();
     if (!text || this.isStreaming()) return;
     this.stickToBottom = true;
+    if (this.demoMode.isDemoMode()) {
+      const scenarios = this.demoAdapter.getAllScenarios();
+      const match = scenarios.find(
+        (s) =>
+          s.suggestedPrompt.toLowerCase() === text.toLowerCase() ||
+          s.title.toLowerCase() === text.toLowerCase() ||
+          s.id.toLowerCase() === text.toLowerCase()
+      );
+      if (match) {
+        this.runScenario.emit(match.id);
+        this.currentInput.set('');
+        return;
+      }
+    }
     this.sendMessage.emit(text);
     this.currentInput.set('');
   }
@@ -724,3 +1014,4 @@ export class ChatPanelComponent {
     }
   }
 }
+

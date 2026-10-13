@@ -1,0 +1,263 @@
+{
+  "agents": [
+    {
+      "id": "test_sse",
+      "name": "Test SSE — Despachador Controlado",
+      "workshop": "Laboratorio / Diagnóstico",
+      "enabled": true,
+      "status": "ready",
+      "description": "Emisor controlado con pausas de 400ms para validar recepción progresiva y cancelación.",
+      "badge": "Diagnóstico",
+      "hops_count": 6
+    },
+    {
+      "id": "v1",
+      "name": "Agent v1 — Tool Calling",
+      "workshop": "Taller 02",
+      "enabled": true,
+      "status": "ready",
+      "description": "Orquestación lineal de 7 hops. Protocolo declarativo y despacho soberano en CPU.",
+      "badge": "Operativo (L02)",
+      "hops_count": 7
+    },
+    {
+      "id": "v2",
+      "name": "Agent v2 — Agent Loop",
+      "workshop": "Taller 03",
+      "enabled": true,
+      "status": "ready",
+      "description": "Bucle iterativo con control de max_iterations y decisiones dependientes multi-step.",
+      "badge": "Operativo (L03)",
+      "hops_count": null
+    },
+    {
+      "id": "v3",
+      "name": "Agent v3 — State & Memory",
+      "workshop": "Taller 04",
+      "enabled": true,
+      "status": "ready",
+      "description": "ExecutionState efímero y MemoryStore persistente con aislamiento estricto por subject_id.",
+      "badge": "Operativo (L04)",
+      "hops_count": null
+    },
+    {
+      "id": "v4",
+      "name": "Agent v4 — Planning",
+      "workshop": "Taller 05",
+      "enabled": true,
+      "status": "ready",
+      "description": "Descomposición en grafos DAG, ejecutores tipados (TOOL, RUNTIME, MODEL) y replanning.",
+      "badge": "Operativo (L05)",
+      "hops_count": null
+    },
+    {
+      "id": "v5",
+      "name": "Agent v5 — Guardrails & HITL",
+      "workshop": "Taller 06",
+      "enabled": false,
+      "status": "future",
+      "description": "Policy gates (ALLOW, REQUIRE, BLOCK), ActionProposal SHA-256 y compuerta humana.",
+      "badge": "Próximamente",
+      "hops_count": null
+    },
+    {
+      "id": "v6",
+      "name": "Agent v6 — Observability & Eval",
+      "workshop": "Taller 07",
+      "enabled": false,
+      "status": "future",
+      "description": "Tracing estructurado con sequence_no monotónico, minimización de datos y dataset golden.",
+      "badge": "Próximamente",
+      "hops_count": null
+    }
+  ],
+  "personas": [
+    {
+      "username": "usr_carlos",
+      "full_name": "Carlos Mario Restrepo",
+      "role": "USER",
+      "description": "Usuario solicitante interno. Crea y consulta sus tickets.",
+      "is_lab_simulation": true
+    },
+    {
+      "username": "usr_laura",
+      "full_name": "Laura Marcela Gomez",
+      "role": "USER",
+      "description": "Usuaria solicitante de operaciones. Reporta incidentes de plataforma.",
+      "is_lab_simulation": true
+    },
+    {
+      "username": "soporte_tecnico",
+      "full_name": "Andres Felipe Soporte",
+      "role": "AGENT",
+      "description": "Técnico de soporte de nivel 1. Asigna y resuelve tickets operativos.",
+      "is_lab_simulation": true
+    },
+    {
+      "username": "agente_redes",
+      "full_name": "Diana Patricia Redes",
+      "role": "AGENT",
+      "description": "Especialista de conectividad e infraestructura.",
+      "is_lab_simulation": true
+    },
+    {
+      "username": "supervisor_juan",
+      "full_name": "Juan Guillermo Supervisor",
+      "role": "SUPERVISOR",
+      "description": "Supervisor de soporte. Autoriza cambios críticos y cierre de tickets de alta severidad.",
+      "is_lab_simulation": true
+    },
+    {
+      "username": "admin_sistema",
+      "full_name": "Administrador de Sistemas",
+      "role": "ADMIN",
+      "description": "Administrador integral de plataforma y políticas.",
+      "is_lab_simulation": true
+    }
+  ],
+  "tickets": [
+    {
+      "code": "TICK-1013",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T23:05:28",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1012",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T23:04:35",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1011",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T22:48:46",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1010",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T22:48:08",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1009",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T22:30:18",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1008",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T22:24:41",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1007",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T22:24:23",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1006",
+      "title": "Falla de balanceador en API Gateway",
+      "status": "CLOSED",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T22:14:13",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1001",
+      "title": "Bloqueo transaccional en módulo de captación",
+      "status": "OPEN",
+      "priority": "HIGH",
+      "category_code": "DATABASE",
+      "creator_username": "usr_carlos",
+      "assignee_username": null,
+      "sla_due_at": "2026-10-10T04:12:33",
+      "is_overdue": true
+    },
+    {
+      "code": "TICK-1002",
+      "title": "Caída de enlace VPN en sucursal centro",
+      "status": "IN_PROGRESS",
+      "priority": "CRITICAL",
+      "category_code": "NETWORK",
+      "creator_username": "usr_laura",
+      "assignee_username": "agente_redes",
+      "sla_due_at": "2026-10-09T21:12:33",
+      "is_overdue": true
+    },
+    {
+      "code": "TICK-1003",
+      "title": "Error 500 intermitente en API de colocaciones",
+      "status": "OPEN",
+      "priority": "CRITICAL",
+      "category_code": "SOFTWARE",
+      "creator_username": "usr_carlos",
+      "assignee_username": null,
+      "sla_due_at": "2026-10-09T16:12:33",
+      "is_overdue": true
+    },
+    {
+      "code": "TICK-1004",
+      "title": "Desbloqueo de usuario de cajero principal",
+      "status": "RESOLVED",
+      "priority": "MEDIUM",
+      "category_code": "ACCESS",
+      "creator_username": "usr_laura",
+      "assignee_username": "soporte_tecnico",
+      "sla_due_at": "2026-10-10T14:12:33",
+      "is_overdue": false
+    },
+    {
+      "code": "TICK-1005",
+      "title": "Reemplazo de teclado en puesto operativo 4",
+      "status": "CLOSED",
+      "priority": "LOW",
+      "category_code": "HARDWARE",
+      "creator_username": "usr_carlos",
+      "assignee_username": "soporte_tecnico",
+      "sla_due_at": "2026-10-07T18:12:33",
+      "is_overdue": false
+    }
+  ]
+}

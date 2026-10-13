@@ -28,9 +28,17 @@ export class SimulatorProjectionService {
   // Replay scrubber index when inspecting inside the simulator
   readonly simulatorEventIndex = signal<number>(0);
 
-  readonly activeAgentId = computed<string>(() => this.eventStore.activeAgentId() || 'v1');
+  // Optional custom run override for inspecting historical runs
+  readonly customRunEvents = signal<StreamEvent[] | null>(null);
+  readonly customRunVersion = signal<string | null>(null);
 
-  readonly events = computed<StreamEvent[]>(() => this.eventStore.events());
+  readonly activeAgentId = computed<string>(() => {
+    return this.customRunVersion() || this.eventStore.activeAgentId() || 'v1';
+  });
+
+  readonly events = computed<StreamEvent[]>(() => {
+    return this.customRunEvents() || this.eventStore.events();
+  });
 
   readonly totalEvents = computed<number>(() => this.events().length);
 
@@ -91,14 +99,25 @@ export class SimulatorProjectionService {
     return states;
   });
 
-  openSimulator(): void {
-    const len = this.events().length;
-    this.simulatorEventIndex.set(Math.max(0, len - 1));
+  openSimulator(customEvents?: StreamEvent[], customVersion?: string): void {
+    if (customEvents && customEvents.length > 0) {
+      this.customRunEvents.set(customEvents);
+      this.customRunVersion.set(customVersion || null);
+      this.simulatorEventIndex.set(customEvents.length - 1);
+      this.controller.setMode('replay');
+    } else {
+      this.customRunEvents.set(null);
+      this.customRunVersion.set(null);
+      const len = this.events().length;
+      this.simulatorEventIndex.set(Math.max(0, len - 1));
+    }
     this.isOpen.set(true);
   }
 
   closeSimulator(): void {
     this.isOpen.set(false);
+    this.customRunEvents.set(null);
+    this.customRunVersion.set(null);
   }
 
   toggleSimulator(): void {

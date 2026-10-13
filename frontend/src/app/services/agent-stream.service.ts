@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { StreamEvent } from '../models/agent.models';
+import { DemoModeService } from './demo-mode.service';
 
 export interface StreamCallbacks {
   onEvent: (event: StreamEvent) => void;
@@ -22,6 +23,7 @@ export interface ChatStreamPayload {
   providedIn: 'root'
 })
 export class AgentStreamService {
+  private readonly demoMode = inject(DemoModeService);
   private activeAbortController: AbortController | null = null;
   readonly isStreaming = signal<boolean>(false);
   readonly currentStreamError = signal<string | null>(null);
@@ -124,6 +126,9 @@ export class AgentStreamService {
   }
 
   async checkHealth(apiBaseUrl: string = 'http://localhost:8000'): Promise<{ status: string; database: string; llm_server: string } | null> {
+    if (this.demoMode.isDemoMode()) {
+      return { status: 'demo', database: 'static_in_memory', llm_server: 'verified_traces' };
+    }
     try {
       const res = await fetch(`${apiBaseUrl}/api/health`);
       if (res.ok) {
@@ -135,3 +140,4 @@ export class AgentStreamService {
     return null;
   }
 }
+

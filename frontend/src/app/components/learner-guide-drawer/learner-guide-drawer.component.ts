@@ -1248,6 +1248,7 @@ import { MarkdownPipe } from '../../pipes/markdown.pipe';
 })
 export class LearnerGuideDrawerComponent {
   readonly selectedAgentId = input<string>('v1');
+  readonly initialDocName = input<string | null>(null);
   readonly close = output<void>();
   readonly selectAgent = output<string>();
 
@@ -1267,6 +1268,15 @@ export class LearnerGuideDrawerComponent {
       const v = this.selectedAgentId();
       if (['v1', 'v2', 'v3', 'v4'].includes(v)) {
         this.activeVersion.set(v);
+      }
+    });
+
+    effect(() => {
+      const doc = this.initialDocName();
+      if (doc === 'catalogo-herramientas.md') {
+        this.openExtraDoc('catalogo-herramientas.md');
+      } else if (doc === 'guia-runtime-inspector.md') {
+        this.openExtraDoc('guia-runtime-inspector.md');
       }
     });
   }

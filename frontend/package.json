@@ -6,6 +6,8 @@
     "start": "ng serve",
     "prebuild": "python ../scripts/sync_docs.py",
     "build": "ng build",
+    "build:demo": "ng build --configuration demo",
+    "start:demo": "ng serve --configuration demo",
     "sync:docs": "python ../scripts/sync_docs.py",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

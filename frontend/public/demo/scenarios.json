@@ -1,0 +1,2203 @@
+{
+  "generatedAt": "2026-10-12T12:12:27.594876",
+  "version": "1.0.0",
+  "totalScenarios": 6,
+  "mode": "static_demo",
+  "scenarios": [
+    {
+      "id": "v1-tool-calling",
+      "version": "v1",
+      "title": "Tool Calling Exitoso (get_ticket)",
+      "description": "El agente analiza la consulta, decide invocar la herramienta get_ticket para inspeccionar TICK-1001 en la base de datos externa, recibe la respuesta estructurada y sintetiza el estado con grounding determinista.",
+      "suggestedPrompt": "Consulta el ticket TICK-1001 y dime su estado",
+      "persona": "usr_carlos",
+      "finalResponse": "El ticket **TICK-1001** tiene un estado de **OPEN (Abierto)**.",
+      "pedagogicalConcepts": [
+        "Decisión de Router: Clasificación de intención (tool vs directa)",
+        "Extracción y serialización estructurada de argumentos (ticket_code)",
+        "Ejecución de Tool segura y recepción de payload de datos",
+        "Grounding determinista de la respuesta final sin alucinaciones"
+      ],
+      "isSynthetic": false,
+      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "eventsCount": 8,
+      "events": [
+        {
+          "event_id": "evt-4e8fd98800",
+          "agent_version": "v1",
+          "hop_number": 1,
+          "hop_title": "HOP 1 - USER REQUEST",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "USER_REQUEST",
+          "payload": {
+            "query": "Consulta el ticket TICK-1001 y dime su estado",
+            "persona": "usr_carlos",
+            "mode": "lab_simulation",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:42.070741+00:00"
+        },
+        {
+          "event_id": "evt-3def1c9a5f",
+          "agent_version": "v1",
+          "hop_number": 2,
+          "hop_title": "HOP 2 - MODEL INFERENCE 1",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "MODEL_INFERENCE_1",
+          "payload": {
+            "provider_type": "OpenAICompatibleProvider",
+            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "tools_registered_count": 4,
+            "tools_schemas": [
+              "get_ticket_by_id",
+              "list_tickets",
+              "create_ticket",
+              "identify_overdue_tickets"
+            ],
+            "status": "sent_to_llm",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:42.073388+00:00"
+        },
+        {
+          "event_id": "evt-34bf71d60e",
+          "agent_version": "v1",
+          "hop_number": 3,
+          "hop_title": "HOP 3 - TOOL PROPOSAL",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "TOOL_PROPOSAL",
+          "payload": {
+            "model_decision": "tool_call_requested",
+            "tool_name": "get_ticket_by_id",
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "arguments": {
+              "ticket_code": "TICK-1001",
+              "_lab_mode": true
+            },
+            "source": "qwen_llm_inference",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:43.279501+00:00"
+        },
+        {
+          "event_id": "evt-33a0345155",
+          "agent_version": "v1",
+          "hop_number": 4,
+          "hop_title": "HOP 4 - ARGUMENT VALIDATION",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "ARGUMENT_VALIDATION",
+          "payload": {
+            "validator": "Pydantic",
+            "tool_name": "get_ticket_by_id",
+            "is_valid": true,
+            "validated_arguments": {
+              "ticket_code": "TICK-1001",
+              "_lab_mode": true
+            },
+            "validation_error": null,
+            "source": "python_pydantic_validation",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:43.279818+00:00"
+        },
+        {
+          "event_id": "evt-3605249e62",
+          "agent_version": "v1",
+          "hop_number": 5,
+          "hop_title": "HOP 5 - CPU TOOL EXECUTION",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "CPU_TOOL_EXECUTION",
+          "payload": {
+            "executor": "TicketService (Python CPU Runtime)",
+            "database": "MySQL",
+            "operator": "usr_carlos",
+            "execution_status": "success",
+            "result": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "source": "python_cpu_runtime",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:43.307343+00:00"
+        },
+        {
+          "event_id": "evt-6414b39025",
+          "agent_version": "v1",
+          "hop_number": 6,
+          "hop_title": "HOP 6 - TOOL RESULT INJECTION",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "TOOL_RESULT_INJECTION",
+          "payload": {
+            "role": "tool",
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "name": "get_ticket_by_id",
+            "content_preview": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "source": "runtime_context_injection",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:43.307627+00:00"
+        },
+        {
+          "event_id": "evt-8a7f3f39ca",
+          "agent_version": "v1",
+          "hop_number": 7,
+          "hop_title": "HOP 7 - FINAL SYNTHESIS",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "FINAL_SYNTHESIS",
+          "payload": {
+            "source": "qwen_llm_synthesis",
+            "answer": "El ticket **TICK-1001** tiene un estado de **OPEN (Abierto)**.",
+            "content": "El ticket **TICK-1001** tiene un estado de **OPEN (Abierto)**.",
+            "message": "El ticket **TICK-1001** tiene un estado de **OPEN (Abierto)**.",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:44.308802+00:00"
+        },
+        {
+          "event_id": "evt-de496f54a7",
+          "agent_version": "v1",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "RUN_COMPLETED",
+          "payload": {
+            "status": "completed",
+            "total_hops": 7,
+            "tools_executed": 1,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:44.309055+00:00"
+        }
+      ]
+    },
+    {
+      "id": "v1-direct-answer",
+      "version": "v1",
+      "title": "Respuesta Conceptual Directa (Sin Tools)",
+      "description": "El agente evalúa una consulta sobre procedimientos generales. Al no requerir datos específicos de la base de datos, omite llamadas externas y emite una respuesta directa optimizando latencia.",
+      "suggestedPrompt": "¿Cuál es el procedimiento general para atender un incidente?",
+      "persona": "usr_carlos",
+      "finalResponse": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+      "pedagogicalConcepts": [
+        "Evaluación de precondiciones de consulta",
+        "Bypass de herramientas para consultas puramente conceptuales",
+        "Minimización de latencia y costo computacional en un solo paso"
+      ],
+      "isSynthetic": false,
+      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "eventsCount": 5,
+      "events": [
+        {
+          "event_id": "evt-7a96e74206",
+          "agent_version": "v1",
+          "hop_number": 1,
+          "hop_title": "HOP 1 - USER REQUEST",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "USER_REQUEST",
+          "payload": {
+            "query": "¿Cuál es el procedimiento general para atender un incidente?",
+            "persona": "usr_carlos",
+            "mode": "lab_simulation",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:46.377002+00:00"
+        },
+        {
+          "event_id": "evt-060dba19ba",
+          "agent_version": "v1",
+          "hop_number": 2,
+          "hop_title": "HOP 2 - MODEL INFERENCE 1",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "MODEL_INFERENCE_1",
+          "payload": {
+            "provider_type": "OpenAICompatibleProvider",
+            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "tools_registered_count": 4,
+            "tools_schemas": [
+              "get_ticket_by_id",
+              "list_tickets",
+              "create_ticket",
+              "identify_overdue_tickets"
+            ],
+            "status": "sent_to_llm",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:46.392320+00:00"
+        },
+        {
+          "event_id": "evt-7357b5cf3e",
+          "agent_version": "v1",
+          "hop_number": 3,
+          "hop_title": "HOP 3 - DIRECT ANSWER",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "DIRECT_ANSWER",
+          "payload": {
+            "decision": "no_tool_required",
+            "reason": "La consulta fue resuelta directamente por el modelo de lenguaje.",
+            "content": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+            "message": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+            "response_preview": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:50.696385+00:00"
+        },
+        {
+          "event_id": "evt-d2660f5444",
+          "agent_version": "v1",
+          "hop_number": 7,
+          "hop_title": "HOP 7 - FINAL SYNTHESIS",
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "FINAL_SYNTHESIS",
+          "payload": {
+            "source": "qwen_direct_answer",
+            "answer": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+            "content": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+            "message": "El procedimiento general para atender un incidente en nuestro sistema de soporte técnico sigue una estructura estandarizada que garantiza un manejo eficiente y organizado de los problemas reportados:\n\n1. **Registro del Incidente**: Todo incidente debe ser registrado mediante la creación de un ticket en el sistema, incluyendo título descriptivo, detalles técnicos del problema, nivel de prioridad (LOW, MEDIUM, HIGH, CRITICAL) y categoría técnica correspondiente (HARDWARE, SOFTWARE, NETWORK, ACCESS, GENERAL).\n\n2. **Asignación y Clasificación**: Una vez creado, el ticket se clasifica según su estado inicial (OPEN - Abierto), su prioridad y categoría, lo que permite una distribución adecuada según la complejidad y urgencia del problema.\n\n3. **Evaluación y Priorización**: El equipo de soporte evalúa el ticket para determinar el nivel de atención requerido, asignando recursos según la prioridad establecida.\n\n4. **Desarrollo y Resolución**: Durante la fase de trabajo (IN_PROGRESS - En progreso), los técnicos investigan, diagnostican y resuelven el incidente, actualizando el estado del ticket conforme avanza el proceso.\n\n5. **Cierre y Seguimiento**: Cuando el problema se resuelve satisfactoriamente, el ticket pasa a estado RESOLVED (Resuelto) o CLOSED (Cerrado), permitiendo el seguimiento del cumplimiento de los Acuerdos de Nivel de Servicio (SLA).\n\n6. **Monitoreo de SLA**: Se realiza un seguimiento constante para identificar cualquier ticket con SLA vencido o fuera del plazo establecido, asegurando la calidad del servicio.\n\nEste flujo garantiza trazabilidad, transparencia y cumplimiento de los estándares de servicio establecidos en nuestra organización.",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:50.697006+00:00"
+        },
+        {
+          "event_id": "evt-5324d37447",
+          "agent_version": "v1",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": null,
+          "iteration_index": null,
+          "phase": null,
+          "correlation_id": null,
+          "type": "RUN_COMPLETED",
+          "payload": {
+            "status": "completed",
+            "total_hops": 2,
+            "tools_executed": 0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:50.697429+00:00"
+        }
+      ]
+    },
+    {
+      "id": "v2-agent-loop",
+      "version": "v2",
+      "title": "Agent Loop con Múltiples Iteraciones (Comparación ReAct)",
+      "description": "El agente entra en un bucle iterativo de razonamiento y acción (Thought -> Action -> Observation). Ejecuta múltiples llamadas sucesivas a herramientas para comparar TICK-1001 y TICK-1002 antes de sintetizar.",
+      "suggestedPrompt": "Consulta TICK-1001 y TICK-1003 y compara su prioridad",
+      "persona": "usr_carlos",
+      "finalResponse": "He consultado ambos tickets y aquí está la comparación de sus prioridades:\n\n**TICK-1001**\n- **Prioridad:** HIGH (Alta)\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado:** OPEN (Abierto)\n\n**TICK-1003**\n- **Prioridad:** CRITICAL (Crítica)\n- **Título:** Error 500 intermitente en API de colocaciones\n- **Estado:** OPEN (Abierto)\n\n**Comparación:**\nEl ticket **TICK-1003** tiene una prioridad **CRITICAL**, que es el nivel más alto en la jerarquía de prioridades del sistema. El ticket **TICK-1001** tiene prioridad **HIGH**, que es un nivel inferior a CRITICAL.\n\nEn términos de urgencia, **TICK-1003 requiere atención inmediata** debido a su prioridad crítica, mientras que **TICK-1001 es de alta prioridad pero con un nivel de urgencia menor**. Ambas tickets están en estado OPEN y ambas están fuera de plazo de SLA (is_overdue: true).",
+      "pedagogicalConcepts": [
+        "Ciclo ReAct multi-paso (Thought, Action, Observation)",
+        "Preservación de historial acumulado a través de iteraciones",
+        "Mecanismo guardián de parada (detección de repetición y max iterations)",
+        "Síntesis final combinando múltiples observaciones de herramientas"
+      ],
+      "isSynthetic": false,
+      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "eventsCount": 21,
+      "events": [
+        {
+          "event_id": "evt-a595978e09",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 0,
+          "phase": "init",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "RUN_STARTED",
+          "payload": {
+            "query": "Consulta TICK-1001 y TICK-1003 y compara su prioridad",
+            "operator": "usr_carlos",
+            "max_iterations": 5,
+            "global_timeout_seconds": 60.0,
+            "inference_timeout_seconds": 30.0,
+            "tool_timeout_seconds": 15.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:52.748884+00:00"
+        },
+        {
+          "event_id": "evt-c6ae2dfae1",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "loop",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "ITERATION_STARTED",
+          "payload": {
+            "iteration_index": 1,
+            "max_iterations": 5,
+            "elapsed_seconds": 0.0,
+            "remaining_global_seconds": 60.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:52.749133+00:00"
+        },
+        {
+          "event_id": "evt-87f71353c5",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "inference",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "MODEL_INFERENCE_STARTED",
+          "payload": {
+            "provider_type": "OpenAICompatibleProvider",
+            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "messages_count": 2,
+            "tools_registered_count": 4,
+            "tools_schemas": [
+              "get_ticket_by_id",
+              "list_tickets",
+              "create_ticket",
+              "identify_overdue_tickets"
+            ],
+            "timeout_seconds": 30.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:52.761932+00:00"
+        },
+        {
+          "event_id": "evt-ad911a72f7",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "inference",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "MODEL_INFERENCE_COMPLETED",
+          "payload": {
+            "has_tool_calls": true,
+            "tool_calls_count": 2,
+            "duration_ms": 1637.96,
+            "finish_reason": "tool_calls",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.400145+00:00"
+        },
+        {
+          "event_id": "evt-67e28ed477",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "proposal",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "TOOL_CALL_PROPOSED",
+          "payload": {
+            "tool_call_id": "PCqIqoNCSwVNGYysVP8EMgXHN0rSnUsC",
+            "tool_name": "get_ticket_by_id",
+            "arguments": {
+              "ticket_code": "TICK-1001",
+              "_lab_mode": true
+            },
+            "is_mutative": false,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.400488+00:00"
+        },
+        {
+          "event_id": "evt-b8e77dd410",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "validation",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "ARGUMENTS_VALIDATED",
+          "payload": {
+            "tool_call_id": "PCqIqoNCSwVNGYysVP8EMgXHN0rSnUsC",
+            "tool_name": "get_ticket_by_id",
+            "is_valid": true,
+            "validated_arguments": {
+              "ticket_code": "TICK-1001",
+              "_lab_mode": true
+            },
+            "validation_error": null,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.400694+00:00"
+        },
+        {
+          "event_id": "evt-3f4c56373a",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "TOOL_EXECUTION_STARTED",
+          "payload": {
+            "tool_call_id": "PCqIqoNCSwVNGYysVP8EMgXHN0rSnUsC",
+            "tool_name": "get_ticket_by_id",
+            "operator": "usr_carlos",
+            "is_mutative": false,
+            "policy": "ALLOW",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.400888+00:00"
+        },
+        {
+          "event_id": "evt-0faed8a980",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "TOOL_EXECUTION_COMPLETED",
+          "payload": {
+            "tool_call_id": "PCqIqoNCSwVNGYysVP8EMgXHN0rSnUsC",
+            "tool_name": "get_ticket_by_id",
+            "execution_status": "success",
+            "duration_ms": 24.73,
+            "is_mutative": false,
+            "idempotency_hit": false,
+            "result": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.426141+00:00"
+        },
+        {
+          "event_id": "evt-d754637437",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "observation",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "OBSERVATION_APPENDED",
+          "payload": {
+            "tool_call_id": "PCqIqoNCSwVNGYysVP8EMgXHN0rSnUsC",
+            "tool_name": "get_ticket_by_id",
+            "role": "tool",
+            "observation": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.426531+00:00"
+        },
+        {
+          "event_id": "evt-ca99dc7791",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "proposal",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "TOOL_CALL_PROPOSED",
+          "payload": {
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "tool_name": "get_ticket_by_id",
+            "arguments": {
+              "ticket_code": "TICK-1003",
+              "_lab_mode": true
+            },
+            "is_mutative": false,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.426831+00:00"
+        },
+        {
+          "event_id": "evt-ab9b95bf3a",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "validation",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "ARGUMENTS_VALIDATED",
+          "payload": {
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "tool_name": "get_ticket_by_id",
+            "is_valid": true,
+            "validated_arguments": {
+              "ticket_code": "TICK-1003",
+              "_lab_mode": true
+            },
+            "validation_error": null,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.427029+00:00"
+        },
+        {
+          "event_id": "evt-9e2bd510a2",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "TOOL_EXECUTION_STARTED",
+          "payload": {
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "tool_name": "get_ticket_by_id",
+            "operator": "usr_carlos",
+            "is_mutative": false,
+            "policy": "ALLOW",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.427332+00:00"
+        },
+        {
+          "event_id": "evt-42acb2dbc4",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "TOOL_EXECUTION_COMPLETED",
+          "payload": {
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "tool_name": "get_ticket_by_id",
+            "execution_status": "success",
+            "duration_ms": 2.91,
+            "is_mutative": false,
+            "idempotency_hit": false,
+            "result": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1003",
+                "title": "Error 500 intermitente en API de colocaciones",
+                "description": "El endpoint de desembolsos responde con error interno bajo alta concurrencia",
+                "status": "OPEN",
+                "priority": "CRITICAL",
+                "category_code": "SOFTWARE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-09T16:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 5,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad CRITICAL",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.430660+00:00"
+        },
+        {
+          "event_id": "evt-1a63b37c07",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "observation",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "OBSERVATION_APPENDED",
+          "payload": {
+            "tool_call_id": "***REDACTED_HIGH_ENTROPY***",
+            "tool_name": "get_ticket_by_id",
+            "role": "tool",
+            "observation": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1003",
+                "title": "Error 500 intermitente en API de colocaciones",
+                "description": "El endpoint de desembolsos responde con error interno bajo alta concurrencia",
+                "status": "OPEN",
+                "priority": "CRITICAL",
+                "category_code": "SOFTWARE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-09T16:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 5,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad CRITICAL",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.430898+00:00"
+        },
+        {
+          "event_id": "evt-dbb09572dc",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 1,
+          "phase": "loop",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "ITERATION_COMPLETED",
+          "payload": {
+            "iteration_index": 1,
+            "duration_ms": 1682.0,
+            "tool_calls_count": 2,
+            "had_observation": true,
+            "decision": "continue_next_iteration",
+            "tools_invoked": [
+              "get_ticket_by_id",
+              "get_ticket_by_id"
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.431127+00:00"
+        },
+        {
+          "event_id": "evt-33199efd54",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 2,
+          "phase": "loop",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "ITERATION_STARTED",
+          "payload": {
+            "iteration_index": 2,
+            "max_iterations": 5,
+            "elapsed_seconds": 1.683,
+            "remaining_global_seconds": 58.317,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.431306+00:00"
+        },
+        {
+          "event_id": "evt-90389b0d6d",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 2,
+          "phase": "inference",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "MODEL_INFERENCE_STARTED",
+          "payload": {
+            "provider_type": "OpenAICompatibleProvider",
+            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "messages_count": 5,
+            "tools_registered_count": 4,
+            "tools_schemas": [
+              "get_ticket_by_id",
+              "list_tickets",
+              "create_ticket",
+              "identify_overdue_tickets"
+            ],
+            "timeout_seconds": 30.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:54.431425+00:00"
+        },
+        {
+          "event_id": "evt-5f5ba680ae",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 2,
+          "phase": "inference",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "MODEL_INFERENCE_COMPLETED",
+          "payload": {
+            "has_tool_calls": false,
+            "tool_calls_count": 0,
+            "duration_ms": 3326.14,
+            "finish_reason": "stop",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:57.757765+00:00"
+        },
+        {
+          "event_id": "evt-6ef7f6c99d",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 2,
+          "phase": "synthesis",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "FINAL_SYNTHESIS",
+          "payload": {
+            "answer": "He consultado ambos tickets y aquí está la comparación de sus prioridades:\n\n**TICK-1001**\n- **Prioridad:** HIGH (Alta)\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado:** OPEN (Abierto)\n\n**TICK-1003**\n- **Prioridad:** CRITICAL (Crítica)\n- **Título:** Error 500 intermitente en API de colocaciones\n- **Estado:** OPEN (Abierto)\n\n**Comparación:**\nEl ticket **TICK-1003** tiene una prioridad **CRITICAL**, que es el nivel más alto en la jerarquía de prioridades del sistema. El ticket **TICK-1001** tiene prioridad **HIGH**, que es un nivel inferior a CRITICAL.\n\nEn términos de urgencia, **TICK-1003 requiere atención inmediata** debido a su prioridad crítica, mientras que **TICK-1001 es de alta prioridad pero con un nivel de urgencia menor**. Ambas tickets están en estado OPEN y ambas están fuera de plazo de SLA (is_overdue: true).",
+            "content": "He consultado ambos tickets y aquí está la comparación de sus prioridades:\n\n**TICK-1001**\n- **Prioridad:** HIGH (Alta)\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado:** OPEN (Abierto)\n\n**TICK-1003**\n- **Prioridad:** CRITICAL (Crítica)\n- **Título:** Error 500 intermitente en API de colocaciones\n- **Estado:** OPEN (Abierto)\n\n**Comparación:**\nEl ticket **TICK-1003** tiene una prioridad **CRITICAL**, que es el nivel más alto en la jerarquía de prioridades del sistema. El ticket **TICK-1001** tiene prioridad **HIGH**, que es un nivel inferior a CRITICAL.\n\nEn términos de urgencia, **TICK-1003 requiere atención inmediata** debido a su prioridad crítica, mientras que **TICK-1001 es de alta prioridad pero con un nivel de urgencia menor**. Ambas tickets están en estado OPEN y ambas están fuera de plazo de SLA (is_overdue: true).",
+            "message": "He consultado ambos tickets y aquí está la comparación de sus prioridades:\n\n**TICK-1001**\n- **Prioridad:** HIGH (Alta)\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado:** OPEN (Abierto)\n\n**TICK-1003**\n- **Prioridad:** CRITICAL (Crítica)\n- **Título:** Error 500 intermitente en API de colocaciones\n- **Estado:** OPEN (Abierto)\n\n**Comparación:**\nEl ticket **TICK-1003** tiene una prioridad **CRITICAL**, que es el nivel más alto en la jerarquía de prioridades del sistema. El ticket **TICK-1001** tiene prioridad **HIGH**, que es un nivel inferior a CRITICAL.\n\nEn términos de urgencia, **TICK-1003 requiere atención inmediata** debido a su prioridad crítica, mientras que **TICK-1001 es de alta prioridad pero con un nivel de urgencia menor**. Ambas tickets están en estado OPEN y ambas están fuera de plazo de SLA (is_overdue: true).",
+            "total_iterations": 2,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:57.757998+00:00"
+        },
+        {
+          "event_id": "evt-2a43801f35",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 2,
+          "phase": "loop",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "ITERATION_COMPLETED",
+          "payload": {
+            "iteration_index": 2,
+            "duration_ms": 3327.21,
+            "tool_calls_count": 0,
+            "had_observation": false,
+            "decision": "final_answer",
+            "tools_invoked": [],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:57.758519+00:00"
+        },
+        {
+          "event_id": "evt-60b4b8e17f",
+          "agent_version": "v2",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "exec-0b2277c83083",
+          "iteration_index": 2,
+          "phase": "complete",
+          "correlation_id": "corr-c5686c1c1f",
+          "type": "RUN_COMPLETED",
+          "payload": {
+            "status": "completed",
+            "stop_reason": "final_answer",
+            "total_iterations": 2,
+            "total_tools_executed": 2,
+            "total_duration_ms": 5008.69,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:57.758678+00:00"
+        }
+      ]
+    },
+    {
+      "id": "v3-memory-retrieval",
+      "version": "v3",
+      "title": "Recuperación y Persistencia de Memoria de Conversación",
+      "description": "El agente recupera e hidrata la memoria contextual previa asociada al usuario y la conversación, consulta datos de tickets y persiste el nuevo turno con el historial acumulado.",
+      "suggestedPrompt": "¿Cuál es el estado de TICK-1001?",
+      "persona": "usr_carlos",
+      "finalResponse": "El estado actual del ticket **TICK-1001** es **OPEN** (abierto).\n\nDetalles adicionales:\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Prioridad:** HIGH (Alta)\n- **Categoría:** DATABASE\n- **Asignado a:** No asignado\n- **SLA vence el:** 2026-10-10T04:12:33\n- **Estado del SLA:** Vencido (is_overdue: true)\n\nEl ticket fue creado por `usr_carlos` el 2026-10-09 y aún no ha sido asignado ni resuelto.",
+      "pedagogicalConcepts": [
+        "Hydration de memoria conversacional histórica (Memory Store)",
+        "Correlación de sesión y conversación mediante conversation_id",
+        "Persistencia atómica del turno (TURN_PERSISTED)",
+        "Aislamiento estricto de contexto entre diferentes identidades"
+      ],
+      "isSynthetic": false,
+      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "eventsCount": 18,
+      "events": [
+        {
+          "event_id": "evt-v3-2067090b6e",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": null,
+          "phase": "hydration",
+          "correlation_id": "corr-8ee20f54",
+          "type": "MEMORY_HYDRATED",
+          "payload": {
+            "conversation_id": "conv_usr_carlos_demo_01",
+            "turns_count": 0,
+            "decisions_count": 0,
+            "active_decisions": [],
+            "stats": {
+              "query_tokens": 9,
+              "system_prompt_tokens": 420,
+              "decisions_tokens": 0,
+              "decisions_count": 0,
+              "available_history_budget": 5583,
+              "history_tokens": 0,
+              "history_turns_count": 0,
+              "total_initial_tokens": 429,
+              "total_context_limit": 8192,
+              "max_context_budget": 8192,
+              "effective_app_budget": 8192,
+              "server_context_limit": 8192,
+              "model_context_capacity": 262144,
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:59.892427+00:00"
+        },
+        {
+          "event_id": "evt-8f62ed1808",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 0,
+          "phase": "init",
+          "correlation_id": "corr-8ee20f54",
+          "type": "RUN_STARTED",
+          "payload": {
+            "query": "¿Cuál es el estado de TICK-1001?",
+            "operator": "usr_carlos",
+            "max_iterations": 5,
+            "global_timeout_seconds": 60.0,
+            "inference_timeout_seconds": 30.0,
+            "tool_timeout_seconds": 15.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:59.892670+00:00"
+        },
+        {
+          "event_id": "evt-966bb2689f",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "loop",
+          "correlation_id": "corr-8ee20f54",
+          "type": "ITERATION_STARTED",
+          "payload": {
+            "iteration_index": 1,
+            "max_iterations": 5,
+            "elapsed_seconds": 0.0,
+            "remaining_global_seconds": 60.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:59.892817+00:00"
+        },
+        {
+          "event_id": "evt-a4ba7bdff0",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "inference",
+          "correlation_id": "corr-8ee20f54",
+          "type": "MODEL_INFERENCE_STARTED",
+          "payload": {
+            "provider_type": "OpenAICompatibleProvider",
+            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "messages_count": 2,
+            "tools_registered_count": 4,
+            "tools_schemas": [
+              "get_ticket_by_id",
+              "list_tickets",
+              "create_ticket",
+              "identify_overdue_tickets"
+            ],
+            "timeout_seconds": 30.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:02:59.907697+00:00"
+        },
+        {
+          "event_id": "evt-5d45fd1d49",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "inference",
+          "correlation_id": "corr-8ee20f54",
+          "type": "MODEL_INFERENCE_COMPLETED",
+          "payload": {
+            "has_tool_calls": true,
+            "tool_calls_count": 1,
+            "duration_ms": 1970.24,
+            "finish_reason": "tool_calls",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.878181+00:00"
+        },
+        {
+          "event_id": "evt-27f9a8fb81",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "proposal",
+          "correlation_id": "corr-8ee20f54",
+          "type": "TOOL_CALL_PROPOSED",
+          "payload": {
+            "tool_call_id": "LKLWROkDexL4rVDO2VdRIDa8BRNx9sKR",
+            "tool_name": "get_ticket_by_id",
+            "arguments": {
+              "ticket_code": "TICK-1001",
+              "_lab_mode": true
+            },
+            "is_mutative": false,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.878401+00:00"
+        },
+        {
+          "event_id": "evt-89cdc15e9a",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "validation",
+          "correlation_id": "corr-8ee20f54",
+          "type": "ARGUMENTS_VALIDATED",
+          "payload": {
+            "tool_call_id": "LKLWROkDexL4rVDO2VdRIDa8BRNx9sKR",
+            "tool_name": "get_ticket_by_id",
+            "is_valid": true,
+            "validated_arguments": {
+              "ticket_code": "TICK-1001",
+              "_lab_mode": true
+            },
+            "validation_error": null,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.878529+00:00"
+        },
+        {
+          "event_id": "evt-1fc2d06fdc",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-8ee20f54",
+          "type": "TOOL_EXECUTION_STARTED",
+          "payload": {
+            "tool_call_id": "LKLWROkDexL4rVDO2VdRIDa8BRNx9sKR",
+            "tool_name": "get_ticket_by_id",
+            "operator": "usr_carlos",
+            "is_mutative": false,
+            "policy": "ALLOW",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.878631+00:00"
+        },
+        {
+          "event_id": "evt-453d7ad6c3",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-8ee20f54",
+          "type": "TOOL_EXECUTION_COMPLETED",
+          "payload": {
+            "tool_call_id": "LKLWROkDexL4rVDO2VdRIDa8BRNx9sKR",
+            "tool_name": "get_ticket_by_id",
+            "execution_status": "success",
+            "duration_ms": 6.41,
+            "is_mutative": false,
+            "idempotency_hit": false,
+            "result": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.885631+00:00"
+        },
+        {
+          "event_id": "evt-1e4e45be33",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "observation",
+          "correlation_id": "corr-8ee20f54",
+          "type": "OBSERVATION_APPENDED",
+          "payload": {
+            "tool_call_id": "LKLWROkDexL4rVDO2VdRIDa8BRNx9sKR",
+            "tool_name": "get_ticket_by_id",
+            "role": "tool",
+            "observation": {
+              "status": "success",
+              "tool_name": "get_ticket_by_id",
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.885922+00:00"
+        },
+        {
+          "event_id": "evt-d8937a51ba",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 1,
+          "phase": "loop",
+          "correlation_id": "corr-8ee20f54",
+          "type": "ITERATION_COMPLETED",
+          "payload": {
+            "iteration_index": 1,
+            "duration_ms": 1993.46,
+            "tool_calls_count": 1,
+            "had_observation": true,
+            "decision": "continue_next_iteration",
+            "tools_invoked": [
+              "get_ticket_by_id"
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.886291+00:00"
+        },
+        {
+          "event_id": "evt-4de5fc1d9e",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 2,
+          "phase": "loop",
+          "correlation_id": "corr-8ee20f54",
+          "type": "ITERATION_STARTED",
+          "payload": {
+            "iteration_index": 2,
+            "max_iterations": 5,
+            "elapsed_seconds": 1.994,
+            "remaining_global_seconds": 58.006,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.886420+00:00"
+        },
+        {
+          "event_id": "evt-58b9322989",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 2,
+          "phase": "inference",
+          "correlation_id": "corr-8ee20f54",
+          "type": "MODEL_INFERENCE_STARTED",
+          "payload": {
+            "provider_type": "OpenAICompatibleProvider",
+            "model_name": "C:\\LLM\\gguf\\Qwen3.5-4B-UD-Q5\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+            "messages_count": 4,
+            "tools_registered_count": 4,
+            "tools_schemas": [
+              "get_ticket_by_id",
+              "list_tickets",
+              "create_ticket",
+              "identify_overdue_tickets"
+            ],
+            "timeout_seconds": 30.0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:01.886502+00:00"
+        },
+        {
+          "event_id": "evt-d50767ef3d",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 2,
+          "phase": "inference",
+          "correlation_id": "corr-8ee20f54",
+          "type": "MODEL_INFERENCE_COMPLETED",
+          "payload": {
+            "has_tool_calls": false,
+            "tool_calls_count": 0,
+            "duration_ms": 2652.84,
+            "finish_reason": "stop",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:04.539481+00:00"
+        },
+        {
+          "event_id": "evt-8d709bb4ee",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 2,
+          "phase": "synthesis",
+          "correlation_id": "corr-8ee20f54",
+          "type": "FINAL_SYNTHESIS",
+          "payload": {
+            "answer": "El estado actual del ticket **TICK-1001** es **OPEN** (abierto).\n\nDetalles adicionales:\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Prioridad:** HIGH (Alta)\n- **Categoría:** DATABASE\n- **Asignado a:** No asignado\n- **SLA vence el:** 2026-10-10T04:12:33\n- **Estado del SLA:** Vencido (is_overdue: true)\n\nEl ticket fue creado por `usr_carlos` el 2026-10-09 y aún no ha sido asignado ni resuelto.",
+            "content": "El estado actual del ticket **TICK-1001** es **OPEN** (abierto).\n\nDetalles adicionales:\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Prioridad:** HIGH (Alta)\n- **Categoría:** DATABASE\n- **Asignado a:** No asignado\n- **SLA vence el:** 2026-10-10T04:12:33\n- **Estado del SLA:** Vencido (is_overdue: true)\n\nEl ticket fue creado por `usr_carlos` el 2026-10-09 y aún no ha sido asignado ni resuelto.",
+            "message": "El estado actual del ticket **TICK-1001** es **OPEN** (abierto).\n\nDetalles adicionales:\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Prioridad:** HIGH (Alta)\n- **Categoría:** DATABASE\n- **Asignado a:** No asignado\n- **SLA vence el:** 2026-10-10T04:12:33\n- **Estado del SLA:** Vencido (is_overdue: true)\n\nEl ticket fue creado por `usr_carlos` el 2026-10-09 y aún no ha sido asignado ni resuelto.",
+            "total_iterations": 2,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:04.539670+00:00"
+        },
+        {
+          "event_id": "evt-09474870b6",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 2,
+          "phase": "loop",
+          "correlation_id": "corr-8ee20f54",
+          "type": "ITERATION_COMPLETED",
+          "payload": {
+            "iteration_index": 2,
+            "duration_ms": 2653.47,
+            "tool_calls_count": 0,
+            "had_observation": false,
+            "decision": "final_answer",
+            "tools_invoked": [],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:04.539901+00:00"
+        },
+        {
+          "event_id": "evt-19ae9c3dd1",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": 2,
+          "phase": "complete",
+          "correlation_id": "corr-8ee20f54",
+          "type": "RUN_COMPLETED",
+          "payload": {
+            "status": "completed",
+            "stop_reason": "final_answer",
+            "total_iterations": 2,
+            "total_tools_executed": 1,
+            "total_duration_ms": 4646.71,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:04.540058+00:00"
+        },
+        {
+          "event_id": "evt-v3-a17ae68954",
+          "agent_version": "v3",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v3-exec-f3fde1c6",
+          "iteration_index": null,
+          "phase": "persistence",
+          "correlation_id": "corr-8ee20f54",
+          "type": "TURN_PERSISTED",
+          "payload": {
+            "turn_id": "turn-bc71343e",
+            "conversation_id": "conv_usr_carlos_demo_01",
+            "status": "stored_in_mysql",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:04.546990+00:00"
+        }
+      ]
+    },
+    {
+      "id": "v4-planning-dag",
+      "version": "v4",
+      "title": "Planificación y Descomposición DAG Completa",
+      "description": "El agente formula un plan jerárquico descomponiendo la meta en un Grafo Acíclico Dirigido (DAG). Ejecuta las tareas respetando dependencias y produce una síntesis completa.",
+      "suggestedPrompt": "Diagnosticar ticket TICK-1001 y proponer plan",
+      "persona": "usr_carlos",
+      "finalResponse": "### Diagnóstico y Plan de Acción para Ticket TICK-1001\n\n**Resumen Técnico del Incidente:**\n- **Código:** TICK-1001\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado Actual:** OPEN\n- **Nivel de Prioridad:** HIGH\n- **Categoría Técnica:** DATABASE\n- **Reportado por:** usr_carlos\n- **SLA Vencido:** SÍ (fuera de SLA, requiere atención prioritaria)\n\n**Detalle del Problema:**\nLa tabla de aportes registra bloqueos recurrentes durante el cierre diario\n\n**Plan de Acción Propuesto:**\n1. **Contención Inmediata:** Asignar ingeniero especialista en database para diagnosticar bloqueos concurrentes.\n2. **Inspección de Transacciones:** Analizar las sentencias SQL en las tablas afectadas durante ventanas de alta carga.\n3. **Gobernanza y Cierre:** Actualizar el estado del ticket y registrar notas técnicas de resolución conforme a las políticas de la cooperativa.",
+      "pedagogicalConcepts": [
+        "Paradigma Plan-and-Solve: Descomposición explícita previa a la acción",
+        "Grafo de dependencias (DAG) y orden de ejecución topológica",
+        "Monitoreo de estado por nodo (PENDING -> RUNNING -> COMPLETED)",
+        "Síntesis jerárquica a partir del estado final de las subtareas"
+      ],
+      "isSynthetic": false,
+      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "eventsCount": 14,
+      "events": [
+        {
+          "event_id": "evt-v4-41485fed8e",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 0,
+          "phase": "init",
+          "correlation_id": "corr-0de76a71",
+          "type": "USER_REQUEST",
+          "payload": {
+            "query": "Diagnosticar ticket TICK-1001 y proponer plan",
+            "persona": "usr_carlos",
+            "operator": "usr_carlos",
+            "conversation_id": "conv-v4-059d82be",
+            "session_id": "sess_default",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:06.663586+00:00"
+        },
+        {
+          "event_id": "evt-v3-9148a490c8",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": null,
+          "phase": "hydration",
+          "correlation_id": "corr-0de76a71",
+          "type": "MEMORY_HYDRATED",
+          "payload": {
+            "conversation_id": "conv-v4-059d82be",
+            "turns_count": 0,
+            "decisions_count": 0,
+            "active_decisions": [],
+            "stats": {
+              "query_tokens": 12,
+              "system_prompt_tokens": 420,
+              "decisions_tokens": 0,
+              "decisions_count": 0,
+              "available_history_budget": 5580,
+              "history_tokens": 0,
+              "history_turns_count": 0,
+              "total_initial_tokens": 432,
+              "total_context_limit": 8192,
+              "max_context_budget": 8192,
+              "effective_app_budget": 8192,
+              "server_context_limit": 8192,
+              "model_context_capacity": 262144,
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:06.667932+00:00"
+        },
+        {
+          "event_id": "evt-v4-c025c03182",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 0,
+          "phase": "planning",
+          "correlation_id": "corr-0de76a71",
+          "type": "PLAN_GENERATED",
+          "payload": {
+            "goal": "Diagnosticar ticket TICK-1001 y proponer plan",
+            "revision": 1,
+            "steps_count": 3,
+            "steps": [
+              {
+                "id": "S1",
+                "action": "get_ticket_by_id",
+                "description": "Consultar información y estado del ticket TICK-1001",
+                "executor": "tool",
+                "status": "pending",
+                "depends_on": [],
+                "arguments": {
+                  "ticket_code": "TICK-1001",
+                  "_lab_mode": true
+                },
+                "observation": null,
+                "required": true,
+                "skip_reason": null,
+                "_lab_mode": true
+              },
+              {
+                "id": "S2",
+                "action": "analyze_ticket_data",
+                "description": "Analizar datos, estado y cumplimiento de SLA del ticket",
+                "executor": "runtime",
+                "status": "pending",
+                "depends_on": [
+                  "S1"
+                ],
+                "arguments": {
+                  "_lab_mode": true
+                },
+                "observation": null,
+                "required": true,
+                "skip_reason": null,
+                "_lab_mode": true
+              },
+              {
+                "id": "S3",
+                "action": "synthesize_response",
+                "description": "Sintetizar diagnóstico técnico y proponer plan de acción grounded",
+                "executor": "model",
+                "status": "pending",
+                "depends_on": [
+                  "S2"
+                ],
+                "arguments": {
+                  "_lab_mode": true
+                },
+                "observation": null,
+                "required": true,
+                "skip_reason": null,
+                "_lab_mode": true
+              }
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.335388+00:00"
+        },
+        {
+          "event_id": "evt-v4-a6eeb9d5a7",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 0,
+          "phase": "validation",
+          "correlation_id": "corr-0de76a71",
+          "type": "PLAN_VALIDATED",
+          "payload": {
+            "goal": "Diagnosticar ticket TICK-1001 y proponer plan",
+            "revision": 1,
+            "is_valid": true,
+            "steps_count": 3,
+            "step_ids": [
+              "S1",
+              "S2",
+              "S3"
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.335701+00:00"
+        },
+        {
+          "event_id": "evt-v4-ec6f356085",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-0de76a71",
+          "type": "STEP_STARTED",
+          "payload": {
+            "step_id": "S1",
+            "action": "get_ticket_by_id",
+            "description": "Consultar información y estado del ticket TICK-1001",
+            "executor": "tool",
+            "status": "in_progress",
+            "revision": 1,
+            "depends_on": [],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.335892+00:00"
+        },
+        {
+          "event_id": "evt-v4-132238f2f9",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-0de76a71",
+          "type": "STEP_COMPLETED",
+          "payload": {
+            "step_id": "S1",
+            "action": "get_ticket_by_id",
+            "executor": "tool",
+            "status": "completed",
+            "revision": 1,
+            "duration_ms": 5.76,
+            "observation": {
+              "status": "success",
+              "result": {
+                "status": "success",
+                "tool_name": "get_ticket_by_id",
+                "data": {
+                  "code": "TICK-1001",
+                  "title": "Bloqueo transaccional en módulo de captación",
+                  "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                  "status": "OPEN",
+                  "priority": "HIGH",
+                  "category_code": "DATABASE",
+                  "creator_username": "usr_carlos",
+                  "assignee_username": null,
+                  "sla_due_at": "2026-10-10T04:12:33",
+                  "resolved_at": null,
+                  "closed_at": null,
+                  "is_overdue": true,
+                  "comments": [],
+                  "history": [
+                    {
+                      "id": 1,
+                      "operator_username": "usr_carlos",
+                      "action": "CREATED",
+                      "old_value": null,
+                      "new_value": "Ticket creado con prioridad HIGH",
+                      "created_at": "2026-10-09T13:12:33",
+                      "_lab_mode": true
+                    }
+                  ],
+                  "_lab_mode": true
+                },
+                "_lab_mode": true
+              },
+              "data": {
+                "code": "TICK-1001",
+                "title": "Bloqueo transaccional en módulo de captación",
+                "description": "La tabla de aportes registra bloqueos recurrentes durante el cierre diario",
+                "status": "OPEN",
+                "priority": "HIGH",
+                "category_code": "DATABASE",
+                "creator_username": "usr_carlos",
+                "assignee_username": null,
+                "sla_due_at": "2026-10-10T04:12:33",
+                "resolved_at": null,
+                "closed_at": null,
+                "is_overdue": true,
+                "comments": [],
+                "history": [
+                  {
+                    "id": 1,
+                    "operator_username": "usr_carlos",
+                    "action": "CREATED",
+                    "old_value": null,
+                    "new_value": "Ticket creado con prioridad HIGH",
+                    "created_at": "2026-10-09T13:12:33",
+                    "_lab_mode": true
+                  }
+                ],
+                "_lab_mode": true
+              },
+              "is_mutative": false,
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.429145+00:00"
+        },
+        {
+          "event_id": "evt-v4-f2e9ae6e45",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 2,
+          "phase": "execution",
+          "correlation_id": "corr-0de76a71",
+          "type": "STEP_STARTED",
+          "payload": {
+            "step_id": "S2",
+            "action": "analyze_ticket_data",
+            "description": "Analizar datos, estado y cumplimiento de SLA del ticket",
+            "executor": "runtime",
+            "status": "in_progress",
+            "revision": 1,
+            "depends_on": [
+              "S1"
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.429513+00:00"
+        },
+        {
+          "event_id": "evt-v4-4572a1a2ce",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 2,
+          "phase": "execution",
+          "correlation_id": "corr-0de76a71",
+          "type": "STEP_COMPLETED",
+          "payload": {
+            "step_id": "S2",
+            "action": "analyze_ticket_data",
+            "executor": "runtime",
+            "status": "completed",
+            "revision": 1,
+            "duration_ms": 0.04,
+            "observation": {
+              "status": "success",
+              "analysis": "Análisis algorítmico local completado para TICK-1001: Estado=OPEN, Prioridad=HIGH, Categoría=DATABASE. SLA Vencido: SÍ (requiere atención crítica).",
+              "ticket_code": "TICK-1001",
+              "is_overdue": true,
+              "priority": "HIGH",
+              "ticket_status": "OPEN",
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.515892+00:00"
+        },
+        {
+          "event_id": "evt-v4-4b1ff15034",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 3,
+          "phase": "execution",
+          "correlation_id": "corr-0de76a71",
+          "type": "STEP_STARTED",
+          "payload": {
+            "step_id": "S3",
+            "action": "synthesize_response",
+            "description": "Sintetizar diagnóstico técnico y proponer plan de acción grounded",
+            "executor": "model",
+            "status": "in_progress",
+            "revision": 1,
+            "depends_on": [
+              "S2"
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.516278+00:00"
+        },
+        {
+          "event_id": "evt-v4-6a6d36978c",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 3,
+          "phase": "execution",
+          "correlation_id": "corr-0de76a71",
+          "type": "STEP_COMPLETED",
+          "payload": {
+            "step_id": "S3",
+            "action": "synthesize_response",
+            "executor": "model",
+            "status": "completed",
+            "revision": 1,
+            "duration_ms": 0.02,
+            "observation": {
+              "status": "success",
+              "recommendation": "### Diagnóstico y Plan de Acción para Ticket TICK-1001\n\n**Resumen Técnico del Incidente:**\n- **Código:** TICK-1001\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado Actual:** OPEN\n- **Nivel de Prioridad:** HIGH\n- **Categoría Técnica:** DATABASE\n- **Reportado por:** usr_carlos\n- **SLA Vencido:** SÍ (fuera de SLA, requiere atención prioritaria)\n\n**Detalle del Problema:**\nLa tabla de aportes registra bloqueos recurrentes durante el cierre diario\n\n**Plan de Acción Propuesto:**\n1. **Contención Inmediata:** Asignar ingeniero especialista en database para diagnosticar bloqueos concurrentes.\n2. **Inspección de Transacciones:** Analizar las sentencias SQL en las tablas afectadas durante ventanas de alta carga.\n3. **Gobernanza y Cierre:** Actualizar el estado del ticket y registrar notas técnicas de resolución conforme a las políticas de la cooperativa.",
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.607048+00:00"
+        },
+        {
+          "event_id": "evt-v4-5f84558d65",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 3,
+          "phase": "complete",
+          "correlation_id": "corr-0de76a71",
+          "type": "PLAN_COMPLETED",
+          "payload": {
+            "goal": "Diagnosticar ticket TICK-1001 y proponer plan",
+            "revision": 1,
+            "is_completed": true,
+            "steps_resolved_count": 3,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.607459+00:00"
+        },
+        {
+          "event_id": "evt-v4-deda90c78e",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 3,
+          "phase": "synthesis",
+          "correlation_id": "corr-0de76a71",
+          "type": "FINAL_SYNTHESIS",
+          "payload": {
+            "answer": "### Diagnóstico y Plan de Acción para Ticket TICK-1001\n\n**Resumen Técnico del Incidente:**\n- **Código:** TICK-1001\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado Actual:** OPEN\n- **Nivel de Prioridad:** HIGH\n- **Categoría Técnica:** DATABASE\n- **Reportado por:** usr_carlos\n- **SLA Vencido:** SÍ (fuera de SLA, requiere atención prioritaria)\n\n**Detalle del Problema:**\nLa tabla de aportes registra bloqueos recurrentes durante el cierre diario\n\n**Plan de Acción Propuesto:**\n1. **Contención Inmediata:** Asignar ingeniero especialista en database para diagnosticar bloqueos concurrentes.\n2. **Inspección de Transacciones:** Analizar las sentencias SQL en las tablas afectadas durante ventanas de alta carga.\n3. **Gobernanza y Cierre:** Actualizar el estado del ticket y registrar notas técnicas de resolución conforme a las políticas de la cooperativa.",
+            "content": "### Diagnóstico y Plan de Acción para Ticket TICK-1001\n\n**Resumen Técnico del Incidente:**\n- **Código:** TICK-1001\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado Actual:** OPEN\n- **Nivel de Prioridad:** HIGH\n- **Categoría Técnica:** DATABASE\n- **Reportado por:** usr_carlos\n- **SLA Vencido:** SÍ (fuera de SLA, requiere atención prioritaria)\n\n**Detalle del Problema:**\nLa tabla de aportes registra bloqueos recurrentes durante el cierre diario\n\n**Plan de Acción Propuesto:**\n1. **Contención Inmediata:** Asignar ingeniero especialista en database para diagnosticar bloqueos concurrentes.\n2. **Inspección de Transacciones:** Analizar las sentencias SQL en las tablas afectadas durante ventanas de alta carga.\n3. **Gobernanza y Cierre:** Actualizar el estado del ticket y registrar notas técnicas de resolución conforme a las políticas de la cooperativa.",
+            "message": "### Diagnóstico y Plan de Acción para Ticket TICK-1001\n\n**Resumen Técnico del Incidente:**\n- **Código:** TICK-1001\n- **Título:** Bloqueo transaccional en módulo de captación\n- **Estado Actual:** OPEN\n- **Nivel de Prioridad:** HIGH\n- **Categoría Técnica:** DATABASE\n- **Reportado por:** usr_carlos\n- **SLA Vencido:** SÍ (fuera de SLA, requiere atención prioritaria)\n\n**Detalle del Problema:**\nLa tabla de aportes registra bloqueos recurrentes durante el cierre diario\n\n**Plan de Acción Propuesto:**\n1. **Contención Inmediata:** Asignar ingeniero especialista en database para diagnosticar bloqueos concurrentes.\n2. **Inspección de Transacciones:** Analizar las sentencias SQL en las tablas afectadas durante ventanas de alta carga.\n3. **Gobernanza y Cierre:** Actualizar el estado del ticket y registrar notas técnicas de resolución conforme a las políticas de la cooperativa.",
+            "total_iterations": 3,
+            "revisions_count": 1,
+            "termination_reason": "plan_completed",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.607603+00:00"
+        },
+        {
+          "event_id": "evt-v4-ec25515729",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": 3,
+          "phase": "complete",
+          "correlation_id": "corr-0de76a71",
+          "type": "RUN_COMPLETED",
+          "payload": {
+            "status": "completed",
+            "stop_reason": "plan_completed",
+            "total_iterations": 3,
+            "total_tools_executed": 1,
+            "plan_revision": 1,
+            "plan_history_count": 0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.607917+00:00"
+        },
+        {
+          "event_id": "evt-v3-99176f0e37",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-a32ab377",
+          "iteration_index": null,
+          "phase": "persistence",
+          "correlation_id": "corr-0de76a71",
+          "type": "TURN_PERSISTED",
+          "payload": {
+            "turn_id": "turn-v4-1c8d4349",
+            "conversation_id": "conv-v4-059d82be",
+            "status": "stored_in_mysql",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:12.613985+00:00"
+        }
+      ]
+    },
+    {
+      "id": "v4-planning-stall",
+      "version": "v4",
+      "title": "Manejo de Fallo y Stall en Grafo DAG",
+      "description": "El agente detecta una condición de bloqueo o fallo crítico durante la ejecución de tareas dependientes, activando la parada segura y reportando la causa pedagógica del estancamiento.",
+      "suggestedPrompt": "Diagnosticar ticket TICK-9999 y proponer plan",
+      "persona": "usr_carlos",
+      "finalResponse": "Ejecución detenida de forma segura (Runtime Stall): Un paso crítico falló y los pasos subsiguientes tienen dependencias insatisfechas sin ruta de replanning alternativa.",
+      "pedagogicalConcepts": [
+        "Detección de dependencias no resueltas o fallos de precondición",
+        "Protocolo de parada segura (Fail-safe stall handling)",
+        "Explicabilidad diagnóstica en grafos de tareas agénticas"
+      ],
+      "isSynthetic": false,
+      "sourceNote": "Traza real auténtica capturada desde runtime sovereign Qwen 2.5 + FastAPI.",
+      "eventsCount": 10,
+      "events": [
+        {
+          "event_id": "evt-v4-f031ed115f",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 0,
+          "phase": "init",
+          "correlation_id": "corr-31502d3a",
+          "type": "USER_REQUEST",
+          "payload": {
+            "query": "Diagnosticar ticket TICK-9999 y proponer plan",
+            "persona": "usr_carlos",
+            "operator": "usr_carlos",
+            "conversation_id": "conv-v4-26a2d66e",
+            "session_id": "sess_default",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:14.664685+00:00"
+        },
+        {
+          "event_id": "evt-v3-422b77c353",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": null,
+          "phase": "hydration",
+          "correlation_id": "corr-31502d3a",
+          "type": "MEMORY_HYDRATED",
+          "payload": {
+            "conversation_id": "conv-v4-26a2d66e",
+            "turns_count": 0,
+            "decisions_count": 0,
+            "active_decisions": [],
+            "stats": {
+              "query_tokens": 12,
+              "system_prompt_tokens": 420,
+              "decisions_tokens": 0,
+              "decisions_count": 0,
+              "available_history_budget": 5580,
+              "history_tokens": 0,
+              "history_turns_count": 0,
+              "total_initial_tokens": 432,
+              "total_context_limit": 8192,
+              "max_context_budget": 8192,
+              "effective_app_budget": 8192,
+              "server_context_limit": 8192,
+              "model_context_capacity": 262144,
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:14.668879+00:00"
+        },
+        {
+          "event_id": "evt-v4-d23e607bbb",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 0,
+          "phase": "planning",
+          "correlation_id": "corr-31502d3a",
+          "type": "PLAN_GENERATED",
+          "payload": {
+            "goal": "Diagnosticar ticket TICK-9999 y proponer plan",
+            "revision": 1,
+            "steps_count": 3,
+            "steps": [
+              {
+                "id": "S1",
+                "action": "get_ticket_by_id",
+                "description": "Consultar información y estado del ticket TICK-9999",
+                "executor": "tool",
+                "status": "pending",
+                "depends_on": [],
+                "arguments": {
+                  "ticket_code": "TICK-9999",
+                  "_lab_mode": true
+                },
+                "observation": null,
+                "required": true,
+                "skip_reason": null,
+                "_lab_mode": true
+              },
+              {
+                "id": "S2",
+                "action": "analyze_ticket_data",
+                "description": "Analizar datos, estado y cumplimiento de SLA del ticket",
+                "executor": "runtime",
+                "status": "pending",
+                "depends_on": [
+                  "S1"
+                ],
+                "arguments": {
+                  "_lab_mode": true
+                },
+                "observation": null,
+                "required": true,
+                "skip_reason": null,
+                "_lab_mode": true
+              },
+              {
+                "id": "S3",
+                "action": "synthesize_response",
+                "description": "Sintetizar diagnóstico técnico y proponer plan de acción grounded",
+                "executor": "model",
+                "status": "pending",
+                "depends_on": [
+                  "S2"
+                ],
+                "arguments": {
+                  "_lab_mode": true
+                },
+                "observation": null,
+                "required": true,
+                "skip_reason": null,
+                "_lab_mode": true
+              }
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.897421+00:00"
+        },
+        {
+          "event_id": "evt-v4-e6bb1146e0",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 0,
+          "phase": "validation",
+          "correlation_id": "corr-31502d3a",
+          "type": "PLAN_VALIDATED",
+          "payload": {
+            "goal": "Diagnosticar ticket TICK-9999 y proponer plan",
+            "revision": 1,
+            "is_valid": true,
+            "steps_count": 3,
+            "step_ids": [
+              "S1",
+              "S2",
+              "S3"
+            ],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.897862+00:00"
+        },
+        {
+          "event_id": "evt-v4-46c967e80c",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-31502d3a",
+          "type": "STEP_STARTED",
+          "payload": {
+            "step_id": "S1",
+            "action": "get_ticket_by_id",
+            "description": "Consultar información y estado del ticket TICK-9999",
+            "executor": "tool",
+            "status": "in_progress",
+            "revision": 1,
+            "depends_on": [],
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.898092+00:00"
+        },
+        {
+          "event_id": "evt-v4-101dba5a02",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 1,
+          "phase": "execution",
+          "correlation_id": "corr-31502d3a",
+          "type": "STEP_FAILED",
+          "payload": {
+            "step_id": "S1",
+            "action": "get_ticket_by_id",
+            "executor": "tool",
+            "status": "failed",
+            "revision": 1,
+            "error": "Ticket con identificador 'TICK-9999' no fue encontrado.",
+            "observation": {
+              "status": "error",
+              "error_type": "entidad_no_encontrada",
+              "error": "Ticket con identificador 'TICK-9999' no fue encontrado.",
+              "result": {
+                "status": "error",
+                "error_type": "entidad_no_encontrada",
+                "message": "Ticket con identificador 'TICK-9999' no fue encontrado.",
+                "_lab_mode": true
+              },
+              "_lab_mode": true
+            },
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.987533+00:00"
+        },
+        {
+          "event_id": "evt-v4-4514108a29",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 1,
+          "phase": "stall",
+          "correlation_id": "corr-31502d3a",
+          "type": "PLAN_BLOCKED",
+          "payload": {
+            "termination_reason": "no_executable_steps",
+            "blocked_step_ids": [
+              "S2",
+              "S3"
+            ],
+            "revision": 1,
+            "message": "Runtime Stall: Existen pasos pendientes pero ninguno tiene sus dependencias resueltas.",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.987939+00:00"
+        },
+        {
+          "event_id": "evt-v4-b37505f143",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 1,
+          "phase": "synthesis",
+          "correlation_id": "corr-31502d3a",
+          "type": "FINAL_SYNTHESIS",
+          "payload": {
+            "answer": "Ejecución detenida de forma segura (Runtime Stall): Un paso crítico falló y los pasos subsiguientes tienen dependencias insatisfechas sin ruta de replanning alternativa.",
+            "content": "Ejecución detenida de forma segura (Runtime Stall): Un paso crítico falló y los pasos subsiguientes tienen dependencias insatisfechas sin ruta de replanning alternativa.",
+            "message": "Ejecución detenida de forma segura (Runtime Stall): Un paso crítico falló y los pasos subsiguientes tienen dependencias insatisfechas sin ruta de replanning alternativa.",
+            "total_iterations": 1,
+            "revisions_count": 1,
+            "termination_reason": "no_executable_steps",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.988062+00:00"
+        },
+        {
+          "event_id": "evt-v4-76224c1280",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": 1,
+          "phase": "complete",
+          "correlation_id": "corr-31502d3a",
+          "type": "RUN_COMPLETED",
+          "payload": {
+            "status": "failed",
+            "stop_reason": "no_executable_steps",
+            "total_iterations": 1,
+            "total_tools_executed": 1,
+            "plan_revision": 1,
+            "plan_history_count": 0,
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.988198+00:00"
+        },
+        {
+          "event_id": "evt-v3-28791c481c",
+          "agent_version": "v4",
+          "hop_number": null,
+          "hop_title": null,
+          "execution_id": "v4-exec-976b7390",
+          "iteration_index": null,
+          "phase": "persistence",
+          "correlation_id": "corr-31502d3a",
+          "type": "TURN_PERSISTED",
+          "payload": {
+            "turn_id": "turn-v4-9b6c9c47",
+            "conversation_id": "conv-v4-26a2d66e",
+            "status": "stored_in_mysql",
+            "_lab_mode": true
+          },
+          "timestamp": "2026-10-12T17:03:20.994132+00:00"
+        }
+      ]
+    }
+  ]
+}

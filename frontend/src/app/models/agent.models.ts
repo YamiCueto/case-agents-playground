@@ -39,6 +39,7 @@ export interface ChatMessage {
   timestamp: string;
   events?: StreamEvent[];
   isLoading?: boolean;
+  runId?: string;
 }
 
 export interface TicketSummary {

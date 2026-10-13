@@ -251,6 +251,7 @@ export function getTopologyForVersion(version: string): {
 export function getEventMapping(eventType: string, payload: any): SimulatorEventMapping {
   switch (eventType) {
     case 'USER_REQUEST':
+    case 'RUN_STARTED':
       return {
         activeNode: 'USER',
         targetNode: 'RUNTIME',
@@ -265,8 +266,11 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
       };
 
     case 'LLM_INFERENCE_START':
+    case 'INFERENCE_STARTED':
       return {
         activeNode: 'LLM',
+        targetNode: 'RUNTIME',
+        edgeId: 'runtime-llm',
         nodeState: 'waiting',
         stateBadge: 'Inferencia Activa',
         pedagogicalExplanation:
@@ -277,6 +281,7 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
       };
 
     case 'TOOL_PROPOSAL':
+    case 'TOOL_PROPOSED':
       return {
         activeNode: 'LLM',
         targetNode: 'RUNTIME',
@@ -285,14 +290,17 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
         stateBadge: 'Herramienta Propuesta',
         pedagogicalExplanation:
           'El LLM decidió que requiere información fáctica externa y propone ejecutar una función específica.',
-        whatLLMDid: `Propuso llamar a "${payload?.tool_name || payload?.name || 'herramienta'}" con argumentos JSON.`,
-        whatRuntimeDid: 'Recibe el JSON propuesto para someterlo a validación de tipos.',
+        whatLLMDid: `Propone invocar "${payload?.tool_name || payload?.name || 'herramienta'}" con argumentos JSON.`,
+        whatRuntimeDid: 'Valida esquema y permisos antes de ejecutar en base de datos.',
         technicalDetails: `Tool: ${payload?.tool_name || payload?.name} • Args: ${JSON.stringify(payload?.arguments || {})}`
       };
 
     case 'ARGUMENT_VALIDATION':
+    case 'ARGUMENTS_VALIDATED':
       return {
         activeNode: 'RUNTIME',
+        targetNode: 'TOOLS',
+        edgeId: 'runtime-tools',
         nodeState: 'active',
         stateBadge: 'Validación de Contrato',
         pedagogicalExplanation:
@@ -303,6 +311,8 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
       };
 
     case 'CPU_TOOL_EXECUTION':
+    case 'TOOL_EXECUTION_COMPLETED':
+    case 'TOOL_CALLED':
       return {
         activeNode: 'TOOLS',
         targetNode: 'RUNTIME',
@@ -317,6 +327,7 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
       };
 
     case 'TOOL_RESULT_INJECTION':
+    case 'OBSERVATION_RECEIVED':
       return {
         activeNode: 'RUNTIME',
         targetNode: 'LLM',
@@ -332,6 +343,7 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
 
     case 'FINAL_SYNTHESIS':
     case 'DIRECT_ANSWER':
+    case 'AGENT_NOT_READY':
       return {
         activeNode: 'LLM',
         targetNode: 'USER',
@@ -358,6 +370,7 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
       };
 
     case 'MEMORY_HYDRATED':
+    case 'PREFERENCE_DETECTED':
       return {
         activeNode: 'MEMORY',
         targetNode: 'RUNTIME',
@@ -387,6 +400,8 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
 
     case 'PLAN_GENERATED':
     case 'DAG_VALIDATED':
+    case 'TASK_DECOMPOSED':
+    case 'REPLAN_TRIGGERED':
       return {
         activeNode: 'PLANNER',
         targetNode: 'RUNTIME',
@@ -412,6 +427,20 @@ export function getEventMapping(eventType: string, payload: any): SimulatorEvent
         whatLLMDid: 'Espera el resultado del paso.',
         whatRuntimeDid: 'Despacha el ejecutor correspondiente (TOOL/RUNTIME/MODEL).',
         technicalDetails: `Step: ${payload?.step_id || 'N/A'} • Tipo: ${payload?.executor_type || 'TOOL'}`
+      };
+
+    case 'LOOP_ITERATION_STARTED':
+      return {
+        activeNode: 'RUNTIME',
+        targetNode: 'LLM',
+        edgeId: 'runtime-llm',
+        nodeState: 'active',
+        stateBadge: 'Iteración de Bucle',
+        pedagogicalExplanation:
+          'El runtime inicia una nueva iteración del Agent Loop para continuar resolviendo la meta.',
+        whatLLMDid: 'Recibe el estado acumulado y decide la siguiente acción.',
+        whatRuntimeDid: 'Verifica límites de iteración, repetición y tiempo.',
+        technicalDetails: `Iteración: ${payload?.iteration_index ?? 'N/A'}`
       };
 
     case 'ERROR':

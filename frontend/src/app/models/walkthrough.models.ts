@@ -69,6 +69,16 @@ export const GENERAL_WALKTHROUGH_STEPS: WalkthroughStep[] = [
     placement: 'top'
   },
   {
+    id: 'runtime-companion',
+    targetSelector: '[data-tour="tour-runtime-companion"]',
+    title: 'Runtime Companion (Miniinspector Integrado)',
+    description:
+      'Esta tarjeta aparece automáticamente dentro de la conversación durante cada ejecución. Explica en tiempo real qué están haciendo el modelo, el runtime y las herramientas, y permite expandir al simulador 3D.',
+    pedagogicalInsight:
+      'Observabilidad no invasiva: convierte cada interacción en una microclase sin obligarte a salir del flujo de chat.',
+    placement: 'right'
+  },
+  {
     id: 'inspector-header',
     targetSelector: '[data-tour="tour-inspector-header"]',
     title: 'Inspector de Ejecución',
